@@ -69,7 +69,7 @@
       messageDiv.className = 'message';
       
       try {
-        const response = await fetch('/game/verify-code', {
+        const response = await fetch('/coopgame/game/verify-code', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ code })
@@ -78,7 +78,7 @@
         const result = await response.json();
         
         if (result.success) {
-          window.location.href = `/game/play?attemptId=${result.attemptId}`;
+          window.location.href = `/coopgame/game/play?attemptId=${result.data.attemptId}`;
         } else {
           messageDiv.textContent = result.message;
           messageDiv.className = 'message error';

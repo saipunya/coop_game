@@ -18,12 +18,12 @@ app.set('views', path.join(__dirname, 'views'));
 // routes
 const gameRoutes = require('./routes/game.routes');
 const adminRoutes = require('./routes/admin.routes');
-app.use('/game', gameRoutes);
-app.use('/admin', adminRoutes);
+app.use('/coopgame/game', gameRoutes);
+app.use('/coopgame/admin', adminRoutes);
 
 // home route
 app.get('/', (req, res) => {
-  res.redirect('/game/start');
+  res.redirect('/coopgame/game/start');
 });
 
 // 404 handler

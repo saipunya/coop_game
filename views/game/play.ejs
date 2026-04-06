@@ -58,7 +58,7 @@
         <div class="result-card">
           <h2 id="resultTitle"></h2>
           <p id="resultMessage"></p>
-          <a href="/game/finish?attemptId=<%= attemptId %>" class="btn btn-primary">
+          <a href="/coopgame/game/finish?attemptId=<%= attemptId %>" class="btn btn-primary">
             ดูผลลัพธ์
           </a>
         </div>
@@ -80,19 +80,23 @@
 
     async function loadQuestion() {
       try {
-        const response = await fetch(`/game/api/question?attemptId=${attemptId}`);
+        console.log('[DEBUG] Loading question for attempt:', attemptId);
+        const response = await fetch(`/coopgame/game/api/question?attemptId=${attemptId}`);
         const result = await response.json();
+        
+        console.log('[DEBUG] Question result:', result);
 
-        if (result.success && result.question) {
-          displayQuestion(result.question);
+        if (result.success && result.data && result.data.question) {
+          displayQuestion(result.data.question);
         } else {
           // No more questions or error
-          window.location.href = `/game/finish?attemptId=${attemptId}`;
+          console.log('[DEBUG] No question, redirecting to finish');
+          window.location.href = `/coopgame/game/finish?attemptId=${attemptId}`;
         }
       } catch (error) {
         console.error('Error loading question:', error);
         alert('เกิดข้อผิดพลาด กรุณาลองใหม่');
-        window.location.href = '/game/start';
+        window.location.href = '/coopgame/game/start';
       }
     }
 
@@ -181,39 +185,37 @@
       });
 
       try {
-        const response = await fetch('/game/api/answer', {
+        const response = await fetch('/coopgame/game/api/answer', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            attemptId,
+            attemptId: attemptId,
             questionId: currentQuestion.id,
-            answer: answer || '',
-            responseTime
+            answer: answer,
+            responseTime: responseTime
           })
         });
 
         const result = await response.json();
+        console.log('[DEBUG] Answer result:', result);
 
-        if (result.success) {
-          if (result.isCorrect) {
+        if (!result.success || (result.data && result.data.gameOver)) {
+          // Game over - wrong answer or timeout
+          showGameOver(result.data ? result.data : { isCorrect: false });
+        } else if (result.success && result.data) {
+          if (result.data.isCorrect) {
             score++;
             document.getElementById('score').textContent = score;
           }
-
-          if (result.gameOver) {
-            showGameOver(result);
-          } else {
-            // Load next question
-            setTimeout(() => loadQuestion(), 1000);
-          }
+          setTimeout(() => loadQuestion(), 1000);
         } else {
           alert(result.message);
-          window.location.href = '/game/start';
+          window.location.href = '/coopgame/game/start';
         }
       } catch (error) {
         console.error('Error submitting answer:', error);
         alert('เกิดข้อผิดพลาด กรุณาลองใหม่');
-        window.location.href = '/game/start';
+        window.location.href = '/coopgame/game/start';
       }
     }
 

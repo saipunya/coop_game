@@ -38,7 +38,7 @@
 
           <% if (mode !== 'tv') { %>
             <div class="leaderboard-actions">
-              <a href="/game/start" class="btn btn-primary">
+              <a href="/coopgame/game/start" class="btn btn-primary">
                 เล่นเกม
               </a>
             </div>
@@ -48,9 +48,9 @@
         <div id="emptyLeaderboard" class="empty-leaderboard hidden">
           <p>ยังไม่มีผู้เล่น</p>
           <% if (mode !== 'tv') { %>
-            <a href="/game/start" class="btn btn-primary">
-              เริ่มเล่นเกม
-            </a>
+            <a href="/coopgame/game/start" class="btn btn-primary">
+                เริ่มเล่นเกม
+              </a>
           <% } %>
         </div>
       </div>
@@ -68,16 +68,25 @@
     const refreshInterval = isTVMode ? 10000 : 30000; // 10s for TV, 30s for mobile
 
     function loadLeaderboard() {
-      fetch('/game/api/leaderboard')
+      console.log('[DEBUG] Loading leaderboard...');
+      fetch('/coopgame/game/api/leaderboard')
         .then(response => response.json())
         .then(result => {
-          if (result.success) {
-            displayLeaderboard(result.data.leaderboard);
+          console.log('[DEBUG] Leaderboard result:', result);
+          if (result.success && result.data) {
+            // result.data is the leaderboard array directly
+            displayLeaderboard(result.data);
             document.getElementById('lastUpdated').textContent = new Date().toLocaleTimeString('th-TH');
+          } else {
+            console.error('[ERROR] Invalid response:', result);
+            document.getElementById('leaderboardLoading').classList.add('hidden');
+            document.getElementById('emptyLeaderboard').classList.remove('hidden');
           }
         })
         .catch(error => {
           console.error('Error loading leaderboard:', error);
+          document.getElementById('leaderboardLoading').classList.add('hidden');
+          document.getElementById('emptyLeaderboard').classList.remove('hidden');
         });
     }
 
@@ -102,7 +111,7 @@
           </div>
           <div class="score-info">
             <div class="score">${entry.score} ข้อ</div>
-            <div class="time">${entry.totalTime}s</div>
+            <div class="time">${entry.totalTime} วินาที</div>
           </div>
         </div>
       `).join('');

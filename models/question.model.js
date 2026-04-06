@@ -38,6 +38,14 @@ class QuestionModel {
     return rows;
   }
 
+  // Get all questions (including inactive) for admin
+  async getAll() {
+    const [rows] = await pool.query(
+      'SELECT * FROM questions ORDER BY difficulty, id DESC'
+    );
+    return rows;
+  }
+
   // Create new question
   async create(questionData) {
     const {

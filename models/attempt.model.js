@@ -59,7 +59,7 @@ class AttemptModel {
   // Get completed attempts for leaderboard
   async getCompletedAttempts(limit = 50, offset = 0) {
     const [rows] = await pool.query(
-      `SELECT id, player_name, score, total_time, finished_at 
+      `SELECT id, player_name, score, total_time, finished_at, started_at 
        FROM game_attempts 
        WHERE status = ? AND player_name IS NOT NULL 
        ORDER BY score DESC, total_time ASC, finished_at ASC 

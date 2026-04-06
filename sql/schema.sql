@@ -1,11 +1,11 @@
 -- Database Schema for Coop Game System
 -- Run this script to create the database and tables
 
-CREATE DATABASE IF NOT EXISTS coop_game
+CREATE DATABASE IF NOT EXISTS coopgame_db
 CHARACTER SET utf8mb4
 COLLATE utf8mb4_unicode_ci;
 
-USE coop_game;
+USE coopgame_db;
 
 -- Table: game_codes
 -- Stores generated game codes with 24-hour expiry

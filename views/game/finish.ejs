@@ -68,10 +68,10 @@
             <span class="rank-number" id="rankNumber">-</span>
           </div>
           <p>ขอบคุณที่ร่วมสนุก!</p>
-          <a href="/game/leaderboard" class="btn btn-secondary">
+          <a onclick="window.location.href = '/coopgame/game/leaderboard';" class="btn btn-secondary">
             ดู Leaderboard
           </a>
-          <a href="/game/start" class="btn btn-outline">
+          <a href="/coopgame/game/start" class="btn btn-outline">
             เล่นใหม่
           </a>
         </div>
@@ -96,7 +96,7 @@
       messageDiv.className = 'message';
       
       try {
-        const response = await fetch('/game/api/finish', {
+        const response = await fetch('/coopgame/game/api/finish', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ attemptId, playerName, phoneNumber })
@@ -104,10 +104,10 @@
         
         const result = await response.json();
         
-        if (result.success) {
+        if (result.success && result.data) {
           document.getElementById('playerForm').classList.add('hidden');
           document.getElementById('rankResult').classList.remove('hidden');
-          document.getElementById('rankNumber').textContent = '#' + result.rank;
+          document.getElementById('rankNumber').textContent = '#' + result.data.rank;
         } else {
           messageDiv.textContent = result.message;
           messageDiv.className = 'message error';

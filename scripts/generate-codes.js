@@ -6,6 +6,7 @@
  * Example: node scripts/generate-codes.js 50 24
  */
 
+require('dotenv').config();
 const pool = require('../config/database');
 const { generateGameCodes, calculateExpiry } = require('../utils/crypto');
 

@@ -149,7 +149,8 @@ class AdminService {
       if (difficulty) {
         questions = await questionModel.getByDifficulty(difficulty, 100);
       } else {
-        questions = await questionModel.getAllActive();
+        // Get all questions including inactive for admin
+        questions = await questionModel.getAll();
       }
       return { success: true, questions };
     } catch (error) {

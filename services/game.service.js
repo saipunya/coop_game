@@ -443,7 +443,8 @@ class GameService {
         playerName: attempt.player_name,
         score: attempt.score,
         totalTime: attempt.total_time,
-        finishedAt: attempt.finished_at
+        finishedAt: attempt.finished_at,
+        createdAt: attempt.started_at
       }));
 
       return {
