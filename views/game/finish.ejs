@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> - เกมตอบคำถามสหกรณ์</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <h1>🎮 เกมตอบคำถามสหกรณ์</h1>
+    </header>
+
+    <main class="main">
+      <div class="card result-card-large">
+        <h2>📊 ผลลัพธ์</h2>
+        
+        <div class="score-summary">
+          <div class="score-item">
+            <span class="score-label">คะแนน</span>
+            <span class="score-value"><%= score %>/<%= totalQuestions %></span>
+          </div>
+          <div class="score-item">
+            <span class="score-label">เวลารวม</span>
+            <span class="score-value"><%= totalTime %> วินาที</span>
+          </div>
+        </div>
+
+        <div id="playerForm" class="player-form">
+          <h3>บันทึกข้อมูลเพื่อรับรางวัล</h3>
+          <form id="finishForm" class="form">
+            <div class="form-group">
+              <label for="playerName">ชื่อ:</label>
+              <input 
+                type="text" 
+                id="playerName" 
+                name="playerName" 
+                placeholder="ชื่อของคุณ"
+                required
+              >
+            </div>
+            
+            <div class="form-group">
+              <label for="phoneNumber">เบอร์โทรศัพท์:</label>
+              <input 
+                type="tel" 
+                id="phoneNumber" 
+                name="phoneNumber" 
+                placeholder="08xxxxxxxx"
+                pattern="[0-9]{9,10}"
+                required
+              >
+              <small>เบอร์โทรศัพท์ 9-10 หลัก</small>
+            </div>
+            
+            <button type="submit" class="btn btn-primary btn-large">
+              บันทึกและดูอันดับ
+            </button>
+          </form>
+          
+          <div id="message" class="message"></div>
+        </div>
+
+        <div id="rankResult" class="rank-result hidden">
+          <h3>🏆 อันดับของคุณ</h3>
+          <div class="rank-display">
+            <span class="rank-number" id="rankNumber">-</span>
+          </div>
+          <p>ขอบคุณที่ร่วมสนุก!</p>
+          <a href="/game/leaderboard" class="btn btn-secondary">
+            ดู Leaderboard
+          </a>
+          <a href="/game/start" class="btn btn-outline">
+            เล่นใหม่
+          </a>
+        </div>
+      </div>
+    </main>
+
+    <footer class="footer">
+      <p>© 2026 กรมส่งเสริมสหกรณ์</p>
+    </footer>
+  </div>
+
+  <script>
+    const attemptId = <%= attemptId %>;
+
+    document.getElementById('finishForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const playerName = document.getElementById('playerName').value;
+      const phoneNumber = document.getElementById('phoneNumber').value;
+      const messageDiv = document.getElementById('message');
+      
+      messageDiv.textContent = 'กำลังบันทึก...';
+      messageDiv.className = 'message';
+      
+      try {
+        const response = await fetch('/game/api/finish', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ attemptId, playerName, phoneNumber })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          document.getElementById('playerForm').classList.add('hidden');
+          document.getElementById('rankResult').classList.remove('hidden');
+          document.getElementById('rankNumber').textContent = '#' + result.rank;
+        } else {
+          messageDiv.textContent = result.message;
+          messageDiv.className = 'message error';
+        }
+      } catch (error) {
+        console.error('Error finishing game:', error);
+        messageDiv.textContent = 'เกิดข้อผิดพลาด กรุณาลองใหม่';
+        messageDiv.className = 'message error';
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> - เกมตอบคำถามสหกรณ์</title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <% if (mode === 'tv') { %>
+    <link rel="stylesheet" href="/css/tv-mode.css">
+  <% } %>
+</head>
+<body class="<%= mode === 'tv' ? 'tv-mode' : '' %>">
+  <div class="container">
+    <header class="header">
+      <h1>🏆 Leaderboard</h1>
+      <% if (mode === 'tv') { %>
+        <div class="tv-badge">TV MODE</div>
+      <% } %>
+    </header>
+
+    <main class="main">
+      <div class="card leaderboard-card">
+        <div class="leaderboard-header">
+          <h2>อันดับผู้เล่น</h2>
+          <div class="last-updated">
+            อัปเดตล่าสุด: <span id="lastUpdated">-</span>
+          </div>
+        </div>
+
+        <div id="leaderboardLoading" class="loading">
+          <p>กำลังโหลด...</p>
+        </div>
+
+        <div id="leaderboardContent" class="leaderboard-content hidden">
+          <div id="leaderboardList" class="leaderboard-list">
+            <!-- Leaderboard entries will be inserted here -->
+          </div>
+
+          <% if (mode !== 'tv') { %>
+            <div class="leaderboard-actions">
+              <a href="/game/start" class="btn btn-primary">
+                เล่นเกม
+              </a>
+            </div>
+          <% } %>
+        </div>
+
+        <div id="emptyLeaderboard" class="empty-leaderboard hidden">
+          <p>ยังไม่มีผู้เล่น</p>
+          <% if (mode !== 'tv') { %>
+            <a href="/game/start" class="btn btn-primary">
+              เริ่มเล่นเกม
+            </a>
+          <% } %>
+        </div>
+      </div>
+    </main>
+
+    <% if (mode !== 'tv') { %>
+      <footer class="footer">
+        <p>© 2026 กรมส่งเสริมสหกรณ์</p>
+      </footer>
+    <% } %>
+  </div>
+
+  <script>
+    const isTVMode = '<%= mode %>' === 'tv';
+    const refreshInterval = isTVMode ? 10000 : 30000; // 10s for TV, 30s for mobile
+
+    function loadLeaderboard() {
+      fetch('/game/api/leaderboard')
+        .then(response => response.json())
+        .then(result => {
+          if (result.success) {
+            displayLeaderboard(result.data.leaderboard);
+            document.getElementById('lastUpdated').textContent = new Date().toLocaleTimeString('th-TH');
+          }
+        })
+        .catch(error => {
+          console.error('Error loading leaderboard:', error);
+        });
+    }
+
+    function displayLeaderboard(leaderboard) {
+      document.getElementById('leaderboardLoading').classList.add('hidden');
+
+      if (leaderboard.length === 0) {
+        document.getElementById('leaderboardContent').classList.add('hidden');
+        document.getElementById('emptyLeaderboard').classList.remove('hidden');
+        return;
+      }
+
+      document.getElementById('emptyLeaderboard').classList.add('hidden');
+      document.getElementById('leaderboardContent').classList.remove('hidden');
+
+      const list = document.getElementById('leaderboardList');
+      list.innerHTML = leaderboard.map((entry) => `
+        <div class="leaderboard-entry ${entry.rank <= 3 ? 'top-' + entry.rank : ''}">
+          <div class="rank">${entry.rank}</div>
+          <div class="player-info">
+            <div class="player-name">${entry.playerName}</div>
+          </div>
+          <div class="score-info">
+            <div class="score">${entry.score} ข้อ</div>
+            <div class="time">${entry.totalTime}s</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Initial load
+    loadLeaderboard();
+
+    // Auto refresh
+    setInterval(loadLeaderboard, refreshInterval);
+  </script>
+</body>
+</html>

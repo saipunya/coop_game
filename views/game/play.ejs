@@ -1,12 +1,248 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>เล่นเกม</title>
+
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> - เกมตอบคำถามสหกรณ์</title>
+  <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body>
-  <h1>หน้าเล่นเกม</h1>
-  <p>เริ่มต่อระบบคำถามที่หน้านี้ได้เลย</p>
+  <div class="container">
+    <header class="header game-header">
+      <div class="game-info">
+        <span class="score-display">คะแนน: <span id="score">0</span></span>
+        <span class="question-counter">ข้อ <span id="questionNum">1</span></span>
+      </div>
+    </header>
+
+    <main class="main game-main">
+      <div id="loading" class="loading">
+        <p>กำลังโหลดคำถาม...</p>
+      </div>
+
+      <div id="gameArea" class="game-area hidden">
+        <!-- Timer Bar -->
+        <div class="timer-container">
+          <div id="timerBar" class="timer-bar"></div>
+          <div id="timerText" class="timer-text">10</div>
+        </div>
+
+        <!-- Question -->
+        <div class="question-card">
+          <h2 id="questionText" class="question-text"></h2>
+        </div>
+
+        <!-- Options -->
+        <div class="options-grid">
+          <button class="option-btn" data-answer="A" id="btnA">
+            <span class="option-label">A</span>
+            <span class="option-text" id="textA"></span>
+          </button>
+          <button class="option-btn" data-answer="B" id="btnB">
+            <span class="option-label">B</span>
+            <span class="option-text" id="textB"></span>
+          </button>
+          <button class="option-btn" data-answer="C" id="btnC">
+            <span class="option-label">C</span>
+            <span class="option-text" id="textC"></span>
+          </button>
+          <button class="option-btn" data-answer="D" id="btnD">
+            <span class="option-label">D</span>
+            <span class="option-text" id="textD"></span>
+          </button>
+        </div>
+      </div>
+
+      <div id="resultArea" class="result-area hidden">
+        <div class="result-card">
+          <h2 id="resultTitle"></h2>
+          <p id="resultMessage"></p>
+          <a href="/game/finish?attemptId=<%= attemptId %>" class="btn btn-primary">
+            ดูผลลัพธ์
+          </a>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const attemptId = <%= attemptId %>;
+    let currentQuestion = null;
+    let score = 0;
+    let questionStartTime = 0;
+    let timerInterval = null;
+    let timeLeft = 0;
+    let isAnswering = false;
+
+    // Load first question
+    loadQuestion();
+
+    async function loadQuestion() {
+      try {
+        const response = await fetch(`/game/api/question?attemptId=${attemptId}`);
+        const result = await response.json();
+
+        if (result.success && result.question) {
+          displayQuestion(result.question);
+        } else {
+          // No more questions or error
+          window.location.href = `/game/finish?attemptId=${attemptId}`;
+        }
+      } catch (error) {
+        console.error('Error loading question:', error);
+        alert('เกิดข้อผิดพลาด กรุณาลองใหม่');
+        window.location.href = '/game/start';
+      }
+    }
+
+    function displayQuestion(question) {
+      currentQuestion = question;
+      isAnswering = false;
+
+      // Update UI
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('gameArea').classList.remove('hidden');
+      document.getElementById('resultArea').classList.add('hidden');
+
+      document.getElementById('questionText').textContent = question.text;
+      document.getElementById('textA').textContent = question.options.A;
+      document.getElementById('textB').textContent = question.options.B;
+      document.getElementById('textC').textContent = question.options.C;
+      document.getElementById('textD').textContent = question.options.D;
+      document.getElementById('questionNum').textContent = question.questionNumber;
+
+      // Reset timer
+      timeLeft = question.timeLimit;
+      document.getElementById('timerText').textContent = timeLeft;
+      document.getElementById('timerBar').style.width = '100%';
+      document.getElementById('timerBar').className = 'timer-bar';
+
+      // Start timer
+      startTimer(question.timeLimit);
+
+      // Enable buttons
+      document.querySelectorAll('.option-btn').forEach(btn => {
+        btn.disabled = false;
+        btn.classList.remove('correct', 'wrong', 'disabled');
+      });
+
+      // Record start time
+      questionStartTime = Date.now();
+      isAnswering = true;
+    }
+
+    function startTimer(seconds) {
+      if (timerInterval) clearInterval(timerInterval);
+
+      timerInterval = setInterval(() => {
+        timeLeft--;
+        document.getElementById('timerText').textContent = timeLeft;
+        
+        const percentage = (timeLeft / seconds) * 100;
+        document.getElementById('timerBar').style.width = percentage + '%';
+
+        // Change color when time is low
+        if (timeLeft <= 3) {
+          document.getElementById('timerBar').classList.add('timer-critical');
+        } else if (timeLeft <= 5) {
+          document.getElementById('timerBar').classList.add('timer-warning');
+        }
+
+        if (timeLeft <= 0) {
+          clearInterval(timerInterval);
+          handleTimeout();
+        }
+      }, 1000);
+    }
+
+    function handleTimeout() {
+      if (!isAnswering) return;
+      isAnswering = false;
+
+      submitAnswer(null, currentQuestion.timeLimit);
+    }
+
+    function handleAnswer(answer) {
+      if (!isAnswering) return;
+      isAnswering = false;
+
+      clearInterval(timerInterval);
+      const responseTime = Math.round((Date.now() - questionStartTime) / 1000);
+      
+      submitAnswer(answer, responseTime);
+    }
+
+    async function submitAnswer(answer, responseTime) {
+      // Disable all buttons
+      document.querySelectorAll('.option-btn').forEach(btn => {
+        btn.disabled = true;
+        btn.classList.add('disabled');
+      });
+
+      try {
+        const response = await fetch('/game/api/answer', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            attemptId,
+            questionId: currentQuestion.id,
+            answer: answer || '',
+            responseTime
+          })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          if (result.isCorrect) {
+            score++;
+            document.getElementById('score').textContent = score;
+          }
+
+          if (result.gameOver) {
+            showGameOver(result);
+          } else {
+            // Load next question
+            setTimeout(() => loadQuestion(), 1000);
+          }
+        } else {
+          alert(result.message);
+          window.location.href = '/game/start';
+        }
+      } catch (error) {
+        console.error('Error submitting answer:', error);
+        alert('เกิดข้อผิดพลาด กรุณาลองใหม่');
+        window.location.href = '/game/start';
+      }
+    }
+
+    function showGameOver(result) {
+      document.getElementById('gameArea').classList.add('hidden');
+      document.getElementById('resultArea').classList.remove('hidden');
+
+      const title = document.getElementById('resultTitle');
+      const message = document.getElementById('resultMessage');
+
+      if (result.reason === 'timeout') {
+        title.textContent = '⏰ หมดเวลา!';
+        message.textContent = `คุณตอบถูก ${result.finalScore} ข้อ`;
+      } else if (!result.isCorrect) {
+        title.textContent = '❌ ตอบผิด!';
+        message.textContent = `คุณตอบถูก ${result.finalScore} ข้อ`;
+      } else {
+        title.textContent = '🎉 ผ่านทุกข้อ!';
+        message.textContent = `คุณตอบถูก ${result.finalScore} ข้อ เวลารวม ${result.totalTime} วินาที`;
+      }
+    }
+
+    // Add click handlers to option buttons
+    document.querySelectorAll('.option-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const answer = btn.dataset.answer;
+        handleAnswer(answer);
+      });
+    });
+  </script>
 </body>
 </html>

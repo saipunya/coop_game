@@ -1,14 +1,94 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-  <meta charset="UTF-8" />
-  <title>เริ่มเกม</title>
+
+
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> - เกมตอบคำถามสหกรณ์</title>
+  <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body>
-  <h1>เกมตอบคำถามสหกรณ์</h1>
-  <form>
-    <input type="text" placeholder="กรอกรหัส" />
-    <button type="submit">เริ่มเล่น</button>
-  </form>
+  <div class="container">
+    <header class="header">
+      <h1>🎮 เกมตอบคำถามสหกรณ์</h1>
+    </header>
+
+    <main class="main">
+      <div class="card">
+        <h2>เริ่มเกม</h2>
+        <p>กรอกรหัสเพื่อเริ่มเล่นเกม</p>
+        
+        <form id="codeForm" class="form">
+          <div class="form-group">
+            <label for="code">รหัสเกม:</label>
+            <input 
+              type="text" 
+              id="code" 
+              name="code" 
+              maxlength="6" 
+              placeholder="ABC123"
+              autocomplete="off"
+              required
+            >
+            <small>รหัส 6 ตัวอักษร</small>
+          </div>
+          
+          <button type="submit" class="btn btn-primary btn-large">
+            เริ่มเกม
+          </button>
+        </form>
+
+        <div id="message" class="message"></div>
+      </div>
+
+      <div class="card info-card">
+        <h3>📋 กติกาการเล่น</h3>
+        <ul class="rules-list">
+          <li>ตอบคำถามทีละข้อ</li>
+          <li>ตอบผิดหรือหมดเวลา = เกมจบทันที</li>
+          <li>คำถามง่าย 10 วินาที | ปานกลาง 15 วินาที | ยาก 20 วินาที</li>
+          <li>ผู้ที่ตอบถูกมากที่สุดชนะ</li>
+          <li>ถ้าคะแนนเท่ากัน ใช้เวลารวมน้อยกว่าชนะ</li>
+        </ul>
+      </div>
+    </main>
+
+    <footer class="footer">
+      <p>© 2026 กรมส่งเสริมสหกรณ์</p>
+    </footer>
+  </div>
+
+  <script>
+    document.getElementById('codeForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const code = document.getElementById('code').value.toUpperCase();
+      const messageDiv = document.getElementById('message');
+      
+      messageDiv.textContent = 'กำลังตรวจสอบ...';
+      messageDiv.className = 'message';
+      
+      try {
+        const response = await fetch('/game/verify-code', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          window.location.href = `/game/play?attemptId=${result.attemptId}`;
+        } else {
+          messageDiv.textContent = result.message;
+          messageDiv.className = 'message error';
+        }
+      } catch (error) {
+        messageDiv.textContent = 'เกิดข้อผิดพลาด กรุณาลองใหม่';
+        messageDiv.className = 'message error';
+      }
+    });
+  </script>
+
 </body>
 </html>
