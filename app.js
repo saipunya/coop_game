@@ -10,10 +10,17 @@ app.use(express.urlencoded({ extended: true }));
 
 // static files
 app.use(express.static(path.join(__dirname, 'public')));
+app.use('/coopgame', express.static(path.join(__dirname, 'public')));
 
 // view engine
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
+
+// Asset base for views (works both direct and through proxy)
+app.use((req, res, next) => {
+  res.locals.assetBase = '/coopgame';
+  next();
+});
 
 // routes
 const gameRoutes = require('./routes/game.routes');
@@ -38,7 +45,7 @@ app.use((err, req, res, next) => {
 });
 
 // server start
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);
 });

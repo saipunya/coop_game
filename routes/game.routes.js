@@ -2,6 +2,10 @@ const express = require('express');
 const router = express.Router();
 const gameController = require('../controllers/game.controller');
 
+// Default redirect to start page
+router.get('/', (req, res) => {
+  res.redirect('/coopgame/game/start');
+});
 
 // Start page
 router.get('/start', gameController.renderStart);
