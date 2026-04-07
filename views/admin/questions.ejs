@@ -181,6 +181,7 @@
       border: 1px solid #ddd;
       border-radius: 5px;
     }
+
     @media (max-width: 768px) {
       .form-row {
         grid-template-columns: 1fr;
@@ -190,6 +191,102 @@
       }
       .stats-cards {
         grid-template-columns: repeat(2, 1fr);
+      }
+
+      .admin-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+      }
+
+      .admin-header > div {
+        width: 100%;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .admin-header > div .btn {
+        flex: 1 1 160px;
+      }
+
+      .question-form,
+      .admin-container > h2 {
+        margin-bottom: 20px;
+      }
+
+      .question-form {
+        padding: 20px;
+      }
+
+      .btn-group {
+        flex-wrap: wrap;
+      }
+
+      .btn-group .btn {
+        flex: 1 1 180px;
+      }
+
+      .search-box input {
+        width: 100%;
+      }
+
+      .filter-group {
+        flex-wrap: wrap;
+      }
+
+      .filter-group select {
+        flex: 1 1 180px;
+      }
+
+      .questions-table {
+        display: block;
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .questions-table th,
+      .questions-table td {
+        white-space: nowrap;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .admin-container {
+        padding: 12px;
+      }
+
+      .stats-cards {
+        grid-template-columns: 1fr;
+      }
+
+      .question-form {
+        padding: 16px;
+      }
+
+      .btn-group,
+      .admin-header > div {
+        flex-direction: column;
+      }
+
+      .btn-group .btn,
+      .admin-header > div .btn {
+        width: 100%;
+      }
+
+      .form-group input,
+      .form-group select,
+      .form-group textarea {
+        font-size: 16px;
+      }
+
+      .action-btns {
+        flex-direction: column;
+      }
+
+      .action-btns .btn {
+        width: 100%;
       }
     }
   </style>
@@ -202,6 +299,10 @@
         <a href="/coopgame/admin/" class="btn btn-outline">Dashboard</a>
         <a href="/coopgame/admin/codes" class="btn btn-secondary">จัดการรหัส</a>
         <a href="/coopgame/game/start" class="btn btn-primary">เล่นเกม</a>
+        <span style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+          <span style="font-weight:600; color:#333;">👤 <%= adminUser.username %></span>
+          <a href="/coopgame/admin/logout" class="btn btn-secondary">ออกจากระบบ</a>
+        </span>
       </div>
     </header>
 

@@ -1,8 +1,67 @@
 const adminService = require('../services/admin.service');
 const { success, error, validationError, notFound } = require('../utils/response');
+const {
+  clearAdminAuthCookie,
+  isAdminAuthenticated,
+  setAdminAuthCookie,
+  verifyAdminCredentials
+} = require('../utils/adminAuth');
 const logger = require('../utils/logger');
 
 class AdminController {
+  // Show login page
+  async showLogin(req, res) {
+    if (isAdminAuthenticated(req)) {
+      return res.redirect('/coopgame/admin');
+    }
+
+    return res.render('admin/login', {
+      title: 'Admin Login',
+      error: null,
+      username: ''
+    });
+  }
+
+  // Handle login
+  async login(req, res) {
+    try {
+      const username = (req.body.username || '').trim();
+      const password = req.body.password || '';
+
+      if (!username || !password) {
+        return res.status(400).render('admin/login', {
+          title: 'Admin Login',
+          error: 'กรุณากรอกชื่อผู้ใช้และรหัสผ่าน',
+          username
+        });
+      }
+
+      if (!verifyAdminCredentials(username, password)) {
+        return res.status(401).render('admin/login', {
+          title: 'Admin Login',
+          error: 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง',
+          username
+        });
+      }
+
+      setAdminAuthCookie(res, username, req);
+      return res.redirect('/coopgame/admin');
+    } catch (err) {
+      logger.error('Error logging in admin:', err);
+      return res.status(500).render('admin/login', {
+        title: 'Admin Login',
+        error: 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ',
+        username: req.body.username || ''
+      });
+    }
+  }
+
+  // Logout admin
+  async logout(req, res) {
+    clearAdminAuthCookie(res);
+    return res.redirect('/coopgame/admin/login');
+  }
+
   // Get dashboard statistics
   async getDashboard(req, res) {
     try {

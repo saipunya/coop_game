@@ -1,45 +1,27 @@
 const express = require('express');
 const router = express.Router();
 const adminController = require('../controllers/admin.controller');
+const { adminAuthMiddleware } = require('../utils/adminAuth');
 
-// Middleware for admin authentication (basic for now)
-const adminAuth = (req, res, next) => {
-  // Skip auth for page renders (use session/cookie in production)
-  if (req.accepts('html')) {
-    return next();
-  }
-  
-  const authHeader = req.headers.authorization;
-  
-  if (!authHeader) {
-    return res.status(401).json({ success: false, message: 'Authentication required' });
-  }
+// Login / logout routes
+router.get('/login', adminController.showLogin);
+router.post('/login', adminController.login);
+router.get('/logout', adminController.logout);
 
-  const auth = new Buffer.from(authHeader.split(' ')[1], 'base64').toString().split(':');
-  const user = auth[0];
-  const pass = auth[1];
-
-  if (user === process.env.ADMIN_USERNAME && pass === process.env.ADMIN_PASSWORD) {
-    return next();
-  } else {
-    return res.status(401).json({ success: false, message: 'Invalid credentials' });
-  }
-};
-
-// Apply auth to API routes only
-router.use('/api', adminAuth);
+// Apply auth to all remaining admin pages and API routes
+router.use(adminAuthMiddleware);
 
 // Page routes (render views)
 router.get('/questions', (req, res) => {
-  res.render('admin/questions', { title: 'จัดการคำถาม' });
+  res.render('admin/questions', { title: 'จัดการคำถาม', adminUser: res.locals.adminUser });
 });
 
 router.get('/codes', (req, res) => {
-  res.render('admin/codes', { title: 'จัดการรหัส' });
+  res.render('admin/codes', { title: 'จัดการรหัส', adminUser: res.locals.adminUser });
 });
 
 router.get('/', (req, res) => {
-  res.render('admin/dashboard', { title: 'Dashboard Admin' });
+  res.render('admin/dashboard', { title: 'Dashboard Admin', adminUser: res.locals.adminUser });
 });
 
 // Dashboard

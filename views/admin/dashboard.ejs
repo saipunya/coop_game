@@ -162,6 +162,79 @@
       .stats-grid {
         grid-template-columns: repeat(2, 1fr);
       }
+
+      .admin-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+      }
+
+      .btn-group {
+        width: 100%;
+        flex-wrap: wrap;
+      }
+
+      .btn-group .btn {
+        flex: 1 1 160px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .admin-container {
+        padding: 12px;
+      }
+
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .admin-header .btn-group {
+        flex-direction: column;
+      }
+
+      .admin-header .btn-group .btn {
+        width: 100%;
+      }
+
+      .card {
+        padding: 16px;
+      }
+
+      .card h2 {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+      }
+
+      .card h2 .date-filter {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .card h2 .date-filter select,
+      .card h2 .date-filter .refresh-btn {
+        width: 100%;
+      }
+
+      table {
+        display: block;
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      table th,
+      table td {
+        white-space: nowrap;
+      }
+
+      .daily-stat-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+      }
     }
   </style>
 </head>
@@ -173,6 +246,10 @@
         <a href="/coopgame/admin/questions" class="btn btn-secondary">จัดการคำถาม</a>
         <a href="/coopgame/admin/codes" class="btn btn-outline">จัดการรหัส</a>
         <a href="/coopgame/game/start" class="btn btn-primary">เล่นเกม</a>
+        <span style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+          <span style="font-weight:600; color:#fff;">👤 <%= adminUser.username %></span>
+          <a href="/coopgame/admin/logout" class="btn btn-secondary">ออกจากระบบ</a>
+        </span>
       </div>
     </header>
 

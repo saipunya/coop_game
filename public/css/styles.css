@@ -571,3 +571,188 @@ body {
     font-size: 2.5rem;
   }
 }
+
+@media (max-width: 768px) {
+  .container {
+    padding: 14px;
+  }
+
+  .header {
+    padding: 16px 0;
+  }
+
+  .header h1 {
+    font-size: 1.75rem;
+    line-height: 1.2;
+  }
+
+  .game-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    padding: 12px 16px;
+  }
+
+  .game-info {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    font-size: 0.95rem;
+  }
+
+  .score-display,
+  .question-counter {
+    width: 100%;
+    text-align: center;
+  }
+
+  .card,
+  .game-area,
+  .result-area {
+    padding: 18px;
+    border-radius: 14px;
+  }
+
+  .card h2 {
+    font-size: 1.25rem;
+  }
+
+  .question-text {
+    font-size: 1.1rem;
+  }
+
+  .option-btn {
+    padding: 14px 16px;
+    gap: 12px;
+  }
+
+  .option-label {
+    width: 34px;
+    height: 34px;
+    font-size: 0.95rem;
+  }
+
+  .timer-text {
+    font-size: 1.6rem;
+  }
+
+  .score-summary {
+    flex-direction: column;
+    gap: 16px;
+    padding: 18px;
+  }
+
+  .result-card h2 {
+    font-size: 1.6rem;
+  }
+
+  .result-card p {
+    font-size: 1rem;
+  }
+
+  .rank-number {
+    font-size: 3rem;
+  }
+
+  .leaderboard-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .leaderboard-entry {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .score-info {
+    text-align: left;
+  }
+
+  .player-name {
+    font-size: 1rem;
+  }
+
+  .score {
+    font-size: 1.05rem;
+  }
+
+  .btn {
+    width: 100%;
+  }
+
+  .btn-group .btn,
+  .leaderboard-actions .btn,
+  .empty-leaderboard .btn,
+  .player-form .btn {
+    width: 100%;
+    margin: 0;
+  }
+
+  .leaderboard-actions,
+  .empty-leaderboard,
+  .player-form {
+    text-align: center;
+  }
+
+  .footer {
+    font-size: 0.8rem;
+    padding: 16px 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: 10px;
+  }
+
+  .header h1 {
+    font-size: 1.45rem;
+  }
+
+  .card,
+  .game-area,
+  .result-area {
+    padding: 14px;
+  }
+
+  .card h2 {
+    font-size: 1.1rem;
+  }
+
+  .form-group input {
+    padding: 11px 14px;
+  }
+
+  .option-btn {
+    padding: 12px;
+    font-size: 1rem;
+  }
+
+  .option-label {
+    width: 30px;
+    height: 30px;
+    font-size: 0.9rem;
+  }
+
+  .timer-text {
+    font-size: 1.35rem;
+  }
+
+  .score-summary {
+    padding: 14px;
+  }
+
+  .rank-number {
+    font-size: 2.5rem;
+  }
+
+  .leaderboard-entry {
+    padding: 14px;
+  }
+
+  .footer {
+    font-size: 0.75rem;
+  }
+}

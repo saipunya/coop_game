@@ -195,6 +195,109 @@
       .stats-grid {
         grid-template-columns: repeat(2, 1fr);
       }
+
+      .admin-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+      }
+
+      .admin-header > div {
+        width: 100%;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .admin-header > div .btn {
+        flex: 1 1 160px;
+      }
+
+      .btn-group {
+        flex-wrap: wrap;
+      }
+
+      .btn-group .btn {
+        flex: 1 1 180px;
+      }
+
+      .filter-group {
+        flex-wrap: wrap;
+      }
+
+      .filter-group select {
+        flex: 1 1 180px;
+      }
+
+      .search-box input {
+        width: 100%;
+      }
+
+      .codes-grid {
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      }
+
+      table {
+        display: block;
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      table th,
+      table td {
+        white-space: nowrap;
+      }
+
+      .code-text {
+        font-size: 14px;
+        letter-spacing: 1px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .admin-container {
+        padding: 12px;
+      }
+
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .card {
+        padding: 16px;
+      }
+
+      .admin-header > div,
+      .btn-group {
+        flex-direction: column;
+      }
+
+      .admin-header > div .btn,
+      .btn-group .btn {
+        width: 100%;
+      }
+
+      .generate-form {
+        gap: 12px;
+      }
+
+      .codes-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .code-item {
+        font-size: 15px;
+        letter-spacing: 1px;
+      }
+
+      .pagination {
+        flex-wrap: wrap;
+      }
+
+      .pagination button {
+        flex: 1 1 120px;
+      }
     }
   </style>
 </head>
@@ -206,6 +309,10 @@
         <a href="/coopgame/admin/" class="btn btn-outline">Dashboard</a>
         <a href="/coopgame/admin/questions" class="btn btn-secondary">จัดการคำถาม</a>
         <a href="/coopgame/game/start" class="btn btn-primary">เล่นเกม</a>
+        <span style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+          <span style="font-weight:600; color:#333;">👤 <%= adminUser.username %></span>
+          <a href="/coopgame/admin/logout" class="btn btn-secondary">ออกจากระบบ</a>
+        </span>
       </div>
     </header>
 
@@ -349,7 +456,8 @@
         const result = await response.json();
         
         if (result.success && result.data) {
-          currentCodes = result.data;
+          const payload = result.data;
+          currentCodes = Array.isArray(payload) ? payload : (payload.codes || []);
           
           // Filter by search term
           let filtered = currentCodes;
