@@ -10,6 +10,20 @@ class GameCodeModel {
     return rows[0] || null;
   }
 
+  // Find existing codes from a list
+  async findExistingCodes(codes) {
+    if (!codes || codes.length === 0) {
+      return [];
+    }
+
+    const [rows] = await pool.query(
+      'SELECT code FROM game_codes WHERE code IN (?)',
+      [codes]
+    );
+
+    return rows.map(row => row.code);
+  }
+
   // Find code by ID with lock (for transaction)
   async findByIdForUpdate(id, connection) {
     const query = connection || pool;

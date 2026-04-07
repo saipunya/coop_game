@@ -10,10 +10,28 @@ class AdminService {
    */
   async generateCodes(count, expiryHours = 24) {
     try {
-      const codes = generateGameCodes(count);
+      const codes = await this.generateUniqueCodes(count);
       const expiresAt = calculateExpiry(expiryHours);
 
-      const createdCount = await gameCodeModel.createBatch(codes, expiresAt);
+      let createdCount;
+      try {
+        createdCount = await gameCodeModel.createBatch(codes, expiresAt);
+      } catch (error) {
+        if (error.code !== 'ER_DUP_ENTRY') {
+          throw error;
+        }
+
+        // A rare race condition can still insert a duplicate between the
+        // existence check and the batch insert. Retry once with a fresh batch.
+        const retryCodes = await this.generateUniqueCodes(count);
+        createdCount = await gameCodeModel.createBatch(retryCodes, expiresAt);
+        return {
+          success: true,
+          codes: retryCodes,
+          count: createdCount,
+          expiresAt: expiresAt
+        };
+      }
 
       logger.info(`Generated ${createdCount} game codes, expires at ${expiresAt}`);
 
@@ -27,6 +45,39 @@ class AdminService {
       logger.error('Error generating codes:', error);
       throw error;
     }
+  }
+
+  /**
+   * Generate codes that do not already exist in the database
+   */
+  async generateUniqueCodes(count) {
+    const uniqueCodes = new Set();
+    let attempts = 0;
+    const maxAttempts = 10;
+
+    while (uniqueCodes.size < count && attempts < maxAttempts) {
+      const needed = count - uniqueCodes.size;
+      const candidateCount = Math.max(needed * 2, needed);
+      const candidates = generateGameCodes(candidateCount);
+      const existingCodes = new Set(await gameCodeModel.findExistingCodes(candidates));
+
+      for (const code of candidates) {
+        if (!existingCodes.has(code)) {
+          uniqueCodes.add(code);
+          if (uniqueCodes.size === count) {
+            break;
+          }
+        }
+      }
+
+      attempts += 1;
+    }
+
+    if (uniqueCodes.size < count) {
+      throw new Error(`Unable to generate ${count} unique codes after ${maxAttempts} attempts`);
+    }
+
+    return Array.from(uniqueCodes);
   }
 
   /**

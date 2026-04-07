@@ -7,27 +7,18 @@
  */
 
 require('dotenv').config();
-const pool = require('../config/database');
-const { generateGameCodes, calculateExpiry } = require('../utils/crypto');
+const adminService = require('../services/admin.service');
 
 async function generateCodes(count, expiryHours = 24) {
   try {
     console.log(`Generating ${count} game codes...`);
 
-    const codes = generateGameCodes(count);
-    const expiresAt = calculateExpiry(expiryHours);
+    const result = await adminService.generateCodes(count, expiryHours);
 
-    const values = codes.map(code => [code, 'unused', expiresAt]);
-    
-    const [result] = await pool.query(
-      'INSERT INTO game_codes (code, status, expires_at) VALUES ?',
-      [values]
-    );
-
-    console.log(`✅ Successfully generated ${result.affectedRows} codes`);
-    console.log(`   Expires at: ${expiresAt.toISOString()}`);
+    console.log(`✅ Successfully generated ${result.count} codes`);
+    console.log(`   Expires at: ${new Date(result.expiresAt).toISOString()}`);
     console.log(`\nCodes:`);
-    codes.forEach((code, index) => {
+    result.codes.forEach((code, index) => {
       console.log(`   ${index + 1}. ${code}`);
     });
 
