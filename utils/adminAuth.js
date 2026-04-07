@@ -5,7 +5,7 @@ const SESSION_MAX_AGE_MS = 8 * 60 * 60 * 1000;
 
 function getAdminConfig() {
   const username = process.env.ADMIN_USERNAME || 'admin';
-  const password = process.env.ADMIN_PASSWORD || 'admin123';
+  const password = process.env.ADMIN_PASSWORD || 'sumet022';
   const secret = process.env.ADMIN_SESSION_SECRET || process.env.SESSION_SECRET || process.env.ADMIN_PASSWORD || 'coop-game-admin-secret';
 
   return { username, password, secret };
