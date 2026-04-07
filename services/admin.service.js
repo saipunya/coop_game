@@ -144,6 +144,37 @@ class AdminService {
   }
 
   /**
+   * Delete a code when it is safe to remove it from the system
+   */
+  async deleteCode(id) {
+    try {
+      const code = await gameCodeModel.findById(id);
+
+      if (!code) {
+        return { success: false, message: 'Code not found' };
+      }
+
+      if (code.status === 'used' || code.status === 'in_progress') {
+        return {
+          success: false,
+          message: 'ไม่สามารถลบรหัสที่ถูกใช้งานแล้วได้'
+        };
+      }
+
+      const deleted = await gameCodeModel.deleteById(id);
+      if (!deleted) {
+        return { success: false, message: 'Code not found' };
+      }
+
+      logger.info(`Deleted code ${code.code} (id: ${id})`);
+      return { success: true };
+    } catch (error) {
+      logger.error('Error deleting code:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Add new question
    */
   async addQuestion(questionData) {

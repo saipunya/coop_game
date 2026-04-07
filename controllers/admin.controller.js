@@ -128,6 +128,32 @@ class AdminController {
     }
   }
 
+  // Delete code
+  async deleteCode(req, res) {
+    try {
+      const id = parseInt(req.params.id, 10);
+
+      if (!id) {
+        return validationError(res, [{ msg: 'id is required' }]);
+      }
+
+      const result = await adminService.deleteCode(id);
+
+      if (!result.success) {
+        const statusCode = result.message === 'Code not found' ? 404 : 400;
+        return res.status(statusCode).json({
+          success: false,
+          message: result.message
+        });
+      }
+
+      return success(res, { id }, 'Code deleted successfully');
+    } catch (err) {
+      logger.error('Error deleting code:', err);
+      error(res, 'Failed to delete code');
+    }
+  }
+
   // Add question
   async addQuestion(req, res) {
     try {

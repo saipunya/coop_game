@@ -10,6 +10,15 @@ class GameCodeModel {
     return rows[0] || null;
   }
 
+  // Find code by ID
+  async findById(id) {
+    const [rows] = await pool.query(
+      'SELECT * FROM game_codes WHERE id = ?',
+      [id]
+    );
+    return rows[0] || null;
+  }
+
   // Find existing codes from a list
   async findExistingCodes(codes) {
     if (!codes || codes.length === 0) {
@@ -50,6 +59,15 @@ class GameCodeModel {
     const [result] = await query.query(
       'UPDATE game_codes SET status = ?, used_at = NOW() WHERE id = ?',
       [status, id]
+    );
+    return result.affectedRows > 0;
+  }
+
+  // Delete code by ID
+  async deleteById(id) {
+    const [result] = await pool.query(
+      'DELETE FROM game_codes WHERE id = ?',
+      [id]
     );
     return result.affectedRows > 0;
   }
