@@ -72,6 +72,19 @@ class GameCodeModel {
     return result.affectedRows > 0;
   }
 
+  // Delete codes by status values
+  async deleteByStatuses(statuses) {
+    if (!statuses || statuses.length === 0) {
+      return 0;
+    }
+
+    const [result] = await pool.query(
+      'DELETE FROM game_codes WHERE status IN (?)',
+      [statuses]
+    );
+    return result.affectedRows;
+  }
+
   // Create new code
   async create(code, expiresAt) {
     const [result] = await pool.query(

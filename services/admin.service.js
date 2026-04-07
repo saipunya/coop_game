@@ -144,6 +144,26 @@ class AdminService {
   }
 
   /**
+   * Clear removable codes from the system
+   * Only deletes unused and expired codes to keep game history intact.
+   */
+  async clearCodes() {
+    try {
+      const statusesToDelete = ['unused', 'expired'];
+      const deletedCount = await gameCodeModel.deleteByStatuses(statusesToDelete);
+
+      logger.info(`Cleared ${deletedCount} removable codes`);
+      return {
+        success: true,
+        count: deletedCount
+      };
+    } catch (error) {
+      logger.error('Error clearing codes:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Delete a code when it is safe to remove it from the system
    */
   async deleteCode(id) {

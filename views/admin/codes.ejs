@@ -384,6 +384,7 @@
       <div class="btn-group">
         <button type="submit" form="generateForm" class="btn btn-primary">🎲 สร้างรหัส</button>
         <button type="button" class="btn btn-outline" onclick="markExpired()">⏰ ทำเครื่องหมายหมดอายุ</button>
+        <button type="button" class="btn btn-danger" onclick="clearCodes()">🧹 เคลียร์รหัสทั้งหมด</button>
       </div>
       
       <div id="generatedCodes" class="generated-codes">
@@ -613,6 +614,30 @@
         }
       } catch (error) {
         console.error('Error:', error);
+        alert('เกิดข้อผิดพลาด กรุณาลองใหม่');
+      }
+    }
+
+    // Clear removable codes
+    async function clearCodes() {
+      if (!confirm('⚠️ ต้องการเคลียร์รหัสทั้งหมดหรือไม่? ระบบจะลบรหัสที่ยังไม่ถูกใช้งานและรหัสหมดอายุเท่านั้น')) return;
+
+      try {
+        const response = await fetch('/coopgame/admin/api/codes/clear', {
+          method: 'POST'
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          alert(`✅ เคลียร์รหัสที่ลบได้ทั้งหมด ${result.data.count} รหัส`);
+          loadStats();
+          loadCodes();
+        } else {
+          alert('❌ ' + result.message);
+        }
+      } catch (error) {
+        console.error('Error clearing codes:', error);
         alert('เกิดข้อผิดพลาด กรุณาลองใหม่');
       }
     }

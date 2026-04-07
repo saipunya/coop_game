@@ -32,6 +32,7 @@ router.post('/api/codes/generate', adminController.generateCodes);
 router.get('/api/codes', adminController.getCodes);
 router.get('/api/codes/stats', adminController.getCodeStats);
 router.post('/api/codes/mark-expired', adminController.markExpiredCodes);
+router.post('/api/codes/clear', adminController.clearCodes);
 router.delete('/api/codes/:id', adminController.deleteCode);
 
 // Question management

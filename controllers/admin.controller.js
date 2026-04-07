@@ -128,6 +128,17 @@ class AdminController {
     }
   }
 
+  // Clear removable codes
+  async clearCodes(req, res) {
+    try {
+      const result = await adminService.clearCodes();
+      success(res, { count: result.count }, `Cleared ${result.count} removable codes`);
+    } catch (err) {
+      logger.error('Error clearing codes:', err);
+      error(res, 'Failed to clear codes');
+    }
+  }
+
   // Delete code
   async deleteCode(req, res) {
     try {
