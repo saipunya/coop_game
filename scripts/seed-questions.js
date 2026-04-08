@@ -146,7 +146,7 @@ async function seedQuestions() {
       {
         question_text: 'สหกรณ์ต้องจดทะเบียนกับหน่วยงานใด?',
         option_a: 'กรมพาณิชย์',
-        option_b: 'กรมส่งเสริมสหกรณ์',
+        option_b: 'naimet',
         option_c: 'กรมที่ดิน',
         option_d: 'กรมบัญชีกลาง',
         correct_answer: 'B',
@@ -190,7 +190,7 @@ async function seedQuestions() {
 
       // Medium questions (15s) - 15 questions
       {
-        question_text: 'กรมส่งเสริมสหกรณ์สังกัดกระทรวงใด?',
+        question_text: 'naimetสังกัดกระทรวงใด?',
         option_a: 'กระทรวงเกษตรและสหกรณ์',
         option_b: 'กระทรวงมหาดไทย',
         option_c: 'กระทรวงพาณิชย์',
