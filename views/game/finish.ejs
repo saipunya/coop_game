@@ -37,8 +37,8 @@
                 id="playerName" 
                 name="playerName" 
                 placeholder="ชื่อของคุณ"
-                required
               >
+              <small>หากไม่ระบุชื่อ ระบบจะแสดงเป็น "ไม่ประสงค์จะออกนาม"</small>
             </div>
             
             <div class="form-group">
@@ -49,9 +49,8 @@
                 name="phoneNumber" 
                 placeholder="08xxxxxxxx"
                 pattern="[0-9]{9,10}"
-                required
               >
-              <small>เบอร์โทรศัพท์ 9-10 หลัก</small>
+              <small>เว้นว่างได้ หรือกรอกเป็นเบอร์โทรศัพท์ 9-10 หลัก</small>
             </div>
             
             <button type="submit" class="btn btn-primary btn-large">
@@ -88,8 +87,8 @@
 
     document.getElementById('finishForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const playerName = document.getElementById('playerName').value;
-      const phoneNumber = document.getElementById('phoneNumber').value;
+      const playerName = document.getElementById('playerName').value.trim();
+      const phoneNumber = document.getElementById('phoneNumber').value.trim();
       const messageDiv = document.getElementById('message');
       
       messageDiv.textContent = 'กำลังบันทึก...';

@@ -7,6 +7,8 @@ const attemptAnswerModel = require('../models/attemptAnswer.model');
 const { generateGameCode, shuffleArray, calculateExpiry } = require('../utils/crypto');
 const logger = require('../utils/logger');
 
+const ANONYMOUS_PLAYER_NAME = 'ไม่ประสงค์จะออกนาม';
+
 class GameService {
   /**
    * Verify game code and start game session
@@ -387,10 +389,17 @@ class GameService {
         return { success: false, message: 'ไม่พบเกม' };
       }
 
-      // Update player info
-      await attemptModel.updatePlayerInfo(attemptId, playerName, phoneNumber);
+      const normalizedPlayerName = typeof playerName === 'string' && playerName.trim()
+        ? playerName.trim()
+        : ANONYMOUS_PLAYER_NAME;
+      const normalizedPhoneNumber = typeof phoneNumber === 'string' && phoneNumber.trim()
+        ? phoneNumber.trim()
+        : null;
 
-      logger.info(`Attempt ${attemptId} finished with player: ${playerName}`);
+      // Update player info
+      await attemptModel.updatePlayerInfo(attemptId, normalizedPlayerName, normalizedPhoneNumber);
+
+      logger.info(`Attempt ${attemptId} finished with player: ${normalizedPlayerName}`);
 
       // Calculate rank
       const rank = await this.calculateRank(attempt.score, attempt.total_time, attempt.finished_at);

@@ -3,6 +3,8 @@ const gameService = require('../services/game.service');
 const { success, error, validationError, notFound } = require('../utils/response');
 const logger = require('../utils/logger');
 
+const ANONYMOUS_PLAYER_NAME = 'ไม่ประสงค์จะออกนาม';
+
 class GameController {
   // Render start page
   async renderStart(req, res) {
@@ -155,18 +157,20 @@ class GameController {
   async finishGame(req, res) {
     try {
       const { attemptId, playerName, phoneNumber } = req.body;
+      const normalizedPlayerName = typeof playerName === 'string' ? playerName.trim() : '';
+      const normalizedPhoneNumber = typeof phoneNumber === 'string' ? phoneNumber.trim() : '';
 
       console.log('[DEBUG] Finish game request:', { attemptId, playerName, phoneNumber });
 
-      if (!attemptId || !playerName || !phoneNumber) {
+      if (!attemptId) {
         console.log('[DEBUG] Missing required fields');
-        return validationError(res, [{ msg: 'กรุณากรอกข้อมูลให้ครบ' }]);
+        return validationError(res, [{ msg: 'ไม่พบข้อมูลการเล่นเกม' }]);
       }
 
       const result = await gameService.finishGame(
         parseInt(attemptId),
-        playerName.trim(),
-        phoneNumber.trim()
+        normalizedPlayerName || ANONYMOUS_PLAYER_NAME,
+        normalizedPhoneNumber
       );
 
       console.log('[DEBUG] Finish game result:', result);
