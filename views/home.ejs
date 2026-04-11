@@ -10,13 +10,16 @@
 <body class="landing-page">
   <div class="container-fluid landing-container">
     <header class="landing-header">
-      <div>
-        <p class="eyebrow">naimet.com • PM Program</p>
-        <h1>ระบบต้นแบบและผลงานจาก PM Program — naimet.com</h1>
+      <div class="brand" role="banner">
+        <div class="logo-mark">PM</div>
+        <div class="brand-text">
+          <p class="eyebrow">PM Program • naimet.com</p>
+          <h1 class="site-title">แพลตฟอร์มสาธิตและทดลองใช้งาน</h1>
+        </div>
       </div>
-      <div class="header-actions">
-        <a href="/coopgame/game/start" class="btn btn-primary">ทดลองใช้ CoopGame</a>
-      </div>
+      <nav class="header-actions" aria-label="Primary">
+        <a href="/coopgame/game/start" class="btn btn-primary">ทดลองใช้ฟรี</a>
+      </nav>
     </header>
 
     <main class="landing-main">
@@ -26,34 +29,83 @@
           <h1>เริ่มต้นใช้งานฟรีทันที</h1>
           <p>แพลตฟอร์ม SaaS ที่ใช้งานง่ายและน่าเชื่อถือ</p>
           <div class="cta-group">
-            <a href="/coopgame/game/start" class="btn btn-primary btn-large">ทดลองใช้ฟรี</a>
-            <a href="#features" class="btn btn-outline">ดูฟีเจอร์เพิ่มเติม</a>
+              <a href="/coopgame/game/start" class="btn btn-primary btn-large">ใช้ฟรีทันที</a>
+              <a href="#features" class="btn btn-outline">ดูฟีเจอร์เพิ่มเติม</a>
           </div>
         </div>
         <aside class="hero-aside">
-          <div class="image-container">
+          <div class="image-container img-frame">
             <img src="https://picsum.photos/600/400?random=1" alt="UI Mockup" class="hero-image img-rounded img-shadow">
             <div class="image-overlay"></div>
           </div>
         </aside>
       </section>
 
+      <!-- Programs Section -->
+      <section class="programs">
+        <h2>โปรแกรมน่าใช้</h2>
+        <p class="section-sub">เลือกโปรแกรมตัวอย่างจากรายการด้านล่างเพื่อทดลองใช้งานได้ทันที</p>
+        
+        
+          <div class="feature-grid">
+          <article class="product-card">
+            <div class="card-image-container img-frame">
+              <img src="https://picsum.photos/260/160?random=21" alt="CoopGame" class="product-image img-rounded img-shadow">
+            </div>
+            <h3>CoopGame</h3>
+            <p>เกมตอบคำถามสหกรณ์สำหรับการสาธิตและกิจกรรม — ทดลองเล่นได้ทันที</p>
+            <div style="margin-top:12px"><a href="/coopgame/game/start" class="btn btn-primary">ใช้ฟรีทันที</a></div>
+            
+          </article>
+
+          <article class="product-card">
+            <div class="card-image-container img-frame">
+              <img src="https://picsum.photos/260/160?random=22" alt="Demo Portal" class="product-image img-rounded img-shadow">
+            </div>
+            <h3>Demo Portal</h3>
+            <p>หน้าแสดงผลงานและการตั้งค่าตัวอย่าง เหมาะสำหรับทดสอบการติดตั้ง</p>
+            <div style="margin-top:12px"><a href="#features" class="btn btn-outline">ดูตัวอย่าง</a></div>
+            
+          </article>
+
+          <article class="product-card">
+            <div class="card-image-container img-frame">
+              <img src="https://picsum.photos/260/160?random=23" alt="Admin Console" class="product-image img-rounded img-shadow">
+            </div>
+            <h3>Admin Console</h3>
+            <p>ระบบจัดการข้อมูลหลังบ้านสำหรับองค์กร — ลองดูการใช้งานพื้นฐาน</p>
+            <div style="margin-top:12px"><a href="/admin" class="btn btn-outline">ไปที่ Admin</a></div>
+            
+          </article>
+        </div>
+      </section>
+
       <!-- How it works Section -->
       <section class="how-it-works">
-        <h2>วิธีการใช้งาน</h2>
+        <h2>เริ่มต้นใน 3 ขั้นตอน</h2>
+        <p class="section-sub">สมัคร → เลือกฟีเจอร์ → เริ่มใช้งาน — เรียบง่ายและเห็นผลเร็ว</p>
         <div class="steps">
           <div class="step">
-            <img src="https://picsum.photos/80/80?random=1" alt="Step 1">
+            <div class="icon-frame">
+              <div class="icon-bg"><img src="https://picsum.photos/100/100?random=11" alt="Step 1"></div>
+              <div class="step-badge">1</div>
+            </div>
             <h3>สมัครสมาชิก</h3>
             <p>กรอกข้อมูลและเริ่มต้นใช้งานได้ทันที</p>
           </div>
           <div class="step">
-            <img src="https://picsum.photos/80/80?random=2" alt="Step 2">
+            <div class="icon-frame">
+              <div class="icon-bg"><img src="https://picsum.photos/100/100?random=12" alt="Step 2"></div>
+              <div class="step-badge">2</div>
+            </div>
             <h3>เลือกฟีเจอร์</h3>
             <p>เลือกฟีเจอร์ที่เหมาะกับความต้องการของคุณ</p>
           </div>
           <div class="step">
-            <img src="https://picsum.photos/80/80?random=3" alt="Step 3">
+            <div class="icon-frame">
+              <div class="icon-bg"><img src="https://picsum.photos/100/100?random=13" alt="Step 3"></div>
+              <div class="step-badge">3</div>
+            </div>
             <h3>เริ่มใช้งาน</h3>
             <p>ทดลองใช้งานและดูผลลัพธ์ได้ทันที</p>
           </div>
@@ -66,38 +118,40 @@
         <p>ผู้ใช้งานกว่า 10,000 คนไว้วางใจ</p>
         <div class="trust-items">
           <div class="trust-item">
-            <img src="https://picsum.photos/60/60?random=4" alt="Trust 1">
+            <div class="img-frame" style="width:64px;height:64px"><img src="https://picsum.photos/60/60?random=4" alt="Trust 1"></div>
             <p>ใช้งานง่าย ไม่ต้องติดตั้ง</p>
           </div>
           <div class="trust-item">
-            <img src="https://picsum.photos/60/60?random=5" alt="Trust 2">
+            <div class="img-frame" style="width:64px;height:64px"><img src="https://picsum.photos/60/60?random=5" alt="Trust 2"></div>
             <p>ทดลองใช้ฟรี ไม่มีค่าใช้จ่าย</p>
           </div>
           <div class="trust-item">
-            <img src="https://picsum.photos/60/60?random=6" alt="Trust 3">
+            <div class="img-frame" style="width:64px;height:64px"><img src="https://picsum.photos/60/60?random=6" alt="Trust 3"></div>
             <p>รองรับทุกอุปกรณ์</p>
           </div>
         </div>
       </section>
 
       <section id="features" class="feature-grid">
+        <h2>ฟีเจอร์เด่น</h2>
+        <p class="section-sub">ฟีเจอร์หลักที่ช่วยให้การสาธิตและการจัดการงานเป็นเรื่องง่าย — ทดลองใช้งานหรือดูตัวอย่างได้ทันที</p>
         <article class="product-card">
-          <div class="card-image-container">
-            <img src="https://picsum.photos/150/150" alt="Feature 1" class="product-image img-rounded img-shadow">
+          <div class="card-image-container img-frame">
+            <img src="https://picsum.photos/420/260?random=31" alt="Feature 1" class="product-image img-rounded img-shadow">
           </div>
           <h3>CoopGame</h3>
           <p>เกมตอบคำถามสหกรณ์ สาธิตการใช้งานจริง เหมาะสำหรับกิจกรรมและฝึกอบรม</p>
         </article>
         <article class="product-card">
-          <div class="card-image-container">
-            <img src="https://picsum.photos/150/150" alt="Feature 2" class="product-image img-rounded img-shadow">
+          <div class="card-image-container img-frame">
+            <img src="https://picsum.photos/420/260?random=32" alt="Feature 2" class="product-image img-rounded img-shadow">
           </div>
           <h3>ระบบขาย/ทดลองใช้</h3>
           <p>หน้าแสดงผลงานและฟีเจอร์ พร้อมตัวอย่างการติดตั้งและการใช้งาน</p>
         </article>
         <article class="product-card">
-          <div class="card-image-container">
-            <img src="https://picsum.photos/150/150" alt="Feature 3" class="product-image img-rounded img-shadow">
+          <div class="card-image-container img-frame">
+            <img src="https://picsum.photos/420/260?random=33" alt="Feature 3" class="product-image img-rounded img-shadow">
           </div>
           <h3>ระบบจัดการข้อมูล</h3>
           <p>ระบบหลังบ้านสำหรับองค์กร ต่อยอดเป็น CRM หรือระบบสมาชิกได้</p>
@@ -127,17 +181,19 @@
         <div class="pricing-card">
           <h4>Basic</h4>
           <div class="price">ฟรี</div>
-          <p class="muted">เหมาะสำหรับสาธิตและทดสอบภายใน <strong>ไม่มีค่าใช้จ่าย</strong></p>
+          <p class="muted">เหมาะสำหรับสาธิตและทดสอบภายใน <strong>ใช้ฟรีทันที</strong></p>
         </div>
         <div class="pricing-card">
           <h4>Pro</h4>
           <div class="price">ติดต่อ</div>
           <p class="muted">ปรับแต่งแบรนด์และฟีเจอร์เพิ่มเติม</p>
+
         </div>
         <div class="pricing-card">
           <h4>Enterprise</h4>
           <div class="price">ติดต่อ</div>
           <p class="muted">โซลูชันเต็มรูปแบบสำหรับองค์กร</p>
+
         </div>
       </section>
 
@@ -154,12 +210,19 @@
         </form>
         <div class="contact-panel">
           <div class="panel-title">ข้อมูลการติดต่อ</div>
-          <p>ส่งอีเมลมาที่ <strong><a href="mailto:contact@naimet.com">contact@naimet.com</a></strong></p>
+          <p>ติดต่อผ่าน Line: <strong><a href="https://line.me/R/ti/p/saipunya" target="_blank" rel="noopener noreferrer">saipunya</a></strong> หรือ Telegram: <strong><a href="https://t.me/+66808281906" target="_blank" rel="noopener noreferrer">+66808281906</a></strong></p>
+          <div class="contact-icons">
+                  <a class="contact-btn contact-line" href="https://line.me/R/ti/p/saipun" target="_blank" rel="noopener noreferrer" aria-label="Line"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M4 3h16a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1h-4l-3 3-3-3H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" fill="#06C755"/></svg></a>
+            <a class="contact-btn contact-telegram" href="https://t.me/+66808281906" target="_blank" rel="noopener noreferrer" aria-label="Telegram"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M22 3L2 10l6 2 2 6 3-4 6-11z" fill="#0EA5E9"/></svg></a>
+          </div>
           <p>หรือโทร <strong>02-123-4567</strong></p>
           <p>เรายินดีให้บริการคุณทุกวันจันทร์ - ศุกร์ เวลา 9:00 - 18:00 น.</p>
         </div>
       </section>
     </main>
+    <footer class="footer">
+      <div>ระบบที่พัฒนาโดย PM Program · สนับสนุนโดย <a href="https://naimet.com">naimet.com</a></div>
+    </footer>
   </div>
   <script src="/coopgame/js/landing.js"></script>
 </body>
