@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700;800&display=swap">
+  <link rel="stylesheet" href="/css/styles.css">
+  <link rel="stylesheet" href="/css/landing.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> - แพลตฟอร์มทดลองใช้งาน</title>
+</head>
+<body class="landing-page">
+  <div class="container-fluid landing-container">
+    <header class="landing-header">
+      <div>
+        <p class="eyebrow">naimet.com • PM Program</p>
+        <h1>ระบบต้นแบบและผลงานจาก PM Program — naimet.com</h1>
+      </div>
+      <div class="header-actions">
+        <a href="/coopgame/game/start" class="btn btn-primary">ทดลองใช้ CoopGame</a>
+      </div>
+    </header>
+
+    <main class="landing-main">
+      <section class="hero-card">
+        <div class="hero-copy">
+          <p class="hero-tag">Presentation • Demo • Custom</p>
+          <h2>หน้าโชว์ผลงานแบบพรีเมียม สำหรับลูกค้าองค์กร</h2>
+          <p>รวมระบบที่พัฒนาโดยทีม PM Program ภายใต้แบรนด์ naimet.com — ดูสาธิต ทดลองใช้งาน และติดต่อจ้างงานได้ทันที</p>
+          <p class="highlight">ระบบของเราเน้นให้ <strong>ใช้งานฟรี</strong> เพื่อการเรียนรู้และทดลองใช้</p>
+          <div class="cta-group">
+            <a href="/coopgame/game/start" class="btn btn-primary btn-large">ดู CoopGame ตัวอย่าง</a>
+            <a href="#features" class="btn btn-outline">ดูผลิตภัณฑ์อื่น ๆ</a>
+          </div>
+        </div>
+        <aside class="hero-aside">
+          <img src="https://picsum.photos/300/300" alt="Hero Image" class="hero-image img-rounded img-shadow">
+        </aside>
+      </section>
+
+      <section id="features" class="feature-grid">
+        <article class="product-card">
+          <img src="https://picsum.photos/150/150" alt="Feature 1" class="product-image img-rounded img-shadow">
+          <h3>CoopGame</h3>
+          <p>เกมตอบคำถามสหกรณ์ สาธิตการใช้งานจริง เหมาะสำหรับกิจกรรมและฝึกอบรม</p>
+        </article>
+        <article class="product-card">
+          <img src="https://picsum.photos/150/150" alt="Feature 2" class="product-image img-rounded img-shadow">
+          <h3>ระบบขาย/ทดลองใช้</h3>
+          <p>หน้าแสดงผลงานและฟีเจอร์ พร้อมตัวอย่างการติดตั้งและการใช้งาน</p>
+        </article>
+        <article class="product-card">
+          <img src="https://picsum.photos/150/150" alt="Feature 3" class="product-image img-rounded img-shadow">
+          <h3>ระบบจัดการข้อมูล</h3>
+          <p>ระบบหลังบ้านสำหรับองค์กร ต่อยอดเป็น CRM หรือระบบสมาชิกได้</p>
+        </article>
+      </section>
+
+      <section class="testimonials">
+        <div class="testimonial">
+          <img src="https://picsum.photos/100/100" alt="Testimonial 1" class="testimonial-image img-rounded img-shadow">
+          <p>“ระบบจากทีม PM Program ทำให้การสาธิตกับลูกค้าง่ายขึ้นมาก — อินเตอร์เฟซสะอาดและเข้าใจง่าย”</p>
+          <div class="author">— คุณสมชาย, ผู้จัดการฝ่ายฝึกอบรม</div>
+        </div>
+        <div class="testimonial">
+          <img src="https://picsum.photos/100/100" alt="Testimonial 2" class="testimonial-image img-rounded img-shadow">
+          <p>“การปรับแต่งตามแบรนด์ของเราทำได้รวดเร็ว ทีมงานตอบโจทย์ได้ตรงประเด็น”</p>
+          <div class="author">— คุณวรินทร์, ผู้ประสานงานโครงการ</div>
+        </div>
+        <div class="testimonial">
+          <img src="https://picsum.photos/100/100" alt="Testimonial 3" class="testimonial-image img-rounded img-shadow">
+          <p>“ฟีเจอร์ทดลองใช้งานช่วยให้ลูกค้าตัดสินใจเร็วขึ้น — แนะนำเลย”</p>
+          <div class="author">— บริษัทตัวอย่าง จำกัด</div>
+        </div>
+      </section>
+
+      <section class="pricing-grid">
+        <div class="pricing-card">
+          <h4>Basic</h4>
+          <div class="price">ฟรี</div>
+          <p class="muted">เหมาะสำหรับสาธิตและทดสอบภายใน <strong>ไม่มีค่าใช้จ่าย</strong></p>
+        </div>
+        <div class="pricing-card">
+          <h4>Pro</h4>
+          <div class="price">ติดต่อ</div>
+          <p class="muted">ปรับแต่งแบรนด์และฟีเจอร์เพิ่มเติม</p>
+        </div>
+        <div class="pricing-card">
+          <h4>Enterprise</h4>
+          <div class="price">ติดต่อ</div>
+          <p class="muted">โซลูชันเต็มรูปแบบสำหรับองค์กร</p>
+        </div>
+      </section>
+
+      <section class="contact-form">
+        <form id="contactForm">
+          <input type="text" name="name" placeholder="ชื่อ" required>
+          <input type="email" name="email" placeholder="อีเมล" required>
+          <input type="text" name="company" placeholder="บริษัท / องค์กร">
+          <textarea name="message" rows="5" placeholder="รายละเอียดที่ต้องการ" required></textarea>
+          <button type="submit">ส่งข้อความ</button>
+          <div id="contactMessage" role="status" style="margin-top:10px"></div>
+        </form>
+        <div class="contact-panel">
+          <div class="panel-title">ติดต่อทีมพัฒนา</div>
+          <p>ส่งอีเมลมาที่ <strong>contact@naimet.com</strong> หรือคลิกปุ่มด้านบนเพื่อทดลองใช้งานทันที</p>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script src="/coopgame/js/landing.js"></script>
+</body>
+</html>

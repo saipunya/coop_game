@@ -30,7 +30,15 @@ app.use('/coopgame/admin', adminRoutes);
 
 // home route
 app.get('/', (req, res) => {
-  res.redirect('/coopgame/game/start');
+  res.render('home', { title: 'ยินดีต้อนรับ' });
+});
+
+// contact form endpoint (from landing page)
+app.post('/contact', (req, res) => {
+  const { name, email, company, message } = req.body;
+  // For now, log to server console. In production replace with DB/email integration.
+  console.log('[Contact]', { name, email, company, message });
+  res.json({ success: true, message: 'Received' });
 });
 
 // 404 handler
