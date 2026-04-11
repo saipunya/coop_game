@@ -1,14 +1,14 @@
 /* Landing page - premium minimal theme */
 :root{
-  --bg-1: #f5f5f5; /* light gray */
-  --bg-2: #e0e0e0; /* medium gray */
+  --bg-1: #FFFFFF; /* เปลี่ยนเป็นสีขาว */
+  --bg-2: #F8F9FB; /* สีเทาอ่อน */
   --accent: #3a2f24; /* deep brown */
   --muted: #6b625b;
   --gold: #b7893a;
 }
 
 body.landing-page {
-  background: linear-gradient(180deg, var(--bg-1), var(--bg-2));
+  background: #a8b1ac; /* เปลี่ยนจาก gradient เป็นสีขาวล้วน */
   color: var(--accent);
   overflow-x: hidden;
 }
@@ -18,10 +18,11 @@ body.landing-page {
   max-width: 1160px;
   margin: 40px auto;
   padding: 40px;
-  background: linear-gradient(135deg, #e9f7ee 0%, #d7f0db 100%); /* light green gradient */
+  background: #FFFFFF; /* เปลี่ยนจาก gradient เป็นสีขาวล้วน */
+  border: 1px solid #E5E7EB; /* เพิ่ม border เพื่อความชัดเจน */
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05); /* เพิ่ม shadow อ่อน ๆ */
   border-radius: 28px; /* soft rounded corners */
-  box-shadow: 0 30px 60px rgba(20, 60, 30, 0.08), 0 8px 18px rgba(20, 60, 30, 0.04); /* subtle green-tinted shadow */
-  border: 1px solid rgba(90, 160, 115, 0.08);
+  overflow: hidden;
 }
 
 .landing-page .container-fluid { width: 100%; }
@@ -173,4 +174,202 @@ body.landing-page {
 
 @media (max-width: 720px) {
   .landing-page .hero-aside .hero-image, .landing-page .hero-image { max-width: 100%; }
+}
+
+/* Hero Section */
+.hero-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 20px;
+  padding: 40px;
+  background: linear-gradient(135deg, #ffffff, #f8f9fb);
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+.hero-card .hero-copy {
+  flex: 1;
+}
+.hero-card .hero-copy h1 {
+  font-size: 2.5rem;
+  color: #111827;
+  margin-bottom: 10px;
+}
+.hero-card .hero-copy p {
+  font-size: 1.2rem;
+  color: #6B7280;
+  margin-bottom: 20px;
+}
+.hero-card .cta-group {
+  display: flex;
+  gap: 15px;
+}
+.hero-card .image-container {
+  position: relative;
+  max-width: 400px;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+}
+.hero-card .image-container .image-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.05);
+}
+.hero-card .hero-image {
+  width: 100%;
+  display: block;
+}
+
+/* Features Section */
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+  margin-top: 40px;
+}
+.product-card {
+  background: #ffffff;
+  border: 1px solid #E5E7EB;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  padding: 20px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.product-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+}
+.product-card .card-image-container {
+  margin-bottom: 15px;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+}
+.product-card .product-image {
+  width: 100%;
+  display: block;
+}
+
+/* Trust Section */
+.trust-section {
+  margin: 60px 0;
+  text-align: center;
+}
+.trust-section h2 {
+  font-size: 2rem;
+  color: var(--accent);
+  margin-bottom: 20px;
+}
+.trust-section .trust-items {
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+}
+.trust-section .trust-item {
+  text-align: center;
+  max-width: 200px;
+}
+.trust-section .trust-item img {
+  width: 60px;
+  height: 60px;
+  margin-bottom: 10px;
+}
+.trust-section .trust-item p {
+  font-size: 1rem;
+  color: var(--muted);
+}
+
+/* Footer */
+.footer {
+  margin-top: 60px;
+  padding: 20px;
+  text-align: center;
+  background: var(--bg-2);
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.footer a {
+  color: var(--accent);
+  text-decoration: none;
+}
+.footer a:hover {
+  text-decoration: underline;
+}
+
+/* General Layout */
+body {
+  background-color: #FFFFFF;
+  color: #111827;
+  font-family: 'Sarabun', sans-serif;
+  line-height: 1.6;
+}
+
+/* Section Styling */
+section {
+  padding: 60px 20px;
+}
+section:nth-child(even) {
+  background-color: #F8F9FB;
+}
+
+/* Card / Container */
+.card {
+  background-color: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  padding: 20px;
+  margin-bottom: 20px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+}
+
+/* CTA Button */
+.btn-primary {
+  background-color: #2563EB;
+  color: #FFFFFF;
+  padding: 12px 24px;
+  border-radius: 999px;
+  text-decoration: none;
+  font-weight: 600;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+.btn-primary:hover {
+  background-color: #1D4ED8;
+  box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
+}
+
+/* Typography */
+h1, h2, h3 {
+  color: #111827;
+  margin-bottom: 20px;
+}
+p {
+  color: #6B7280;
+  margin-bottom: 16px;
+}
+
+/* Shadow and Layering */
+.shadow-soft {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  section {
+    padding: 40px 10px;
+  }
+  .card {
+    padding: 16px;
+  }
+  .btn-primary {
+    padding: 10px 20px;
+  }
 }
