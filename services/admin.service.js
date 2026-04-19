@@ -310,6 +310,39 @@ class AdminService {
       throw error;
     }
   }
+
+  /**
+   * Conversion stats for admin dashboard
+   */
+  async getConversionStats() {
+    try {
+      const conversionModel = require('../models/conversionEvent.model');
+
+      const keys = [
+        'click_cta_hero', 'click_cta_nav', 'click_cta_system_game', 'click_cta_system_prize',
+        'click_cta_system_coopbot', 'click_cta_system_gov', 'click_cta_main', 'click_cta_mobile'
+      ];
+
+      const counts = await conversionModel.countByEventNames(keys);
+      const totalClicks = await conversionModel.countTotalClicks();
+      const visitors = await conversionModel.countByEventName('page_view');
+      const started = await conversionModel.countByEventName('onboard_start');
+      const latest = await conversionModel.latest(100);
+
+      return {
+        success: true,
+        data: {
+          counts,
+          totalClicks,
+          funnel: { visitors: visitors || 0, clicks: totalClicks || 0, started: started || 0 },
+          latest
+        }
+      };
+    } catch (error) {
+      logger.error('Error getting conversion stats:', error);
+      throw error;
+    }
+  }
 }
 
 module.exports = new AdminService();

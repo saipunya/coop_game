@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>เริ่มต้น — GameManager</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/css/onboarding.css">
+</head>
+<body class="onboard-page">
+  <main class="container py-4">
+    <!-- Welcome -->
+    <section class="welcome-section text-center py-4">
+      <div class="badge">เริ่มต้นใช้งานภายใน 1 นาที</div>
+      <h1 class="h2 mt-3">ยินดีต้อนรับสู่ GameManager</h1>
+      <p class="muted">เลือกระบบที่ต้องการทดลอง แล้วทำตาม 3 ขั้นตอนสั้น ๆ เพื่อให้ได้ผลลัพธ์แรกในเวลาอันสั้น</p>
+
+      <div class="quick-steps d-flex gap-2 justify-content-center mt-4">
+        <div class="step">1 <span>เลือกระบบ</span></div>
+        <div class="sep">›</div>
+        <div class="step">2 <span>ตั้งค่าเบื้องต้น</span></div>
+        <div class="sep">›</div>
+        <div class="step">3 <span>เริ่มใช้งาน</span></div>
+      </div>
+    </section>
+
+    <!-- System selection -->
+    <section class="systems py-3">
+      <h2 class="h5 mb-3">เลือกระบบที่ต้องการทดลอง</h2>
+        <div class="row g-3">
+        <div class="col-6 col-md-3">
+          <div class="card system-card h-100 <%= (query && query.system) === 'game' ? 'selected' : '' %>" data-system="game">
+            <div class="card-body d-flex flex-column">
+              <div class="icon">🎮</div>
+              <h3 class="h6 mt-2">Game Activity</h3>
+              <p class="small muted flex-grow-1">สร้างกิจกรรมและเกมเพื่ออบรมหรือสาธิต</p>
+              <a href="/coopgame/game/start?system=game" class="btn btn-primary mt-2" data-track="onboard-system-game">เริ่มใช้งาน</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-6 col-md-3">
+          <div class="card system-card h-100 <%= (query && query.system) === 'prize' ? 'selected' : '' %>" data-system="prize">
+            <div class="card-body d-flex flex-column">
+              <div class="icon">🎁</div>
+              <h3 class="h6 mt-2">Prize Marketing</h3>
+              <p class="small muted flex-grow-1">สุ่มของรางวัลและรันแคมเปญการตลาด</p>
+              <a href="/coopgame/game/start?system=prize" class="btn btn-primary mt-2" data-track="onboard-system-prize">เริ่มใช้งาน</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-6 col-md-3">
+          <div class="card system-card h-100 <%= (query && query.system) === 'coopbot' ? 'selected' : '' %>" data-system="coopbot">
+            <div class="card-body d-flex flex-column">
+              <div class="icon">🤖</div>
+              <h3 class="h6 mt-2">Coopbot AI</h3>
+              <p class="small muted flex-grow-1">ผู้ช่วยอัตโนมัติสำหรับคำถามและสรุปผล</p>
+              <a href="/coopgame/game/start?system=coopbot" class="btn btn-primary mt-2" data-track="onboard-system-coopbot">เริ่มใช้งาน</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-6 col-md-3">
+          <div class="card system-card h-100 <%= (query && query.system) === 'gov' ? 'selected' : '' %>" data-system="gov">
+            <div class="card-body d-flex flex-column">
+              <div class="icon">🏛️</div>
+              <h3 class="h6 mt-2">Planning System</h3>
+              <p class="small muted flex-grow-1">วางแผนและรายงานเหมาะกับหน่วยงาน</p>
+              <a href="/coopgame/game/start?system=gov" class="btn btn-primary mt-2" data-track="onboard-system-gov">เริ่มใช้งาน</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Quick start steps (expanded) -->
+    <section class="howto py-4">
+      <h3 class="h6">เริ่มต้นอย่างรวดเร็ว</h3>
+      <div class="row g-3 mt-3">
+        <div class="col-12 col-md-4">
+          <div class="card p-3">
+            <strong>1 — เลือกระบบ</strong>
+            <div class="muted small">เลือกระบบที่ใกล้เคียงกับงานของคุณ</div>
+          </div>
+        </div>
+        <div class="col-12 col-md-4">
+          <div class="card p-3">
+            <strong>2 — ตั้งค่าเบื้องต้น</strong>
+            <div class="muted small">ใช้เทมเพลต กรอกข้อมูลหลัก และบันทึก</div>
+          </div>
+        </div>
+        <div class="col-12 col-md-4">
+          <div class="card p-3">
+            <strong>3 — เริ่มใช้งาน</strong>
+            <div class="muted small">เปิดการทดลอง ดูผล และปรับค่าได้ทันที</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Optional email capture -->
+    <section class="email-capture py-3">
+      <div class="card p-3 d-flex flex-column flex-sm-row gap-2 align-items-center">
+        <div class="flex-grow-1">
+          <strong>บันทึกความคืบหน้า</strong>
+          <div class="muted small">กรอกอีเมลไว้เพื่อบันทึกการตั้งค่าและให้ทีมช่วยตามผล (ไม่บังคับ)</div>
+        </div>
+        <form id="onboardEmailForm" class="d-flex gap-2" action="/coopgame/game/start" method="get">
+          <input type="email" name="ref" class="form-control" placeholder="you@company.com" aria-label="email">
+          <button class="btn btn-outline-primary" type="submit" data-track="onboard-submit-email">บันทึก</button>
+        </form>
+      </div>
+    </section>
+
+    <!-- Help -->
+    <section class="help py-4 text-center">
+      <div class="muted">ติดปัญหา? ติดต่อเราได้ทันที</div>
+      <div class="d-flex gap-2 justify-content-center mt-3">
+        <a href="mailto:admin@example.com" class="btn btn-light" data-track="onboard-contact-email">Email</a>
+        <a href="https://line.me/R/ti/p/saipunya" class="btn btn-outline-dark" target="_blank" data-track="onboard-contact-line">Line</a>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Mobile sticky CTA (mirrors site) -->
+  <div id="mobileCta" class="mobile-cta" role="region" aria-label="เริ่มทดลองใช้ฟรี" aria-live="polite">
+    <div class="mobile-cta__inner">
+      <div class="mobile-cta__text">
+        <div class="mobile-cta__urgency">ทดลองใช้ฟรีวันนี้ • ไม่ต้องใช้บัตร</div>
+        <div class="mobile-cta__headline">เริ่มทดลองใช้ฟรีตอนนี้ — รับผลลัพธ์ภายใน 3 นาที</div>
+      </div>
+      <div class="mobile-cta__actions">
+        <a id="mobileCtaPrimary" href="/coopgame/game/start" class="btn btn-lg mobile-cta__btn" data-track="mobile-cta">เริ่มทดลองใช้ฟรีตอนนี้</a>
+        <button id="mobileCtaClose" class="mobile-cta__close" aria-label="ปิด" title="ปิด">✕</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Sync onboarding selection to mobile CTA: if user selected a system, add it to CTA href
+    (function(){
+      const mobilePrimary = document.getElementById('mobileCtaPrimary');
+      const closeBtn = document.getElementById('mobileCtaClose');
+      // extract system from query param (if present)
+      const params = new URLSearchParams(location.search);
+      const qSystem = params.get('system');
+      let selected = qSystem || null;
+
+      // if user clicks any onboard system button, update CTA
+      document.querySelectorAll('[data-track^="onboard-system-"]').forEach(btn => {
+        btn.addEventListener('click', function(e){
+          // anchor href may already contain system param; read it
+          const href = this.getAttribute('href') || '';
+          const m = href.match(/system=([^&]+)/);
+          if(m){ selected = m[1]; }
+          updateHref();
+        }, {passive:true});
+      });
+
+      function updateHref(){
+        let href = '/coopgame/game/start';
+        if(selected) href += '?system=' + encodeURIComponent(selected);
+        mobilePrimary.setAttribute('href', href);
+      }
+
+      // initialize
+      if(selected) updateHref();
+
+      // close handler uses tracking.js dismissal (close id used there)
+      if(closeBtn) closeBtn.addEventListener('click', function(e){ e.preventDefault(); mobileCta.classList.remove('mobile-cta--visible'); localStorage.setItem('mobileCtaHidden','1'); });
+    })();
+  </script>
+
+  <script src="/js/tracking.js"></script>
+</body>
+</html>

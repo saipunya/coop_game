@@ -288,6 +288,18 @@ class AdminController {
       error(res, 'Failed to get statistics');
     }
   }
+
+  // Render conversion dashboard page
+  async renderConversion(req, res) {
+    try {
+      const result = await adminService.getConversionStats();
+      const data = result.data;
+      return res.render('admin/conversion', { title: 'Conversion Dashboard', adminUser: res.locals.adminUser, data });
+    } catch (err) {
+      logger.error('Error rendering conversion dashboard:', err);
+      return res.status(500).send('Failed to render conversion dashboard');
+    }
+  }
 }
 
 module.exports = new AdminController();

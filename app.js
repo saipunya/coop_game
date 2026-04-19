@@ -25,8 +25,11 @@ app.use((req, res, next) => {
 // routes
 const gameRoutes = require('./routes/game.routes');
 const adminRoutes = require('./routes/admin.routes');
+const trackingRoutes = require('./routes/tracking.routes');
 app.use('/coopgame/game', gameRoutes);
 app.use('/coopgame/admin', adminRoutes);
+// tracking API
+app.use('/api', trackingRoutes);
 
 // home route
 app.get('/', (req, res) => {

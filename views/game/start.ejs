@@ -17,6 +17,9 @@
     <main class="main">
       <div class="card">
         <h2>เริ่มเกม</h2>
+        <% if (typeof query !== 'undefined' && query.system) { %>
+          <div class="alert alert-info">คุณมาเริ่มจากการเลือกระบบ: <strong><%= query.system %></strong></div>
+        <% } %>
         <p>กรอกรหัสเพื่อเริ่มเล่นเกม</p>
         
         <form id="codeForm" class="form">

@@ -1,0 +1,19 @@
+:root{ --onb-bg:#f8fbff; --muted:#64748b; --accent:#2563eb }
+body.onboard-page{ font-family: 'Sarabun', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; background:var(--onb-bg); color:#0f172a }
+.welcome-section .badge{ display:inline-block; background:rgba(37,99,235,0.08); color:var(--accent); padding:.35rem .6rem;border-radius:999px;font-weight:700}
+.quick-steps .step{ background:white; padding:.6rem .8rem; border-radius:10px; min-width:84px; font-weight:700 }
+.quick-steps .step span{ display:block; font-weight:500; font-size:.85rem; color:var(--muted) }
+.system-card .icon{ font-size:28px }
+.system-card h3{ font-weight:800 }
+.system-card p{ color:var(--muted) }
+.system-card .btn{ border-radius:10px }
+.system-card.selected{ border:2px solid #2563eb; box-shadow:0 18px 50px rgba(37,99,235,0.12); }
+.system-card.selected .icon{ transform:scale(1.05) }
+.howto .card{ border-radius:12px; box-shadow:0 8px 30px rgba(15,23,42,0.06) }
+.email-capture .card{ border-radius:12px }
+.help .btn{ min-width:110px }
+
+@media (max-width:767.98px){
+  .quick-steps{ gap:.4rem; flex-wrap:wrap }
+  .quick-steps .step{ min-width:60px; font-size:.95rem }
+}

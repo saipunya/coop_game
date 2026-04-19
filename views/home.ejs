@@ -1,229 +1,622 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700;800&display=swap">
-  <link rel="stylesheet" href="/css/styles.css">
-  <link rel="stylesheet" href="/css/landing.css">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><%= title %> - แพลตฟอร์มทดลองใช้งาน</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GameManager · ทดลองใช้ระบบได้ทันที</title>
+
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+  />
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+  />
+  <link rel="stylesheet" href="/css/landing.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Google Analytics 4: replace G-XXXXXXXXXX with your Measurement ID -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);} 
+    gtag('js', new Date());
+    gtag('config', 'G-XXXXXXXXXX');
+  </script>
+<style>
+  html, body { 
+    font-family: 'Sarabun', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; 
+  }
+
+</style>
 </head>
-<body class="landing-page">
-  <div class="container-fluid landing-container">
-    <header class="landing-header">
-      <div class="brand" role="banner">
-        <div class="logo-mark">PM</div>
-        <div class="brand-text">
-          <p class="eyebrow">PM Program • naimet.com</p>
-          <h1 class="site-title">แพลตฟอร์มสาธิตและทดลองใช้งาน</h1>
+<body class="landing-conversion-page">
+
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-light sticky-top landing-navbar">
+    <div class="container">
+      <a class="navbar-brand d-flex align-items-center gap-2" href="#">
+  <div class="brand-mark">GM</div>
+  <div>
+    <div class="brand-eyebrow">PM Program</div>
+    <div class="brand-title">GameManager</div>
+  </div>
+</a>
+
+<button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
+  <span class="navbar-toggler-icon"></span>
+</button>
+       
+      <div class="collapse navbar-collapse" id="mainNav">
+        <ul class="navbar-nav ms-auto align-items-lg-center">
+          <li class="nav-item"><a class="nav-link" href="#systems">ระบบ</a></li>
+          <li class="nav-item"><a class="nav-link" href="#results">ผลลัพธ์</a></li>
+          <li class="nav-item"><a class="nav-link" href="#why-us">จุดเด่น</a></li>
+          <li class="nav-item"><a class="nav-link" href="#faq">คำถามที่พบบ่อย</a></li>
+          <li class="nav-item"><a class="nav-link" href="#contact">ติดต่อ</a></li>
+        </ul>
+        <div class="ms-lg-3 mt-3 mt-lg-0">
+          <a href="/coopgame/game/start" class="btn btn-primary btn-nav-cta" data-track="nav-cta">
+            ลงทะเบียนฟรีทันที
+          </a>
         </div>
       </div>
-      <nav class="header-actions" aria-label="Primary">
-        <a href="/coopgame/game/start" class="btn btn-primary">ทดลองใช้ฟรี</a>
-      </nav>
-    </header>
+    </div>
+  </nav>
 
-    <main class="landing-main">
-      <!-- Hero Section -->
-      <section class="hero-card">
-        <div class="hero-copy">
-          <h1>เริ่มต้นใช้งานฟรีทันที</h1>
-          <p>แพลตฟอร์ม SaaS ที่ใช้งานง่ายและน่าเชื่อถือ</p>
-          <div class="cta-group">
-              <a href="/coopgame/game/start" class="btn btn-primary btn-large">ใช้ฟรีทันที</a>
-              <a href="#features" class="btn btn-outline">ดูฟีเจอร์เพิ่มเติม</a>
-          </div>
-        </div>
-        <aside class="hero-aside">
-          <div class="image-container img-frame">
-            <img src="https://picsum.photos/600/400?random=1" alt="UI Mockup" class="hero-image img-rounded img-shadow">
-            <div class="image-overlay"></div>
-          </div>
-        </aside>
-      </section>
+  <main>
+    <!-- Hero -->
+    <section id="hero" class="hero-section">
+      <div class="hero-glow hero-glow-1"></div>
+      <div class="hero-glow hero-glow-2"></div>
 
-      <!-- Programs Section -->
-      <section class="programs">
-        <h2>โปรแกรมน่าใช้</h2>
-        <p class="section-sub">เลือกโปรแกรมตัวอย่างจากรายการด้านล่างเพื่อทดลองใช้งานได้ทันที</p>
-        
-        
-          <div class="feature-grid">
-          <article class="product-card">
-            <div class="card-image-container img-frame">
-              <img src="https://picsum.photos/260/160?random=21" alt="CoopGame" class="product-image img-rounded img-shadow">
+      <div class="container">
+        <div class="row align-items-center gy-5">
+          <div class="col-lg-6">
+            <div class="hero-copy">
+              <span class="hero-badge">
+                <i class="bi bi-lightning-charge-fill"></i>
+                เริ่มใช้งานได้ทันที • ไม่ต้องตั้งค่าซับซ้อน
+              </span>
+
+              <h1 class="hero-title">
+                เปิดใช้ระบบกิจกรรม เกม ของรางวัล และ AI
+                <span>ได้ในที่เดียว ภายในไม่กี่นาที</span>
+              </h1>
+
+              <p class="hero-subtitle">
+                ลดเวลาการเตรียมงาน เพิ่มความน่าสนใจให้กิจกรรม และช่วยให้ทีมของคุณเริ่มทดลองใช้งานระบบจริงได้ทันที
+                ไม่ต้องเริ่มจากศูนย์ ไม่ต้องวุ่นกับการตั้งค่าที่ยุ่งยาก
+              </p>
+
+              <div class="hero-cta-group">
+                <a href="/coopgame/game/start" class="btn btn-primary btn-hero-primary" data-track="hero-cta">
+                  ลงทะเบียนฟรีทันที
+                </a>
+                <a href="#systems" class="btn btn-outline-dark btn-hero-secondary" data-track="hero-cta-secondary">
+                  ดูระบบทั้งหมด
+                </a>
+              </div>
+
+              <div class="hero-trust-list">
+                <div><i class="bi bi-check-circle-fill"></i> ไม่ต้องใช้บัตรเครดิต</div>
+                <div><i class="bi bi-check-circle-fill"></i> เปิดระบบได้ทันที</div>
+                <div><i class="bi bi-check-circle-fill"></i> ยกเลิกได้ทุกเมื่อ</div>
+              </div>
+
+              <div class="hero-mini-proof">
+                มีทีมงานคอยช่วยตั้งค่า • เหมาะกับงานฝึกอบรม การตลาด และหน่วยงานภาครัฐ
+              </div>
             </div>
-            <h3>CoopGame</h3>
-            <p>เกมตอบคำถามสหกรณ์สำหรับการสาธิตและกิจกรรม — ทดลองเล่นได้ทันที</p>
-            <div style="margin-top:12px"><a href="/coopgame/game/start" class="btn btn-primary">ใช้ฟรีทันที</a></div>
-            
-          </article>
+          </div>
 
-          <article class="product-card">
-            <div class="card-image-container img-frame">
-              <img src="https://picsum.photos/260/160?random=22" alt="Demo Portal" class="product-image img-rounded img-shadow">
+          <div class="col-lg-6">
+            <div class="hero-visual">
+              <div class="dashboard-shell">
+                <div class="browser-topbar">
+                  <span></span><span></span><span></span>
+                </div>
+
+                <div class="dashboard-content">
+                  <div class="dashboard-sidebar">
+                    <div class="sidebar-logo">GM</div>
+                    <div class="sidebar-line w-75"></div>
+                    <div class="sidebar-line w-100"></div>
+                    <div class="sidebar-line w-50"></div>
+                    <div class="sidebar-line w-100"></div>
+                  </div>
+
+                  <div class="dashboard-main">
+                    <div class="dashboard-metric-row">
+                      <div class="metric-card">
+                        <div class="metric-label">ผู้เข้าร่วม</div>
+                        <div class="metric-value">1,243</div>
+                      </div>
+                      <div class="metric-card">
+                        <div class="metric-label">Engagement</div>
+                        <div class="metric-value">+32%</div>
+                      </div>
+                      <div class="metric-card">
+                        <div class="metric-label">พร้อมใช้งาน</div>
+                        <div class="metric-value">4 ระบบ</div>
+                      </div>
+                    </div>
+
+                    <div class="dashboard-panel-grid">
+                      <div class="panel large-panel"></div>
+                      <div class="panel small-panel"></div>
+                      <div class="panel small-panel"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="floating-card floating-card-1">
+                <div class="floating-title">เปิดระบบเร็ว</div>
+                <strong>เริ่มได้ภายใน 1 นาที</strong>
+              </div>
+
+              <div class="floating-card floating-card-2">
+                <div class="floating-title">รองรับหลายงาน</div>
+                <strong>กิจกรรม · ของรางวัล · AI · แผนงาน</strong>
+              </div>
             </div>
-            <h3>Demo Portal</h3>
-            <p>หน้าแสดงผลงานและการตั้งค่าตัวอย่าง เหมาะสำหรับทดสอบการติดตั้ง</p>
-            <div style="margin-top:12px"><a href="#features" class="btn btn-outline">ดูตัวอย่าง</a></div>
-            
-          </article>
+          </div>
+        </div>
+      </div>
+    </section>
 
-          <article class="product-card">
-            <div class="card-image-container img-frame">
-              <img src="https://picsum.photos/260/160?random=23" alt="Admin Console" class="product-image img-rounded img-shadow">
+    <!-- Trust strip -->
+    <section class="trust-strip">
+      <div class="container">
+        <div class="trust-strip-inner">
+          <div class="trust-stat">
+            <strong>1,243+</strong>
+            <span>กำลังใช้งาน</span>
+          </div>
+          <div class="trust-stat">
+            <strong>65 องค์กร</strong>
+            <span>เริ่มใช้งานแล้ว</span>
+          </div>
+          <div class="trust-stat">
+            <strong>98%</strong>
+            <span>ความพึงพอใจ</span>
+          </div>
+          <div class="trust-stat">
+            <strong>ตอบเร็ว</strong>
+            <span>มีทีมช่วยดูแล</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Why now -->
+    <section class="pain-section" id="results">
+      <div class="container">
+        <div class="section-heading text-center">
+          <span class="section-kicker">ทำไมคนถึงตัดสินใจลอง</span>
+          <h2>เพราะปัญหาจริงไม่ใช่แค่ “ไม่มีระบบ” แต่คือ “เริ่มใช้ยากเกินไป”</h2>
+          <p>
+            เราออกแบบหน้าใช้งานและโครงสร้างระบบให้เริ่มได้เร็ว ลดความยุ่งยาก และช่วยให้ทีมเห็นผลลัพธ์จากการใช้งานได้เร็วกว่าเดิม
+          </p>
+        </div>
+
+        <div class="row g-4 mt-2">
+          <div class="col-lg-6">
+            <div class="compare-card compare-problem">
+              <div class="compare-badge">ปัญหาที่พบบ่อย</div>
+              <h3>ก่อนใช้ระบบ</h3>
+              <ul>
+                <li>ใช้หลายเครื่องมือแยกกัน จัดการยาก</li>
+                <li>ตั้งค่ากิจกรรมหรือเกมค่อนข้างนาน</li>
+                <li>ไม่มี dashboard ที่ดูภาพรวมได้ทันที</li>
+                <li>ทีมลังเลเพราะกลัวว่าระบบจะซับซ้อน</li>
+              </ul>
             </div>
-            <h3>Admin Console</h3>
-            <p>ระบบจัดการข้อมูลหลังบ้านสำหรับองค์กร — ลองดูการใช้งานพื้นฐาน</p>
-            <div style="margin-top:12px"><a href="/admin" class="btn btn-outline">ไปที่ Admin</a></div>
-            
-          </article>
-        </div>
-      </section>
+          </div>
 
-      <!-- How it works Section -->
-      <section class="how-it-works">
-        <h2>เริ่มต้นใน 3 ขั้นตอน</h2>
-        <p class="section-sub">สมัคร → เลือกฟีเจอร์ → เริ่มใช้งาน — เรียบง่ายและเห็นผลเร็ว</p>
-        <div class="steps">
-          <div class="step">
-            <div class="icon-frame">
-              <div class="icon-bg"><img src="https://picsum.photos/100/100?random=11" alt="Step 1"></div>
-              <div class="step-badge">1</div>
+          <div class="col-lg-6">
+            <div class="compare-card compare-solution">
+              <div class="compare-badge">สิ่งที่ได้หลังเริ่มใช้</div>
+              <h3>หลังใช้ GameManager</h3>
+              <ul>
+                <li>รวมหลายระบบไว้ในแพลตฟอร์มเดียว</li>
+                <li>เริ่มทดลองใช้งานได้ทันทีโดยไม่ต้องวางระบบยาว</li>
+                <li>เห็นผลลัพธ์และข้อมูลแบบเรียลไทม์</li>
+                <li>มีทีมช่วยตอบคำถามและช่วยตั้งค่าให้</li>
+              </ul>
             </div>
-            <h3>สมัครสมาชิก</h3>
-            <p>กรอกข้อมูลและเริ่มต้นใช้งานได้ทันที</p>
           </div>
-          <div class="step">
-            <div class="icon-frame">
-              <div class="icon-bg"><img src="https://picsum.photos/100/100?random=12" alt="Step 2"></div>
-              <div class="step-badge">2</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Systems -->
+    <section class="systems-section" id="systems">
+      <div class="container">
+        <div class="section-heading text-center">
+          <span class="section-kicker">เลือกระบบที่ตรงกับงานของคุณ</span>
+          <h2>ทุกระบบถูกออกแบบมาเพื่อให้ “เริ่มลองได้จริง” ไม่ใช่แค่ดูเดโม</h2>
+          <p>
+            ไม่ว่าคุณจะต้องการระบบกิจกรรม เกม ของรางวัล AI หรือเครื่องมือวางแผน
+            คุณสามารถเริ่มทดลองเฉพาะส่วนที่ต้องการได้ทันที
+          </p>
+        </div>
+
+        <div class="row g-4 mt-2">
+          <div class="col-md-6 col-xl-3">
+            <div class="system-card">
+              <div class="system-icon"><i class="bi bi-controller"></i></div>
+              <h3>Game Activity</h3>
+              <p>สร้างกิจกรรมและเกมเพื่ออบรม สาธิต หรือกระตุ้นการมีส่วนร่วมได้อย่างรวดเร็ว</p>
+              <ul>
+                <li>ตั้งค่าเร็ว</li>
+                <li>ดูผลแบบเรียลไทม์</li>
+                <li>เหมาะกับงานจริง</li>
+              </ul>
+              <a href="/coopgame/game/start?system=game" class="btn btn-primary w-100" data-track="system-game">
+                ทดลองใช้ฟรี
+              </a>
             </div>
-            <h3>เลือกฟีเจอร์</h3>
-            <p>เลือกฟีเจอร์ที่เหมาะกับความต้องการของคุณ</p>
           </div>
-          <div class="step">
-            <div class="icon-frame">
-              <div class="icon-bg"><img src="https://picsum.photos/100/100?random=13" alt="Step 3"></div>
-              <div class="step-badge">3</div>
+
+          <div class="col-md-6 col-xl-3">
+            <div class="system-card">
+              <div class="system-icon"><i class="bi bi-gift"></i></div>
+              <h3>Prize Marketing</h3>
+              <p>สร้างแคมเปญของรางวัล คูปอง หรือกิจกรรมส่งเสริมการขายเพื่อเพิ่ม conversion</p>
+              <ul>
+                <li>สุ่มรางวัลได้</li>
+                <li>ตั้งกติกาได้</li>
+                <li>ดึงคนมีส่วนร่วม</li>
+              </ul>
+              <a href="/coopgame/game/start?system=prize" class="btn btn-primary w-100" data-track="system-prize">
+                ทดลองใช้ฟรี
+              </a>
             </div>
-            <h3>เริ่มใช้งาน</h3>
-            <p>ทดลองใช้งานและดูผลลัพธ์ได้ทันที</p>
           </div>
-        </div>
-      </section>
 
-      <!-- Trust Section -->
-      <section class="trust-section">
-        <h2>ทำไมต้องเลือกเรา</h2>
-        <p>ผู้ใช้งานกว่า 10,000 คนไว้วางใจ</p>
-        <div class="trust-items">
-          <div class="trust-item">
-            <div class="img-frame" style="width:64px;height:64px"><img src="https://picsum.photos/60/60?random=4" alt="Trust 1"></div>
-            <p>ใช้งานง่าย ไม่ต้องติดตั้ง</p>
+          <div class="col-md-6 col-xl-3">
+            <div class="system-card">
+              <div class="system-icon"><i class="bi bi-robot"></i></div>
+              <h3>Coopbot AI</h3>
+              <p>ผู้ช่วย AI สำหรับตอบคำถาม สรุปข้อมูล และช่วยงานซ้ำ ๆ ให้ทีมทำงานได้เร็วขึ้น</p>
+              <ul>
+                <li>ตอบอัตโนมัติ</li>
+                <li>สรุปข้อมูลได้</li>
+                <li>ลดภาระทีมงาน</li>
+              </ul>
+              <a href="/coopgame/game/start?system=coopbot" class="btn btn-primary w-100" data-track="system-coopbot">
+                ทดลองใช้ฟรี
+              </a>
+            </div>
           </div>
-          <div class="trust-item">
-            <div class="img-frame" style="width:64px;height:64px"><img src="https://picsum.photos/60/60?random=5" alt="Trust 2"></div>
-            <p>ทดลองใช้ฟรี ไม่มีค่าใช้จ่าย</p>
-          </div>
-          <div class="trust-item">
-            <div class="img-frame" style="width:64px;height:64px"><img src="https://picsum.photos/60/60?random=6" alt="Trust 3"></div>
-            <p>รองรับทุกอุปกรณ์</p>
-          </div>
-        </div>
-      </section>
 
-      <section id="features" class="feature-grid">
-        <h2>ฟีเจอร์เด่น</h2>
-        <p class="section-sub">ฟีเจอร์หลักที่ช่วยให้การสาธิตและการจัดการงานเป็นเรื่องง่าย — ทดลองใช้งานหรือดูตัวอย่างได้ทันที</p>
-        <article class="product-card">
-          <div class="card-image-container img-frame">
-            <img src="https://picsum.photos/420/260?random=31" alt="Feature 1" class="product-image img-rounded img-shadow">
+          <div class="col-md-6 col-xl-3">
+            <div class="system-card">
+              <div class="system-icon"><i class="bi bi-building"></i></div>
+              <h3>Planning System</h3>
+              <p>เครื่องมือวางแผน กิจกรรม เป้าหมาย และรายงานผล เหมาะกับหน่วยงานและองค์กร</p>
+              <ul>
+                <li>ตามแผนงานได้</li>
+                <li>ดูความคืบหน้าได้</li>
+                <li>พร้อมต่อยอด</li>
+              </ul>
+              <a href="/coopgame/game/start?system=gov" class="btn btn-primary w-100" data-track="system-gov">
+                ทดลองใช้ฟรี
+              </a>
+            </div>
           </div>
-          <h3>CoopGame</h3>
-          <p>เกมตอบคำถามสหกรณ์ สาธิตการใช้งานจริง เหมาะสำหรับกิจกรรมและฝึกอบรม</p>
-        </article>
-        <article class="product-card">
-          <div class="card-image-container img-frame">
-            <img src="https://picsum.photos/420/260?random=32" alt="Feature 2" class="product-image img-rounded img-shadow">
+        </div>
+      </div>
+    </section>
+
+    <!-- Benefits -->
+    <section class="benefits-section" id="why-us">
+      <div class="container">
+        <div class="section-heading text-center">
+          <span class="section-kicker">เหตุผลที่คนตัดสินใจเริ่มตอนนี้</span>
+          <h2>เพราะเราไม่ได้ขายแค่ฟีเจอร์ แต่ช่วยให้คุณเริ่มใช้งานได้เร็วขึ้น</h2>
+        </div>
+
+        <div class="row g-4 mt-2">
+          <div class="col-md-6 col-xl-3">
+            <div class="benefit-card">
+              <div class="benefit-icon"><i class="bi bi-lightning-charge-fill"></i></div>
+              <h3>เริ่มได้เร็ว</h3>
+              <p>เปิดทดลองได้ทันที ไม่ต้องเสียเวลาจัดเตรียมระบบเองนาน</p>
+            </div>
           </div>
-          <h3>ระบบขาย/ทดลองใช้</h3>
-          <p>หน้าแสดงผลงานและฟีเจอร์ พร้อมตัวอย่างการติดตั้งและการใช้งาน</p>
-        </article>
-        <article class="product-card">
-          <div class="card-image-container img-frame">
-            <img src="https://picsum.photos/420/260?random=33" alt="Feature 3" class="product-image img-rounded img-shadow">
+
+          <div class="col-md-6 col-xl-3">
+            <div class="benefit-card">
+              <div class="benefit-icon"><i class="bi bi-graph-up-arrow"></i></div>
+              <h3>เห็นผลลัพธ์เร็ว</h3>
+              <p>ดูข้อมูลและภาพรวมการใช้งานได้เร็ว ช่วยให้ตัดสินใจได้ง่ายขึ้น</p>
+            </div>
           </div>
-          <h3>ระบบจัดการข้อมูล</h3>
-          <p>ระบบหลังบ้านสำหรับองค์กร ต่อยอดเป็น CRM หรือระบบสมาชิกได้</p>
-        </article>
-      </section>
 
-      <section class="testimonials">
-        <h2>เสียงจากผู้ใช้งาน</h2>
-        <div class="testimonial">
-          <img src="https://picsum.photos/100/100" alt="Testimonial 1" class="testimonial-image img-rounded img-shadow">
-          <p>“ระบบจากทีม PM Program ทำให้การสาธิตกับลูกค้าง่ายขึ้นมาก — อินเตอร์เฟซสะอาดและเข้าใจง่าย”</p>
-          <div class="author">— คุณสมชาย, ผู้จัดการฝ่ายฝึกอบรม</div>
-        </div>
-        <div class="testimonial">
-          <img src="https://picsum.photos/100/100" alt="Testimonial 2" class="testimonial-image img-rounded img-shadow">
-          <p>“การปรับแต่งตามแบรนด์ของเราทำได้รวดเร็ว ทีมงานตอบโจทย์ได้ตรงประเด็น”</p>
-          <div class="author">— คุณวรินทร์, ผู้ประสานงานโครงการ</div>
-        </div>
-        <div class="testimonial">
-          <img src="https://picsum.photos/100/100" alt="Testimonial 3" class="testimonial-image img-rounded img-shadow">
-          <p>“ฟีเจอร์ทดลองใช้งานช่วยให้ลูกค้าตัดสินใจเร็วขึ้น — แนะนำเลย”</p>
-          <div class="author">— บริษัทตัวอย่าง จำกัด</div>
-        </div>
-      </section>
-
-      <section class="pricing-grid">
-        <div class="pricing-card">
-          <h4>Basic</h4>
-          <div class="price">ฟรี</div>
-          <p class="muted">เหมาะสำหรับสาธิตและทดสอบภายใน <strong>ใช้ฟรีทันที</strong></p>
-        </div>
-        <div class="pricing-card">
-          <h4>Pro</h4>
-          <div class="price">ติดต่อ</div>
-          <p class="muted">ปรับแต่งแบรนด์และฟีเจอร์เพิ่มเติม</p>
-
-        </div>
-        <div class="pricing-card">
-          <h4>Enterprise</h4>
-          <div class="price">ติดต่อ</div>
-          <p class="muted">โซลูชันเต็มรูปแบบสำหรับองค์กร</p>
-
-        </div>
-      </section>
-
-      <section class="contact-form">
-        <form id="contactForm">
-          <h2>ติดต่อทีมพัฒนา</h2>
-          <p>หากคุณมีคำถามหรือข้อสงสัย สามารถส่งข้อความถึงเราได้ทันที</p>
-          <input type="text" name="name" placeholder="ชื่อ" required>
-          <input type="email" name="email" placeholder="อีเมล" required>
-          <input type="text" name="company" placeholder="บริษัท / องค์กร">
-          <textarea name="message" rows="5" placeholder="รายละเอียดที่ต้องการ" required></textarea>
-          <button type="submit" class="btn btn-primary">ส่งข้อความ</button>
-          <div id="contactMessage" role="status" style="margin-top:10px"></div>
-        </form>
-        <div class="contact-panel">
-          <div class="panel-title">ข้อมูลการติดต่อ</div>
-          <p>ติดต่อผ่าน Line: <strong><a href="https://line.me/R/ti/p/saipunya" target="_blank" rel="noopener noreferrer">saipunya</a></strong> หรือ Telegram: <strong><a href="https://t.me/+66808281906" target="_blank" rel="noopener noreferrer">+66808281906</a></strong></p>
-          <div class="contact-icons">
-                  <a class="contact-btn contact-line" href="https://line.me/R/ti/p/saipun" target="_blank" rel="noopener noreferrer" aria-label="Line"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M4 3h16a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1h-4l-3 3-3-3H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" fill="#06C755"/></svg></a>
-            <a class="contact-btn contact-telegram" href="https://t.me/+66808281906" target="_blank" rel="noopener noreferrer" aria-label="Telegram"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M22 3L2 10l6 2 2 6 3-4 6-11z" fill="#0EA5E9"/></svg></a>
+          <div class="col-md-6 col-xl-3">
+            <div class="benefit-card">
+              <div class="benefit-icon"><i class="bi bi-shield-check"></i></div>
+              <h3>ลดความเสี่ยง</h3>
+              <p>ทดลองก่อน ใช้จริงทีหลัง ช่วยให้ทีมมั่นใจก่อนตัดสินใจ</p>
+            </div>
           </div>
-          <p>หรือโทร <strong>02-123-4567</strong></p>
-          <p>เรายินดีให้บริการคุณทุกวันจันทร์ - ศุกร์ เวลา 9:00 - 18:00 น.</p>
+
+          <div class="col-md-6 col-xl-3">
+            <div class="benefit-card">
+              <div class="benefit-icon"><i class="bi bi-headset"></i></div>
+              <h3>มีทีมช่วยดูแล</h3>
+              <p>ไม่ปล่อยให้ลองเองแบบงง ๆ มีช่องทางติดต่อและช่วยตอบคำถามจริง</p>
+            </div>
+          </div>
         </div>
-      </section>
-    </main>
-    <footer class="footer">
-      <div>ระบบที่พัฒนาโดย PM Program · สนับสนุนโดย <a href="https://naimet.com">naimet.com</a></div>
-    </footer>
+      </div>
+    </section>
+
+    <!-- Testimonial -->
+    <section class="testimonial-section">
+      <div class="container">
+        <div class="section-heading text-center">
+          <span class="section-kicker">เสียงจากผู้ใช้งาน</span>
+          <h2>คนที่เริ่มลอง มักตัดสินใจต่อได้ง่ายขึ้น เพราะเห็นภาพการใช้งานจริงเร็ว</h2>
+        </div>
+
+        <div class="row g-4 mt-2">
+          <div class="col-lg-4">
+            <div class="testimonial-card">
+              <div class="testimonial-head">
+                <div class="avatar-circle">ส</div>
+                <div>
+                  <strong>คุณสมชาย</strong>
+                  <div class="small-muted">ฝ่ายฝึกอบรม</div>
+                </div>
+              </div>
+              <p>
+                “สิ่งที่ช่วยมากที่สุดคือเริ่มลองได้เร็ว ทีมไม่รู้สึกว่าต้องเตรียมอะไรเยอะ พอได้ลองจริงก็เห็นเลยว่าระบบช่วยลดเวลาทำงานได้มาก”
+              </p>
+            </div>
+          </div>
+
+          <div class="col-lg-4">
+            <div class="testimonial-card">
+              <div class="testimonial-head">
+                <div class="avatar-circle">ว</div>
+                <div>
+                  <strong>คุณวรินทร์</strong>
+                  <div class="small-muted">ผู้จัดกิจกรรม</div>
+                </div>
+              </div>
+              <p>
+                “ตอนแรกแค่จะลองดูเฉย ๆ แต่พอลองแล้วเห็น flow การใช้งานชัด ระบบช่วยให้งานจัดกิจกรรมง่ายขึ้นจริง เลยตัดสินใจคุยต่อทันที”
+              </p>
+            </div>
+          </div>
+
+          <div class="col-lg-4">
+            <div class="testimonial-card">
+              <div class="testimonial-head">
+                <div class="avatar-circle">ณ</div>
+                <div>
+                  <strong>คุณณัฐ</strong>
+                  <div class="small-muted">หัวหน้าโครงการ</div>
+                </div>
+              </div>
+              <p>
+                “จุดเด่นคือไม่ได้มีแค่สวย แต่เริ่มใช้งานได้จริงเร็ว ทีมเราเลยเห็นภาพว่าเอาไปต่อยอดในองค์กรได้ยังไง”
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Main CTA -->
+    <section class="main-cta-section" id="free-trial">
+      <div class="container">
+        <div class="main-cta-box">
+          <div class="row align-items-center gy-4">
+            <div class="col-lg-7">
+              <span class="section-kicker kicker-on-dark">พร้อมเริ่มแล้วหรือยัง</span>
+              <h2>ทดลองใช้ฟรีตอนนี้ แล้วดูเลยว่าระบบไหนเหมาะกับทีมของคุณที่สุด</h2>
+              <p>
+                ไม่มีขั้นตอนซับซ้อน ไม่ต้องรอวางระบบยาว เริ่มทดลองได้ทันที
+                และหากต้องการใช้งานจริง ทีมงานพร้อมช่วยดูแลต่อ
+              </p>
+
+              <div class="cta-proof-list">
+                <span><i class="bi bi-check-circle-fill"></i> ไม่ต้องใช้บัตรเครดิต</span>
+                <span><i class="bi bi-check-circle-fill"></i> เริ่มได้ทันที</span>
+                <span><i class="bi bi-check-circle-fill"></i> มีทีมช่วยตอบ</span>
+              </div>
+            </div>
+
+            <div class="col-lg-5">
+              <form id="ctaForm" class="cta-form" action="/coopgame/game/start" method="get">
+                <label class="form-label">กรอกอีเมลเพื่อเริ่มทดลองใช้ฟรี</label>
+                <input
+                  type="email"
+                  name="ref"
+                  class="form-control form-control-lg"
+                  placeholder="you@company.com"
+                />
+                <button type="submit" class="btn btn-light btn-lg w-100 mt-3" data-track="main-cta">
+                  ลงทะเบียนฟรีทันที
+                </button>
+                <div class="cta-form-note">
+                  ใช้เวลาไม่ถึง 1 นาที • ไม่มีข้อผูกมัด
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ / Objection handling -->
+    <section class="faq-section" id="faq">
+      <div class="container">
+        <div class="section-heading text-center">
+          <span class="section-kicker">ตอบข้อกังวลก่อนเริ่ม</span>
+          <h2>คำถามที่มักทำให้คนลังเล ก่อนกดทดลองใช้ฟรี</h2>
+        </div>
+
+        <div class="accordion faq-accordion mt-4" id="faqAccordion">
+          <div class="accordion-item">
+            <h2 class="accordion-header" id="faq1">
+              <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#faqCollapse1">
+                ต้องใช้เวลาตั้งค่านานไหม?
+              </button>
+            </h2>
+            <div id="faqCollapse1" class="accordion-collapse collapse show" data-bs-parent="#faqAccordion">
+              <div class="accordion-body">
+                ไม่จำเป็นต้องใช้เวลานาน คุณสามารถเริ่มทดลองใช้งานได้ทันที และค่อยปรับรายละเอียดเพิ่มเติมภายหลังได้
+              </div>
+            </div>
+          </div>
+
+          <div class="accordion-item">
+            <h2 class="accordion-header" id="faq2">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faqCollapse2">
+                ถ้ายังไม่แน่ใจว่าจะใช้ระบบไหน ควรทำอย่างไร?
+              </button>
+            </h2>
+            <div id="faqCollapse2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+              <div class="accordion-body">
+                เริ่มจากระบบที่ใกล้กับงานของคุณที่สุดก่อน เช่น Game Activity หรือ Coopbot AI แล้วค่อยขยายไปส่วนอื่นภายหลังได้
+              </div>
+            </div>
+          </div>
+
+          <div class="accordion-item">
+            <h2 class="accordion-header" id="faq3">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faqCollapse3">
+                มีคนช่วยดูแลไหม ถ้าทดลองแล้วติดปัญหา?
+              </button>
+            </h2>
+            <div id="faqCollapse3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+              <div class="accordion-body">
+                มี ทีมงานสามารถช่วยตอบคำถาม ช่วยแนะนำ และคุยต่อได้ผ่านอีเมลหรือช่องทางติดต่อที่หน้าเว็บ
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Contact / close -->
+    <section class="contact-section" id="contact">
+      <div class="container">
+        <div class="contact-box">
+          <div class="row g-4 align-items-center">
+            <div class="col-lg-6">
+              <span class="section-kicker">อยากคุยก่อนเริ่มก็ได้</span>
+              <h2>ถ้ายังไม่พร้อมกดทดลองทันที ติดต่อทีมงานได้เลย</h2>
+              <p>
+                เหมาะสำหรับองค์กรหรือทีมที่ต้องการคำแนะนำก่อนเริ่มใช้จริง
+                เราช่วยดูให้ได้ว่าควรเริ่มจากระบบไหน และต้องตั้งค่ายังไงให้เหมาะกับงานของคุณ
+              </p>
+
+              <div class="contact-actions">
+                <a href="mailto:admin@example.com" class="contact-action-card">
+                  <i class="bi bi-envelope-fill"></i>
+                  <div>
+                    <strong>Email</strong>
+                    <span>admin@example.com</span>
+                  </div>
+                </a>
+
+                <a href="tel:021234567" class="contact-action-card">
+                  <i class="bi bi-telephone-fill"></i>
+                  <div>
+                    <strong>โทรศัพท์</strong>
+                    <span>02-123-4567</span>
+                  </div>
+                </a>
+
+                <a href="https://line.me/R/ti/p/saipunya" target="_blank" rel="noopener noreferrer" class="contact-action-card">
+                  <i class="bi bi-chat-dots-fill"></i>
+                  <div>
+                    <strong>Line</strong>
+                    <span>คุยกับทีมงานได้ทันที</span>
+                  </div>
+                </a>
+              </div>
+            </div>
+
+            <div class="col-lg-6">
+              <form id="contactForm" class="contact-form-box">
+                <h3>ให้ทีมงานติดต่อกลับ</h3>
+                <div class="mb-3">
+                  <input type="text" class="form-control" placeholder="ชื่อของคุณ" />
+                </div>
+                <div class="mb-3">
+                  <input type="email" class="form-control" placeholder="อีเมล" />
+                </div>
+                <div class="mb-3">
+                  <input type="text" class="form-control" placeholder="หน่วยงาน / บริษัท (ถ้ามี)" />
+                </div>
+                <div class="mb-3">
+                  <textarea class="form-control" rows="4" placeholder="บอกคร่าว ๆ ว่าคุณสนใจระบบไหน"></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary w-100" data-track="submit-contact-form">ส่งข้อความถึงทีมงาน</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="landing-footer">
+    <div class="container">
+      <div class="row gy-4">
+        <div class="col-md-4">
+          <div class="footer-brand">GameManager</div>
+          <p class="footer-muted">
+            แพลตฟอร์มสำหรับกิจกรรม เกม ของรางวัล AI และระบบวางแผน ที่ออกแบบมาให้เริ่มใช้งานได้จริง
+          </p>
+        </div>
+
+        <div class="col-md-4">
+          <div class="footer-title">เมนู</div>
+          <ul class="footer-links">
+            <li><a href="#systems">ระบบ</a></li>
+            <li><a href="#results">ผลลัพธ์</a></li>
+            <li><a href="#why-us">จุดเด่น</a></li>
+            <li><a href="#faq">คำถามที่พบบ่อย</a></li>
+          </ul>
+        </div>
+
+        <div class="col-md-4">
+          <div class="footer-title">เริ่มต้น</div>
+          <a href="/coopgame/game/start" class="btn btn-primary w-100 mb-2">ทดลองใช้ฟรีทันที</a>
+          <a href="mailto:admin@example.com" class="btn btn-outline-dark w-100">ติดต่อทีมงาน</a>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        © 2026 PM Program · สนับสนุนโดย naimet.com
+      </div>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Mobile sticky CTA (mobile-first, non-blocking) -->
+  <div id="mobileCta" class="mobile-cta" role="region" aria-label="เริ่มทดลองใช้ฟรี" aria-live="polite">
+    <div class="mobile-cta__inner">
+      <div class="mobile-cta__text">
+        <div class="mobile-cta__urgency">ทดลองใช้ฟรีวันนี้ • ไม่ต้องใช้บัตร</div>
+        <div class="mobile-cta__headline">เริ่มทดลองใช้ฟรีตอนนี้ — รับผลลัพธ์ภายใน 3 นาที</div>
+      </div>
+      <div class="mobile-cta__actions">
+        <a href="/coopgame/game/start?utm=mobile_cta" class="btn btn-lg mobile-cta__btn" data-track="mobile-cta">เริ่มทดลองใช้ฟรีตอนนี้</a>
+        <button id="mobileCtaClose" class="mobile-cta__close" aria-label="ปิด" title="ปิด">✕</button>
+      </div>
+    </div>
   </div>
-  <script src="/coopgame/js/landing.js"></script>
+  <script src="/js/tracking.js"></script>
 </body>
 </html>
