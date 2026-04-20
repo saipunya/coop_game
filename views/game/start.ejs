@@ -6,60 +6,92 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><%= title %> - เกมตอบคำถามสหกรณ์</title>
+  <!-- Bootstrap 5.3 (ensure availability) -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
   <link rel="stylesheet" href="/coopgame/css/styles.css">
+  <link rel="stylesheet" href="/coopgame/css/start.css">
 </head>
 <body>
-  <div class="container">
-    <header class="header">
-      <h1>เกมตอบคำถามสหกรณ์</h1>
-    </header>
-
-    <main class="main">
-      <div class="card">
-        <h2>เริ่มเกม</h2>
-        <% if (typeof query !== 'undefined' && query.system) { %>
-          <div class="alert alert-info">คุณมาเริ่มจากการเลือกระบบ: <strong><%= query.system %></strong></div>
-        <% } %>
-        <p>กรอกรหัสเพื่อเริ่มเล่นเกม</p>
-        
-        <form id="codeForm" class="form">
-          <div class="form-group">
-            <label for="code">รหัสเกม:</label>
-            <input 
-              type="text" 
-              id="code" 
-              name="code" 
-              maxlength="6" 
-              placeholder="ABC123"
-              autocomplete="off"
-              required
-            >
-            <small>รหัส 6 ตัวอักษร</small>
+  <div class="start-page">
+    <main class="start-main container-fluid py-5">
+      <div class="start-wrapper">
+        <section class="start-card card shadow-sm p-4 p-md-5 text-center" role="region" aria-labelledby="startTitle">
+          <div class="brand mb-3">
+            <h1 id="startTitle" class="h3 mb-0">เริ่มเกม</h1>
+            <p class="lead small text-muted mb-3">กรอกรหัส 6 ตัว แล้วมาแข่งขันเพื่อชิงคะแนนสูงสุด</p>
           </div>
-          
-          <button type="submit" class="btn btn-primary btn-large">
-            เริ่มเกม
-          </button>
-        </form>
 
-        <div id="message" class="message"></div>
-      </div>
+          <% if (typeof query !== 'undefined' && query.system) { %>
+            <div class="alert alert-info mx-auto" style="max-width:520px">คุณมาเริ่มจากการเลือกระบบ: <strong><%= query.system %></strong></div>
+          <% } %>
 
-      <div class="card info-card">
-        <h3>📋 กติกาการเล่น</h3>
-        <ul class="rules-list">
-          <li>ตอบคำถามทีละข้อ</li>
-          <li>ตอบผิดหรือหมดเวลา = เกมจบทันที</li>
-          <li>คำถามง่าย 10 วินาที | ปานกลาง 15 วินาที | ยาก 20 วินาที</li>
-          <li>ผู้ที่ตอบถูกมากที่สุดชนะ</li>
-          <li>ถ้าคะแนนเท่ากัน ใช้เวลารวมน้อยกว่าชนะ</li>
-        </ul>
+          <form id="codeForm" class="code-form mx-auto" aria-describedby="codeHelp">
+            <div class="input-group input-group-lg mb-3 shadow-sm rounded-pill overflow-hidden">
+              <span class="input-group-text bg-white border-0 px-3" id="codeLabel">🔒</span>
+              <input
+                type="text"
+                id="code"
+                name="code"
+                class="form-control form-control-lg border-0 text-center fs-3 fw-bold"
+                maxlength="6"
+                placeholder="ABC123"
+                inputmode="search"
+                autocomplete="off"
+                aria-labelledby="codeLabel"
+                required
+              />
+              <button class="btn btn-primary btn-lg px-4 rounded-end" type="submit" aria-label="เริ่มเกม">เริ่มเกม</button>
+            </div>
+
+            <div id="codeHelp" class="form-text text-muted">รหัสเป็นตัวอักษร/ตัวเลข 6 ตัว ตัวพิมพ์ใหญ่/เล็กไม่ต่างกัน</div>
+          </form>
+
+          <div id="message" class="mt-3" aria-live="polite"></div>
+        </section>
+
+        <section class="highlights d-flex gap-2 justify-content-center mt-4" aria-hidden="false">
+          <div class="badge-card text-center p-3 rounded shadow-sm">
+            <div class="badge-icon mb-1">⚡</div>
+            <div class="badge-text">เล่นได้ทันที</div>
+          </div>
+          <div class="badge-card text-center p-3 rounded shadow-sm">
+            <div class="badge-icon mb-1">👥</div>
+            <div class="badge-text">ไม่ต้องสมัคร</div>
+          </div>
+          <div class="badge-card text-center p-3 rounded shadow-sm">
+            <div class="badge-icon mb-1">🏆</div>
+            <div class="badge-text">ลุ้นคะแนนสูงสุด</div>
+          </div>
+        </section>
+
+        <section class="rules-section row gx-3 gy-3 mt-4" aria-labelledby="rulesTitle">
+          <h2 id="rulesTitle" class="visually-hidden">กติกาการเล่น</h2>
+          <div class="col-12 col-md-4">
+            <article class="rule card p-3 h-100">
+              <div class="rule-icon">📝</div>
+              <h3 class="rule-title">ตอบคำถามทีละข้อ</h3>
+              <p class="rule-text">ตอบให้เร็วและถูกเพื่อสะสมคะแนน</p>
+            </article>
+          </div>
+          <div class="col-12 col-md-4">
+            <article class="rule card p-3 h-100">
+              <div class="rule-icon">⏱️</div>
+              <h3 class="rule-title">เวลาจำกัด</h3>
+              <p class="rule-text">คำถามมีเวลาจำกัด — ตอบช้าอาจพลาด</p>
+            </article>
+          </div>
+          <div class="col-12 col-md-4">
+            <article class="rule card p-3 h-100">
+              <div class="rule-icon">❗</div>
+              <h3 class="rule-title">ผิด = จบ</h3>
+              <p class="rule-text">ตอบผิดหรือหมดเวลา จะจบเกมทันที</p>
+            </article>
+          </div>
+        </section>
+
+        <footer class="start-footer text-center mt-4 small text-muted">© 2026 naimet</footer>
       </div>
     </main>
-
-    <footer class="footer">
-      <p>© 2026 naimet</p>
-    </footer>
   </div>
 
   <script>

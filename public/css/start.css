@@ -1,0 +1,46 @@
+/* Start Game page styles - premium, centered card, mobile-first */
+:root{
+  --accent:#6f6ef8;
+  --accent-2:#00c6ff;
+  --muted:#6c757d;
+}
+
+.start-page{background:#fff;min-height:100vh;display:flex;align-items:center;}
+.start-main{padding-top:48px;padding-bottom:48px}
+.start-wrapper{width:100%;max-width:980px;margin:0 auto;padding:0 16px}
+
+.start-card{background:linear-gradient(180deg, rgba(111,110,248,0.03), rgba(0,198,255,0.02));border:0;border-radius:16px}
+.start-card .brand h1{color:#111;font-weight:700}
+.start-card .lead{color:var(--muted)}
+
+.code-form .input-group{background:linear-gradient(90deg, #ffffff, #fbfbff);border-radius:999px}
+.code-form .form-control{background:transparent;box-shadow:none;border:0;outline:0}
+.code-form .form-control::placeholder{color:#c6c6d9}
+.code-form .btn-primary{background:linear-gradient(90deg,var(--accent),var(--accent-2));border:0;box-shadow:0 8px 24px rgba(111,110,248,0.18);font-weight:700;border-top-left-radius:0;border-bottom-left-radius:0}
+
+.badge-card{min-width:110px;flex:1;max-width:220px;background:linear-gradient(180deg,#fff,#fbfbff);}
+.badge-icon{font-size:20px}
+.badge-text{font-size:14px;color:#333}
+
+.rules-section .rule{border-radius:12px;border:0;background:linear-gradient(180deg,#fff,#fafcff);}
+.rule-icon{font-size:28px}
+.rule-title{font-size:16px;margin-top:6px;margin-bottom:6px}
+.rule-text{font-size:13px;color:var(--muted)}
+
+#message{min-height:1.2em;color:#0b1220}
+#message.error{color:#c92a2a}
+
+/* responsiveness */
+@media (max-width:767.98px){
+  .start-wrapper{padding:0 12px}
+  .code-form .form-control{font-size:1.6rem}
+  .badge-card{min-width:86px;padding:10px}
+  .start-card{padding:20px}
+}
+
+@media (min-width:768px){
+  .start-card{transform:translateY(-12px)}
+}
+
+/* Accessibility focus */
+.form-control:focus{box-shadow:0 0 0 4px rgba(111,110,248,0.12);outline:none}
