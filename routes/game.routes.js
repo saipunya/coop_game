@@ -9,6 +9,8 @@ router.get('/', (req, res) => {
 
 // Start page
 router.get('/start', gameController.renderStart);
+// Onboarding quickstart (post-click)
+router.get('/onboarding', gameController.renderOnboarding);
 
 // Verify code API
 router.post('/verify-code', gameController.verifyCode);

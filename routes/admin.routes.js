@@ -24,6 +24,9 @@ router.get('/', (req, res) => {
   res.render('admin/dashboard', { title: 'Dashboard Admin', adminUser: res.locals.adminUser });
 });
 
+// Conversion dashboard
+router.get('/conversion', adminController.renderConversion);
+
 // Dashboard
 router.get('/api/dashboard', adminController.getDashboard);
 
