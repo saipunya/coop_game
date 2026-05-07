@@ -4,8 +4,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard - Admin</title>
-  <link rel="stylesheet" href="/coopgame/css/styles.css">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700;800&display=swap');
+    
+    body {
+      background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 50%, #a5d6a7 100%);
+      min-height: 100vh;
+      font-family: 'Sarabun', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
     .admin-container {
       max-width: 1400px;
       margin: 0 auto;
@@ -16,31 +24,55 @@
       justify-content: space-between;
       align-items: center;
       margin-bottom: 30px;
+      padding: 20px 30px;
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 20px;
+      box-shadow: 0 10px 40px rgba(46, 125, 50, 0.1);
+      backdrop-filter: blur(10px);
+    }
+    .admin-header h1 {
+      background: linear-gradient(135deg, #43a047 0%, #66bb6a 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      font-weight: 800;
+      font-size: 2rem;
+      margin: 0;
     }
     .stats-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
       gap: 20px;
       margin-bottom: 30px;
     }
     .stat-card {
-      background: white;
+      background: rgba(255, 255, 255, 0.95);
       padding: 25px;
-      border-radius: 10px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(46, 125, 50, 0.1);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(200, 230, 201, 0.5);
+      transition: transform 0.3s ease;
+    }
+    .stat-card:hover {
+      transform: translateY(-5px);
     }
     .stat-card h3 {
-      color: #666;
+      color: #2e7d32;
       font-size: 14px;
       margin-bottom: 10px;
+      font-weight: 600;
     }
     .stat-card .number {
       font-size: 36px;
       font-weight: bold;
-      color: #4CAF50;
+      background: linear-gradient(135deg, #43a047 0%, #66bb6a 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
     }
     .stat-card .sub-text {
-      color: #999;
+      color: #66bb6a;
       font-size: 12px;
       margin-top: 5px;
     }
@@ -50,108 +82,131 @@
       gap: 20px;
     }
     .card {
-      background: white;
+      background: rgba(255, 255, 255, 0.95);
       padding: 25px;
-      border-radius: 10px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(46, 125, 50, 0.1);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(200, 230, 201, 0.5);
     }
     .card h2 {
       margin-bottom: 20px;
-      color: #333;
+      color: #1b5e20;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      font-weight: 700;
     }
     .card h2 .date-filter {
       font-size: 14px;
       font-weight: normal;
     }
     .card h2 select {
-      padding: 5px 10px;
-      border: 1px solid #ddd;
-      border-radius: 5px;
+      padding: 8px 12px;
+      border: 2px solid #a5d6a7;
+      border-radius: 10px;
       font-size: 14px;
+      background: #f1f8e9;
+      color: #2e7d32;
     }
-    table {
-      width: 100%;
-      border-collapse: collapse;
+    .table {
+      color: #2e7d32;
     }
-    table th, table td {
+    .table thead th {
+      background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%);
+      border-bottom: 2px solid #c8e6c9;
+      color: #1b5e20;
+      font-weight: 700;
       padding: 12px;
-      text-align: left;
-      border-bottom: 1px solid #eee;
     }
-    table th {
-      background: #f5f5f5;
-      font-weight: 600;
-      color: #555;
+    .table tbody td {
+      padding: 12px;
+      border-bottom: 1px solid #e8f5e9;
     }
-    table tr:hover {
-      background: #f9f9f9;
+    .table tbody tr:hover {
+      background: rgba(200, 230, 201, 0.3);
     }
     .rank-badge {
-      display: inline-block;
-      width: 30px;
-      height: 30px;
-      line-height: 30px;
-      text-align: center;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
       border-radius: 50%;
-      background: #4CAF50;
+      background: linear-gradient(135deg, #43a047 0%, #66bb6a 100%);
       color: white;
       font-weight: bold;
+      font-size: 14px;
     }
-    .rank-1 { background: #FFD700; }
-    .rank-2 { background: #C0C0C0; }
-    .rank-3 { background: #CD7F32; }
+    .rank-1 { background: linear-gradient(135deg, #FFD700 0%, #FFA000 100%); }
+    .rank-2 { background: linear-gradient(135deg, #9E9E9E 0%, #BDBDBD 100%); }
+    .rank-3 { background: linear-gradient(135deg, #8D6E63 0%, #A1887F 100%); }
     .score-badge {
-      padding: 4px 10px;
+      padding: 6px 14px;
       border-radius: 20px;
-      font-size: 12px;
+      font-size: 13px;
       font-weight: 600;
     }
-    .score-high { background: #d4edda; color: #155724; }
-    .score-medium { background: #fff3cd; color: #856404; }
-    .score-low { background: #f8d7da; color: #721c24; }
+    .score-high { background: #e8f5e9; color: #1b5e20; border: 1px solid #a5d6a7; }
+    .score-medium { background: #fff8e1; color: #f57f17; border: 1px solid #ffe082; }
+    .score-low { background: #ffebee; color: #c62828; border: 1px solid #ef9a9a; }
     .btn-group {
       display: flex;
       gap: 10px;
+      flex-wrap: wrap;
     }
     .refresh-btn {
-      padding: 5px 15px;
-      font-size: 12px;
+      padding: 6px 16px;
+      font-size: 13px;
+      border-radius: 10px;
     }
     .daily-stats {
       margin-top: 20px;
     }
     .daily-stats h3 {
       margin-bottom: 15px;
-      color: #333;
+      color: #1b5e20;
+      font-weight: 700;
     }
     .daily-stat-item {
       display: flex;
       justify-content: space-between;
-      padding: 10px 0;
-      border-bottom: 1px solid #eee;
+      padding: 12px 16px;
+      border-bottom: 1px solid #e8f5e9;
+      transition: all 0.3s ease;
+      border-radius: 8px;
+    }
+    .daily-stat-item:hover {
+      background: rgba(200, 230, 201, 0.3);
+      padding-left: 20px;
     }
     .daily-stat-item:last-child {
       border-bottom: none;
     }
     .daily-stat-item .date {
-      color: #666;
+      color: #2e7d32;
+      font-weight: 500;
     }
     .daily-stat-item .value {
       font-weight: bold;
-      color: #4CAF50;
+      color: #43a047;
     }
     .empty-state {
       text-align: center;
       padding: 40px;
-      color: #999;
+      color: #66bb6a;
     }
     .loading {
       text-align: center;
       padding: 40px;
-      color: #666;
+      color: #43a047;
+    }
+    .fade-in {
+      animation: fadeIn 0.6s ease-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
     }
     @media (max-width: 1024px) {
       .content-grid {
@@ -162,74 +217,65 @@
       .stats-grid {
         grid-template-columns: repeat(2, 1fr);
       }
-
       .admin-header {
         flex-direction: column;
         align-items: flex-start;
         gap: 16px;
       }
-
       .btn-group {
         width: 100%;
-        flex-wrap: wrap;
       }
-
       .btn-group .btn {
         flex: 1 1 160px;
       }
     }
-
     @media (max-width: 480px) {
       .admin-container {
         padding: 12px;
       }
-
       .stats-grid {
         grid-template-columns: 1fr;
       }
-
+      .admin-header {
+        padding: 16px;
+      }
+      .admin-header h1 {
+        font-size: 1.5rem;
+      }
       .admin-header .btn-group {
         flex-direction: column;
       }
-
       .admin-header .btn-group .btn {
         width: 100%;
       }
-
       .card {
         padding: 16px;
       }
-
       .card h2 {
         flex-direction: column;
         align-items: flex-start;
         gap: 10px;
       }
-
       .card h2 .date-filter {
         width: 100%;
         display: flex;
         flex-direction: column;
         gap: 8px;
       }
-
       .card h2 .date-filter select,
       .card h2 .date-filter .refresh-btn {
         width: 100%;
       }
-
-      table {
+      .table {
         display: block;
         width: 100%;
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
       }
-
-      table th,
-      table td {
+      .table th,
+      .table td {
         white-space: nowrap;
       }
-
       .daily-stat-item {
         flex-direction: column;
         align-items: flex-start;
@@ -240,58 +286,66 @@
 </head>
 <body>
   <div class="admin-container">
-    <header class="admin-header">
-      <h1>📊 Dashboard Admin</h1>
+    <header class="admin-header fade-in">
+      <h1><i class="bi bi-speedometer2 me-2"></i>Dashboard Admin</h1>
       <div class="btn-group">
-        <a href="/coopgame/admin/questions" class="btn btn-secondary">จัดการคำถาม</a>
-        <a href="/coopgame/admin/codes" class="btn btn-outline">จัดการรหัส</a>
-        <a href="/coopgame/game/start" class="btn btn-primary">เล่นเกม</a>
+        <a href="/coopgame/admin/questions" class="btn btn-outline-success">
+          <i class="bi bi-card-checklist"></i> จัดการคำถาม
+        </a>
+        <a href="/coopgame/admin/codes" class="btn btn-outline-success">
+          <i class="bi bi-ticket-perforated"></i> จัดการรหัส
+        </a>
+        <a href="/coopgame/game/start" class="btn" style="background: linear-gradient(135deg, #43a047 0%, #66bb6a 100%); color: white; border: none;">
+          <i class="bi bi-controller"></i> เล่นเกม
+        </a>
         <span style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-          <span style="font-weight:600; color:#fff;">👤 <%= adminUser.username %></span>
-          <a href="/coopgame/admin/logout" class="btn btn-secondary">ออกจากระบบ</a>
+          <span style="font-weight:600; color:#2e7d32;"><i class="bi bi-person-circle"></i> <%= adminUser.username %></span>
+          <a href="/coopgame/admin/logout" class="btn btn-outline-success">
+            <i class="bi bi-box-arrow-right"></i> ออกจากระบบ
+          </a>
         </span>
       </div>
     </header>
 
     <!-- Stats Overview -->
-    <div class="stats-grid">
+    <div class="stats-grid fade-in">
       <div class="stat-card">
-        <h3>👥 ผู้เล่นทั้งหมด</h3>
+        <h3><i class="bi bi-people-fill me-2"></i>ผู้เล่นทั้งหมด</h3>
         <div class="number" id="totalPlayers">-</div>
-        <div class="sub-text">คน</div>
+        <div class="sub-text"><i class="bi bi-person"></i> คน</div>
       </div>
       <div class="stat-card">
-        <h3>🎮 เกมที่เล่นเสร็จ</h3>
+        <h3><i class="bi bi-controller me-2"></i>เกมที่เล่นเสร็จ</h3>
         <div class="number" id="completedGames">-</div>
-        <div class="sub-text">เกม</div>
+        <div class="sub-text"><i class="bi bi-trophy"></i> เกม</div>
       </div>
       <div class="stat-card">
-        <h3>⭐ คะแนนเฉลี่ย</h3>
+        <h3><i class="bi bi-star-fill me-2"></i>คะแนนเฉลี่ย</h3>
         <div class="number" id="avgScore">-</div>
-        <div class="sub-text">จาก 9 คำถาม</div>
+        <div class="sub-text"><i class="bi bi-clipboard-check"></i> จาก 9 คำถาม</div>
       </div>
       <div class="stat-card">
-        <h3>⏱️ เวลาเฉลี่ย</h3>
+        <h3><i class="bi bi-clock-fill me-2"></i>เวลาเฉลี่ย</h3>
         <div class="number" id="avgTime">-</div>
-        <div class="sub-text">วินาที/เกม</div>
+        <div class="sub-text"><i class="bi bi-stopwatch"></i> วินาที/เกม</div>
       </div>
       <div class="stat-card">
-        <h3>🎫 รหัสที่ใช้ไป</h3>
+        <h3><i class="bi bi-ticket-perforated me-2"></i>รหัสที่ใช้ไป</h3>
         <div class="number" id="usedCodes">-</div>
-        <div class="sub-text">รหัส</div>
+        <div class="sub-text"><i class="bi bi-check-circle"></i> รหัส</div>
       </div>
       <div class="stat-card">
-        <h3>📝 คำถามทั้งหมด</h3>
+        <h3><i class="bi bi-card-text me-2"></i>คำถามทั้งหมด</h3>
         <div class="number" id="totalQuestions">-</div>
-        <div class="sub-text">คำถาม</div>
+        <div class="sub-text"><i class="bi bi-list-ol"></i> คำถาม</div>
       </div>
     </div>
 
-    <div class="content-grid">
+    <div class="content-grid fade-in">
       <!-- Leaderboard -->
       <div class="card">
         <h2>
-          🏆 อันดับผู้เล่น
+          <i class="bi bi-trophy-fill me-2" style="color: #fdd835;"></i>อันดับผู้เล่น
           <div class="date-filter">
             <select id="leaderboardFilter">
               <option value="all">ทั้งหมด</option>
@@ -299,30 +353,36 @@
               <option value="week">สัปดาห์นี้</option>
               <option value="month">เดือนนี้</option>
             </select>
-            <button class="btn btn-secondary refresh-btn" onclick="loadLeaderboard()">🔄</button>
+            <button class="btn btn-sm refresh-btn" style="border: 2px solid #a5d6a7; color: #2e7d32; border-radius: 10px;" onclick="loadLeaderboard()">
+              <i class="bi bi-arrow-clockwise"></i>
+            </button>
           </div>
         </h2>
-        <table>
-          <thead>
-            <tr>
-              <th style="width: 50px;">#</th>
-              <th>ชื่อ</th>
-              <th>คะแนน</th>
-              <th style="width: 80px;">เวลา</th>
-              <th style="width: 120px;">วันที่</th>
-            </tr>
-          </thead>
-          <tbody id="leaderboardBody">
-            <tr><td colspan="5" class="loading">กำลังโหลด...</td></tr>
-          </tbody>
-        </table>
+        <div class="table-responsive">
+          <table class="table">
+            <thead>
+              <tr>
+                <th style="width: 50px;">#</th>
+                <th>ชื่อ</th>
+                <th>คะแนน</th>
+                <th style="width: 80px;">เวลา</th>
+                <th style="width: 120px;">วันที่</th>
+              </tr>
+            </thead>
+            <tbody id="leaderboardBody">
+              <tr><td colspan="5" class="loading">กำลังโหลด...</td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <!-- Daily Stats -->
       <div class="card">
         <h2>
-          📅 สถิติรายวัน
-          <button class="btn btn-secondary refresh-btn" onclick="loadDailyStats()">🔄</button>
+          <i class="bi bi-calendar-check me-2" style="color: #43a047;"></i>สถิติรายวัน
+          <button class="btn btn-sm refresh-btn" style="border: 2px solid #a5d6a7; color: #2e7d32; border-radius: 10px;" onclick="loadDailyStats()">
+            <i class="bi bi-arrow-clockwise"></i>
+          </button>
         </h2>
         <div id="dailyStats" class="daily-stats">
           <div class="loading">กำลังโหลด...</div>
@@ -331,28 +391,34 @@
     </div>
 
     <!-- Recent Games -->
-    <div class="card" style="margin-top: 20px;">
+    <div class="card fade-in" style="margin-top: 20px;">
       <h2>
-        🎮 เกมล่าสุด
-        <button class="btn btn-secondary refresh-btn" onclick="loadRecentGames()">🔄</button>
+        <i class="bi bi-controller me-2" style="color: #43a047;"></i>เกมล่าสุด
+        <button class="btn btn-sm refresh-btn" style="border: 2px solid #a5d6a7; color: #2e7d32; border-radius: 10px;" onclick="loadRecentGames()">
+          <i class="bi bi-arrow-clockwise"></i>
+        </button>
       </h2>
-      <table>
-        <thead>
-          <tr>
-            <th style="width: 80px;">#</th>
-            <th>ชื่อ</th>
-            <th>คะแนน</th>
-            <th style="width: 100px;">เวลา</th>
-            <th style="width: 200px;">วันที่</th>
-            <th style="width: 120px;">สถานะ</th>
-          </tr>
-        </thead>
-        <tbody id="recentGamesBody">
-          <tr><td colspan="6" class="loading">กำลังโหลด...</td></tr>
-        </tbody>
-      </table>
+      <div class="table-responsive">
+        <table class="table">
+          <thead>
+            <tr>
+              <th style="width: 80px;">#</th>
+              <th>ชื่อ</th>
+              <th>คะแนน</th>
+              <th style="width: 100px;">เวลา</th>
+              <th style="width: 200px;">วันที่</th>
+              <th style="width: 120px;">สถานะ</th>
+            </tr>
+          </thead>
+          <tbody id="recentGamesBody">
+            <tr><td colspan="6" class="loading">กำลังโหลด...</td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
   <script>
     // Load all data on page load
