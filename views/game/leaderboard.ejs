@@ -4,81 +4,710 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><%= title %> - เกมตอบคำถามสหกรณ์</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
   <link rel="stylesheet" href="/coopgame/css/styles.css">
   <% if (mode === 'tv') { %>
     <link rel="stylesheet" href="/coopgame/css/tv-mode.css">
   <% } %>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700;800&display=swap');
+
+    :root {
+      --bg-1: #0d2317;
+      --bg-2: #183623;
+      --bg-3: #1f5a35;
+      --card: rgba(255, 255, 255, 0.96);
+      --card-soft: rgba(255, 255, 255, 0.84);
+      --border: rgba(95, 196, 118, 0.24);
+      --green-900: #10361f;
+      --green-700: #1e6f37;
+      --green-500: #35b559;
+      --text: #18321f;
+      --muted: #5b7264;
+      --shadow: 0 24px 70px rgba(8, 24, 14, 0.26);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: 'Sarabun', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(87, 196, 108, 0.28), transparent 26%),
+        radial-gradient(circle at top right, rgba(255, 255, 255, 0.12), transparent 22%),
+        linear-gradient(135deg, var(--bg-1) 0%, var(--bg-2) 44%, var(--bg-3) 100%);
+      overflow-x: hidden;
+    }
+
+    body.tv-mode {
+      background: radial-gradient(circle at top left, rgba(87, 196, 108, 0.2), transparent 24%), linear-gradient(135deg, #0b1c12 0%, #12301f 48%, #184d2f 100%);
+    }
+
+    .leaderboard-page {
+      position: relative;
+      min-height: 100vh;
+      padding: 18px;
+    }
+
+    .orb {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(8px);
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.85;
+    }
+
+    .orb-1 {
+      width: 280px;
+      height: 280px;
+      top: -80px;
+      left: -70px;
+      background: radial-gradient(circle, rgba(127, 208, 141, 0.34), rgba(127, 208, 141, 0) 70%);
+    }
+
+    .orb-2 {
+      width: 220px;
+      height: 220px;
+      right: -80px;
+      top: 14%;
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0) 70%);
+    }
+
+    .leaderboard-shell {
+      position: relative;
+      z-index: 1;
+      width: min(1680px, calc(100vw - 24px));
+      margin: 0 auto;
+      display: grid;
+      gap: 18px;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      padding: 18px 22px;
+      border-radius: 24px;
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      backdrop-filter: blur(18px);
+      box-shadow: 0 18px 50px rgba(5, 20, 11, 0.14);
+      color: #fff;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .brand-mark {
+      width: 54px;
+      height: 54px;
+      display: grid;
+      place-items: center;
+      border-radius: 18px;
+      background: linear-gradient(135deg, #ffffff, rgba(255,255,255,0.74));
+      color: var(--green-700);
+      font-size: 1.4rem;
+      box-shadow: 0 14px 26px rgba(0, 0, 0, 0.16);
+    }
+
+    .brand-title {
+      margin: 0;
+      font-size: 1.2rem;
+      font-weight: 800;
+      line-height: 1.2;
+    }
+
+    .brand-subtitle {
+      margin: 4px 0 0;
+      color: rgba(255,255,255,0.78);
+      font-size: 0.95rem;
+    }
+
+    .top-stats {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    .stat-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.16);
+      border: 1px solid rgba(255,255,255,0.18);
+      font-weight: 700;
+      color: #fff;
+      backdrop-filter: blur(12px);
+    }
+
+    .stat-pill i {
+      color: #c9ffd5;
+    }
+
+    .panel {
+      border-radius: 30px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(16px);
+      overflow: hidden;
+    }
+
+    .panel-inner {
+      padding: 24px;
+    }
+
+    .hero-row {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 18px;
+      align-items: stretch;
+      margin-bottom: 18px;
+    }
+
+    .hero-card {
+      padding: 20px;
+      border-radius: 28px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(248,252,249,0.98));
+      border: 1px solid rgba(95, 196, 118, 0.18);
+      box-shadow: 0 18px 36px rgba(8, 24, 14, 0.06);
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, rgba(53, 181, 89, 0.12), rgba(127, 208, 141, 0.2));
+      color: var(--green-700);
+      font-weight: 800;
+    }
+
+    .hero-title {
+      margin: 12px 0 8px;
+      font-size: clamp(1.55rem, 3vw, 2.3rem);
+      font-weight: 800;
+      line-height: 1.15;
+      color: var(--green-900);
+    }
+
+    .hero-subtitle {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.65;
+      font-size: 0.96rem;
+    }
+
+    .hero-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .meta-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.9);
+      border: 1px solid rgba(127, 208, 141, 0.24);
+      color: var(--green-700);
+      font-weight: 700;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .summary-card {
+      padding: 16px;
+      border-radius: 22px;
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid rgba(127, 208, 141, 0.22);
+      box-shadow: 0 14px 28px rgba(8, 24, 14, 0.05);
+    }
+
+    .summary-card .label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    .summary-card .value {
+      font-size: 1.55rem;
+      font-weight: 800;
+      color: var(--green-900);
+      line-height: 1.1;
+    }
+
+    .leaderboard-card {
+      padding: 0;
+      overflow: hidden;
+      width: 100%;
+    }
+
+    .podium-wrap {
+      padding: 18px 24px 6px;
+      background: linear-gradient(180deg, rgba(248,252,249,0.88), rgba(255,255,255,0.98));
+      border-bottom: 1px solid rgba(95, 196, 118, 0.12);
+    }
+
+    .podium-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .podium-head h3 {
+      margin: 0;
+      font-size: 1.08rem;
+      font-weight: 800;
+      color: var(--green-900);
+    }
+
+    .podium-head span {
+      color: var(--muted);
+      font-size: 0.92rem;
+      font-weight: 600;
+    }
+
+    .podium-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .podium-card {
+      position: relative;
+      padding: 14px;
+      border-radius: 20px;
+      background: #fff;
+      border: 1px solid rgba(95, 196, 118, 0.16);
+      box-shadow: 0 12px 24px rgba(8, 24, 14, 0.05);
+    }
+
+    .podium-card.top-1 {
+      background: linear-gradient(180deg, #fff8d8, #fff);
+      border-color: rgba(242, 207, 74, 0.35);
+    }
+
+    .podium-card.top-2 {
+      background: linear-gradient(180deg, #f5f5f5, #fff);
+      border-color: rgba(176, 176, 176, 0.35);
+    }
+
+    .podium-card.top-3 {
+      background: linear-gradient(180deg, #fff1e6, #fff);
+      border-color: rgba(214, 138, 82, 0.35);
+    }
+
+    .podium-rank {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--green-700), var(--green-500));
+      color: #fff;
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+
+    .podium-name {
+      font-weight: 800;
+      color: var(--green-900);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 6px;
+    }
+
+    .podium-meta {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 0.88rem;
+      font-weight: 700;
+    }
+
+    .leaderboard-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 20px 24px;
+      border-bottom: 1px solid rgba(95, 196, 118, 0.12);
+      background: linear-gradient(180deg, rgba(248,252,249,0.98), rgba(255,255,255,0.98));
+    }
+
+    .leaderboard-header h2 {
+      margin: 0;
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: var(--green-900);
+    }
+
+    .last-updated {
+      color: var(--muted);
+      font-weight: 700;
+      font-size: 0.95rem;
+    }
+
+    .loading,
+    .empty-leaderboard {
+      padding: 36px 24px;
+      text-align: center;
+      color: var(--muted);
+    }
+
+    .leaderboard-content {
+      padding: 18px 18px 24px;
+    }
+
+    .leaderboard-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .leaderboard-entry {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 16px;
+      border-radius: 22px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(247,251,248,0.98));
+      border: 1px solid rgba(95, 196, 118, 0.16);
+      box-shadow: 0 12px 24px rgba(8, 24, 14, 0.05);
+      transition: transform 0.16s ease, box-shadow 0.16s ease;
+    }
+
+    .leaderboard-entry:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 16px 30px rgba(8, 24, 14, 0.08);
+    }
+
+    .rank {
+      width: 48px;
+      height: 48px;
+      flex-shrink: 0;
+      display: grid;
+      place-items: center;
+      border-radius: 16px;
+      background: linear-gradient(135deg, var(--green-700), var(--green-500));
+      color: #fff;
+      font-size: 1.05rem;
+      font-weight: 800;
+    }
+
+    .leaderboard-entry.top-1 .rank {
+      background: linear-gradient(135deg, #c8a12e, #f2cf4a);
+      color: #2c2100;
+    }
+
+    .leaderboard-entry.top-2 .rank {
+      background: linear-gradient(135deg, #8c8c8c, #b8b8b8);
+    }
+
+    .leaderboard-entry.top-3 .rank {
+      background: linear-gradient(135deg, #a96a3a, #d68a52);
+    }
+
+    .player-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .player-name {
+      font-weight: 800;
+      font-size: 1.08rem;
+      color: var(--green-900);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .score-info {
+      text-align: right;
+      min-width: 110px;
+    }
+
+    .score {
+      font-weight: 800;
+      color: var(--green-700);
+      font-size: 1.1rem;
+    }
+
+    .time {
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    .leaderboard-actions {
+      margin-top: 18px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .btn-emerald {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      border: none;
+      border-radius: 16px;
+      padding: 14px 18px;
+      font-weight: 800;
+      color: #fff;
+      background: linear-gradient(135deg, #166534 0%, #22a247 55%, #4ade80 100%);
+      box-shadow: 0 14px 28px rgba(29, 110, 52, 0.22);
+      text-decoration: none;
+    }
+
+    .btn-ghost {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      border-radius: 16px;
+      border: 1px solid rgba(53, 181, 89, 0.34);
+      color: var(--green-700);
+      background: #fff;
+      font-weight: 800;
+      padding: 14px 18px;
+      text-decoration: none;
+    }
+
+    .footer {
+      text-align: center;
+      color: rgba(255,255,255,0.72);
+      font-weight: 600;
+      padding: 10px 0 2px;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .fade-in {
+      animation: fadeIn 0.45s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 992px) {
+      .hero-row {
+        grid-template-columns: 1fr;
+      }
+
+      .summary-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .podium-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .leaderboard-page {
+        padding: 12px;
+      }
+
+      .topbar {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .top-stats {
+        justify-content: flex-start;
+      }
+
+      .leaderboard-header,
+      .leaderboard-content {
+        padding: 16px;
+      }
+
+      .podium-wrap {
+        padding: 16px 16px 6px;
+      }
+
+      .leaderboard-entry {
+        align-items: flex-start;
+      }
+
+      .score-info {
+        text-align: left;
+        min-width: auto;
+      }
+    }
+  </style>
 </head>
 <body class="<%= mode === 'tv' ? 'tv-mode' : '' %>">
-  <div class="container">
-    <header class="header">
-      <h1>🏆 Leaderboard</h1>
-      <% if (mode === 'tv') { %>
-        <div class="tv-badge">TV MODE</div>
-      <% } %>
-    </header>
+  <div class="leaderboard-page">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
 
-    <main class="main">
-      <div class="card leaderboard-card">
+    <div class="leaderboard-shell">
+      <header class="topbar fade-in">
+        <div class="brand">
+          <div class="brand-mark">
+            <i class="bi bi-trophy-fill"></i>
+          </div>
+          <div>
+            <h1 class="brand-title">กระดานผู้นำเกมตอบคำถาม</h1>
+            <p class="brand-subtitle">อัปเดตอันดับผู้เล่นแบบเรียลไทม์</p>
+          </div>
+        </div>
+
+        <div class="top-stats">
+          <% if (mode === 'tv') { %>
+            <div class="stat-pill tv-badge">TV MODE</div>
+          <% } %>
+          <div class="stat-pill"><i class="bi bi-arrow-repeat"></i> รีเฟรชอัตโนมัติ</div>
+        </div>
+      </header>
+
+      <div class="hero-row fade-in">
+        <section class="hero-card">
+          <div class="hero-badge"><i class="bi bi-award-fill"></i> สรุปอันดับล่าสุด</div>
+          <h2 class="hero-title">คนที่เล่นได้ดีจะได้ขึ้นหน้าจอที่นี่</h2>
+          <p class="hero-subtitle">
+            คะแนนสูงและเวลารวมที่น้อยจะช่วยให้ติดอันดับต้น ๆ
+            หน้า leaderboard นี้รีเฟรชอัตโนมัติ เหมาะสำหรับดูบนมือถือและหน้าจอใหญ่
+          </p>
+          <div class="hero-meta">
+            <div class="meta-chip"><i class="bi bi-star-fill"></i> คะแนนสูงสุด</div>
+            <div class="meta-chip"><i class="bi bi-stopwatch-fill"></i> เวลารวม</div>
+            <div class="meta-chip"><i class="bi bi-people-fill"></i> ผู้เล่นทั้งหมด</div>
+          </div>
+        </section>
+
+        <section class="summary-grid">
+          <div class="summary-card">
+            <div class="label"><i class="bi bi-person-badge-fill"></i> ผู้เล่น</div>
+            <div class="value" id="summaryPlayers">-</div>
+          </div>
+          <div class="summary-card">
+            <div class="label"><i class="bi bi-stars"></i> คะแนนสูงสุด</div>
+            <div class="value" id="summaryBestScore">-</div>
+          </div>
+          <div class="summary-card">
+            <div class="label"><i class="bi bi-stopwatch"></i> เวลาน้อยสุด</div>
+            <div class="value" id="summaryBestTime">-</div>
+          </div>
+        </section>
+      </div>
+
+      <section class="panel summary-card fade-in">
         <div class="leaderboard-header">
-          <h2>อันดับผู้เล่น</h2>
-          <div class="last-updated">
-            อัปเดตล่าสุด: <span id="lastUpdated">-</span>
+          <div>
+            <h2>อันดับผู้เล่น</h2>
+            <div class="last-updated">อัปเดตล่าสุด: <span id="lastUpdated">-</span></div>
+          </div>
+          <% if (mode !== 'tv') { %>
+            <a href="/coopgame/game/start" class="btn-ghost">
+              <i class="bi bi-play-circle-fill"></i> กลับไปเริ่มเกม
+            </a>
+          <% } %>
+        </div>
+
+        <div class="podium-wrap">
+          <div class="podium-head">
+            <h3><i class="bi bi-patch-check-fill"></i> Top 3 ล่าสุด</h3>
+            <span>คะแนนสูงสุดและเวลารวมที่ดีที่สุด</span>
+          </div>
+          <div id="podiumGrid" class="podium-grid">
+            <div class="loading" style="padding:18px 0;">กำลังจัดอันดับ...</div>
           </div>
         </div>
 
         <div id="leaderboardLoading" class="loading">
-          <p>กำลังโหลด...</p>
+          <div class="loading-visual" style="width:88px;height:88px;margin:0 auto 14px;display:grid;place-items:center;border-radius:28px;background:linear-gradient(135deg, rgba(53, 181, 89, 0.12), rgba(127, 208, 141, 0.2));color:var(--green-700);font-size:2rem;">
+            <i class="bi bi-arrow-repeat spin-icon"></i>
+          </div>
+          <p>กำลังโหลดข้อมูลอันดับ...</p>
         </div>
 
         <div id="leaderboardContent" class="leaderboard-content hidden">
-          <div id="leaderboardList" class="leaderboard-list">
-            <!-- Leaderboard entries will be inserted here -->
-          </div>
+          <div id="leaderboardList" class="leaderboard-list"></div>
 
           <% if (mode !== 'tv') { %>
             <div class="leaderboard-actions">
-              <a href="/coopgame/game/start" class="btn btn-primary">
-                เล่นเกม
+              <a href="/coopgame/game/start" class="btn-emerald">
+                <i class="bi bi-controller"></i> เล่นเกมต่อ
               </a>
             </div>
           <% } %>
         </div>
 
         <div id="emptyLeaderboard" class="empty-leaderboard hidden">
-          <p>ยังไม่มีผู้เล่น</p>
+          <div class="loading-visual" style="width:88px;height:88px;margin:0 auto 14px;display:grid;place-items:center;border-radius:28px;background:linear-gradient(135deg, rgba(53, 181, 89, 0.12), rgba(127, 208, 141, 0.2));color:var(--green-700);font-size:2rem;">
+            <i class="bi bi-emoji-smile"></i>
+          </div>
+          <p>ยังไม่มีผู้เล่นในกระดานผู้นำ</p>
           <% if (mode !== 'tv') { %>
-            <a href="/coopgame/game/start" class="btn btn-primary">
-                เริ่มเล่นเกม
-              </a>
+            <a href="/coopgame/game/start" class="btn-emerald">
+              <i class="bi bi-play-circle-fill"></i> เริ่มเล่นเกม
+            </a>
           <% } %>
         </div>
-      </div>
-    </main>
+      </section>
 
-    <% if (mode !== 'tv') { %>
-      <footer class="footer">
-        <p>© 2026 naimet</p>
-      </footer>
-    <% } %>
+      <% if (mode !== 'tv') { %>
+        <footer class="footer">
+          <p>© 2026 naimet</p>
+        </footer>
+      <% } %>
+    </div>
   </div>
 
   <script>
     const isTVMode = '<%= mode %>' === 'tv';
-    const refreshInterval = isTVMode ? 10000 : 30000; // 10s for TV, 30s for mobile
+    const refreshInterval = isTVMode ? 10000 : 30000;
+
+    function escapeHtml(text) {
+      return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
 
     function loadLeaderboard() {
-      console.log('[DEBUG] Loading leaderboard...');
       fetch('/coopgame/game/api/leaderboard')
         .then(response => response.json())
         .then(result => {
-          console.log('[DEBUG] Leaderboard result:', result);
-          if (result.success && result.data) {
-            // result.data is the leaderboard array directly
+          if (result.success && Array.isArray(result.data)) {
             displayLeaderboard(result.data);
             document.getElementById('lastUpdated').textContent = new Date().toLocaleTimeString('th-TH');
           } else {
-            console.error('[ERROR] Invalid response:', result);
             document.getElementById('leaderboardLoading').classList.add('hidden');
             document.getElementById('emptyLeaderboard').classList.remove('hidden');
           }
@@ -93,34 +722,56 @@
     function displayLeaderboard(leaderboard) {
       document.getElementById('leaderboardLoading').classList.add('hidden');
 
-      if (leaderboard.length === 0) {
+      if (!leaderboard.length) {
         document.getElementById('leaderboardContent').classList.add('hidden');
         document.getElementById('emptyLeaderboard').classList.remove('hidden');
+        document.getElementById('podiumGrid').innerHTML = '<div class="loading" style="grid-column:1/-1;padding:16px 0;">ยังไม่มีข้อมูลอันดับ</div>';
         return;
       }
 
       document.getElementById('emptyLeaderboard').classList.add('hidden');
       document.getElementById('leaderboardContent').classList.remove('hidden');
 
+      const podiumGrid = document.getElementById('podiumGrid');
+      const podium = leaderboard.slice(0, 3);
+      podiumGrid.innerHTML = podium.length
+        ? podium.map((entry) => `
+            <div class="podium-card top-${entry.rank}">
+              <div class="podium-rank">${entry.rank}</div>
+              <div class="podium-name">${escapeHtml(entry.playerName || 'ไม่ระบุชื่อ')}</div>
+              <div class="podium-meta">
+                <span><i class="bi bi-star-fill"></i> ${entry.score || 0} ข้อ</span>
+                <span><i class="bi bi-stopwatch"></i> ${entry.totalTime || 0} วิ</span>
+              </div>
+            </div>
+          `).join('')
+        : '<div class="loading" style="grid-column:1/-1;padding:16px 0;">ยังไม่มีข้อมูลอันดับ</div>';
+
       const list = document.getElementById('leaderboardList');
       list.innerHTML = leaderboard.map((entry) => `
         <div class="leaderboard-entry ${entry.rank <= 3 ? 'top-' + entry.rank : ''}">
           <div class="rank">${entry.rank}</div>
           <div class="player-info">
-            <div class="player-name">${entry.playerName}</div>
+            <div class="player-name">${escapeHtml(entry.playerName || 'ไม่ระบุชื่อ')}</div>
+            <div class="time">ลำดับที่ ${entry.rank}</div>
           </div>
           <div class="score-info">
-            <div class="score">${entry.score} ข้อ</div>
-            <div class="time">${entry.totalTime} วินาที</div>
+            <div class="score">${entry.score || 0} ข้อ</div>
+            <div class="time">${entry.totalTime || 0} วินาที</div>
           </div>
         </div>
       `).join('');
+
+      document.getElementById('summaryPlayers').textContent = leaderboard.length;
+      document.getElementById('summaryBestScore').textContent = leaderboard[0] ? `${leaderboard[0].score || 0} ข้อ` : '-';
+      const bestTime = leaderboard.reduce((min, entry) => {
+        const time = Number(entry.totalTime);
+        return Number.isFinite(time) && (min === null || time < min) ? time : min;
+      }, null);
+      document.getElementById('summaryBestTime').textContent = bestTime !== null ? `${bestTime} วินาที` : '-';
     }
 
-    // Initial load
     loadLeaderboard();
-
-    // Auto refresh
     setInterval(loadLeaderboard, refreshInterval);
   </script>
 </body>

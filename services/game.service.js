@@ -1,13 +1,18 @@
-const pool = require('../config/database');
+﻿const pool = require('../config/database');
 const gameCodeModel = require('../models/gameCode.model');
 const questionModel = require('../models/question.model');
 const attemptModel = require('../models/attempt.model');
 const attemptQuestionModel = require('../models/attemptQuestion.model');
 const attemptAnswerModel = require('../models/attemptAnswer.model');
+const gameSettingModel = require('../models/gameSetting.model');
 const { generateGameCode, shuffleArray, calculateExpiry } = require('../utils/crypto');
 const logger = require('../utils/logger');
-
-const ANONYMOUS_PLAYER_NAME = 'ไม่ประสงค์จะออกนาม';
+const ANONYMOUS_PLAYER_NAME = 'Anonymous';
+const QUESTION_TIME_LIMITS = {
+  easy: 15,
+  medium: 20,
+  hard: 25
+};
 
 class GameService {
   /**
@@ -23,7 +28,7 @@ class GameService {
       // Validate code format
       if (!code || code.length !== 6 || !/^[A-Z0-9]{6}$/.test(code.toUpperCase())) {
         await connection.rollback();
-        return { success: false, message: 'รหัสต้องเป็น 6 ตัวอักษร' };
+        return { success: false, message: 'Code must be 6 alphanumeric characters' };
       }
 
       const upperCode = code.toUpperCase();
@@ -36,7 +41,7 @@ class GameService {
 
       if (codes.length === 0) {
         await connection.rollback();
-        return { success: false, message: 'รหัสไม่ถูกต้อง' };
+        return { success: false, message: 'Code not found' };
       }
 
       const gameCode = codes[0];
@@ -48,13 +53,13 @@ class GameService {
           ['expired', gameCode.id]
         );
         await connection.rollback();
-        return { success: false, message: 'รหัสหมดอายุแล้ว' };
+        return { success: false, message: 'Code has expired' };
       }
 
       // Check if code is already used
       if (gameCode.status !== 'unused') {
         await connection.rollback();
-        return { success: false, message: 'รหัสนี้ถูกใช้ไปแล้ว' };
+        return { success: false, message: 'Code has already been used' };
       }
 
       // Lock the code (in_progress)
@@ -74,12 +79,14 @@ class GameService {
       const attemptId = attemptResult.insertId;
       logger.info(`Created attempt ${attemptId} for code ${upperCode}`);
 
+      const gameSettings = await this.getGameSettings();
+
       // Select random questions
-      const questions = await this.selectRandomQuestions(connection);
+      const questions = await this.selectRandomQuestions(connection, gameSettings.totalQuestions);
       
       if (questions.length === 0) {
         await connection.rollback();
-        return { success: false, message: 'ไม่มีคำถามในระบบ' };
+        return { success: false, message: 'No questions available in the system' };
       }
 
       // Assign questions to attempt
@@ -109,44 +116,105 @@ class GameService {
 
   /**
    * Select random questions from each difficulty level
-   * Returns: 3 easy + 3 medium + 3 hard = 9 questions total
+   * Returns questions in easy -> medium -> hard order
    */
-  async selectRandomQuestions(connection) {
+  async selectRandomQuestions(connection, totalQuestions) {
     const query = connection || pool;
+    const distribution = this.buildQuestionDistribution(totalQuestions);
+    const selectedIds = new Set();
+    const selectedQuestions = [];
 
-    // Get 3 easy questions
-    const [easy] = await query.query(
-      'SELECT id FROM questions WHERE difficulty = ? AND is_active = ? ORDER BY RAND() LIMIT 3',
-      ['easy', true]
-    );
+    const selectQuestionsByDifficulty = async (difficulty, limit) => {
+      if (limit <= 0) {
+        return [];
+      }
 
-    // Get 3 medium questions
-    const [medium] = await query.query(
-      'SELECT id FROM questions WHERE difficulty = ? AND is_active = ? ORDER BY RAND() LIMIT 3',
-      ['medium', true]
-    );
+      const [rows] = await query.query(
+        'SELECT * FROM questions WHERE difficulty = ? AND is_active = ? ORDER BY RAND() LIMIT ?',
+        [difficulty, true, limit]
+      );
 
-    // Get 3 hard questions
-    const [hard] = await query.query(
-      'SELECT id FROM questions WHERE difficulty = ? AND is_active = ? ORDER BY RAND() LIMIT 3',
-      ['hard', true]
-    );
+      rows.forEach(row => selectedIds.add(row.id));
+      return rows;
+    };
 
-    const questionIds = [...easy, ...medium, ...hard].map(q => q.id);
+    selectedQuestions.push(...await selectQuestionsByDifficulty('easy', distribution.easy));
+    selectedQuestions.push(...await selectQuestionsByDifficulty('medium', distribution.medium));
+    selectedQuestions.push(...await selectQuestionsByDifficulty('hard', distribution.hard));
 
-    if (questionIds.length === 0) return [];
+    if (selectedQuestions.length < totalQuestions) {
+      const remaining = totalQuestions - selectedQuestions.length;
+      const selectedIdList = Array.from(selectedIds);
+      const exclusionClause = selectedIdList.length > 0
+        ? `AND id NOT IN (${selectedIdList.map(() => '?').join(',')})`
+        : '';
 
-    // Get full question details
-    const [questions] = await query.query(
-      `SELECT * FROM questions WHERE id IN (${questionIds.map(() => '?').join(',')})`,
-      questionIds
-    );
+      const [fallbackRows] = await query.query(
+        `SELECT * FROM questions
+         WHERE is_active = ? ${exclusionClause}
+         ORDER BY FIELD(difficulty, 'easy', 'medium', 'hard'), RAND()
+         LIMIT ?`,
+        selectedIdList.length > 0
+          ? [true, ...selectedIdList, remaining]
+          : [true, remaining]
+      );
 
-    // Sort by difficulty (easy -> medium -> hard)
-    const difficultyOrder = { 'easy': 1, 'medium': 2, 'hard': 3 };
-    questions.sort((a, b) => difficultyOrder[a.difficulty] - difficultyOrder[b.difficulty]);
+      fallbackRows.forEach(row => selectedIds.add(row.id));
+      selectedQuestions.push(...fallbackRows);
+    }
 
-    return questions;
+    return selectedQuestions.slice(0, totalQuestions);
+  }
+
+  buildQuestionDistribution(totalQuestions) {
+    const ratios = [
+      { difficulty: 'easy', ratio: 0.30 },
+      { difficulty: 'medium', ratio: 0.35 },
+      { difficulty: 'hard', ratio: 0.35 }
+    ];
+
+    const baseCounts = ratios.map(item => Math.floor(totalQuestions * item.ratio));
+    const fractions = ratios.map((item, index) => ({
+      index,
+      fraction: totalQuestions * item.ratio - baseCounts[index]
+    }));
+
+    let remainder = totalQuestions - baseCounts.reduce((sum, count) => sum + count, 0);
+
+    fractions.sort((a, b) => {
+      if (b.fraction !== a.fraction) {
+        return b.fraction - a.fraction;
+      }
+      return a.index - b.index;
+    });
+
+    let cursor = 0;
+    while (remainder > 0) {
+      baseCounts[fractions[cursor % fractions.length].index] += 1;
+      remainder -= 1;
+      cursor += 1;
+    }
+
+    return {
+      easy: baseCounts[0],
+      medium: baseCounts[1],
+      hard: baseCounts[2]
+    };
+  }
+
+  getQuestionTimeLimit(difficulty) {
+    return QUESTION_TIME_LIMITS[difficulty] || QUESTION_TIME_LIMITS.easy;
+  }
+
+  async getGameSettings() {
+    const totalQuestions = await gameSettingModel.getValue('totalQuestions', 9);
+    const parsedTotalQuestions = parseInt(totalQuestions, 10);
+
+    return {
+      totalQuestions: Number.isInteger(parsedTotalQuestions) && parsedTotalQuestions > 0
+        ? parsedTotalQuestions
+        : 9
+    };
   }
 
   /**
@@ -191,7 +259,7 @@ class GameService {
           C: questionData.option_c,
           D: questionData.option_d
         },
-        timeLimit: questionData.time_limit,
+        timeLimit: this.getQuestionTimeLimit(questionData.difficulty),
         questionNumber: currentQuestionIndex + 1,
         totalQuestions: totalQuestions
       };
@@ -219,14 +287,14 @@ class GameService {
 
       if (attempts.length === 0) {
         await connection.rollback();
-        return { success: false, message: 'ไม่พบเกม' };
+        return { success: false, message: 'Game not found' };
       }
 
       const attempt = attempts[0];
 
       if (attempt.status !== 'in_progress') {
         await connection.rollback();
-        return { success: false, message: 'เกมนี้จบแล้ว' };
+        return { success: false, message: 'Game already finished' };
       }
 
       // Validate question belongs to this attempt
@@ -237,7 +305,7 @@ class GameService {
 
       if (mapping.length === 0) {
         await connection.rollback();
-        return { success: false, message: 'คำถามไม่ถูกต้อง' };
+        return { success: false, message: 'Invalid question for this attempt' };
       }
 
       // Check if already answered
@@ -248,7 +316,7 @@ class GameService {
 
       if (answered.length > 0) {
         await connection.rollback();
-        return { success: false, message: 'คำถามนี้ตอบไปแล้ว' };
+        return { success: false, message: 'This question was already answered' };
       }
 
       // Get question for validation
@@ -259,13 +327,15 @@ class GameService {
 
       if (questions.length === 0) {
         await connection.rollback();
-        return { success: false, message: 'ไม่พบคำถาม' };
+        return { success: false, message: 'Question not found' };
       }
 
       const question = questions[0];
 
       // Server-side timeout check (anti-cheat)
-      if (responseTime > question.time_limit) {
+      const timeLimit = this.getQuestionTimeLimit(question.difficulty);
+
+      if (responseTime > timeLimit) {
         await connection.query(
           'UPDATE game_attempts SET status = ?, finished_at = NOW() WHERE id = ?',
           ['completed', attemptId]
@@ -386,7 +456,7 @@ class GameService {
       const attempt = await attemptModel.findById(attemptId);
 
       if (!attempt) {
-        return { success: false, message: 'ไม่พบเกม' };
+        return { success: false, message: 'Game not found' };
       }
 
       const normalizedPlayerName = typeof playerName === 'string' && playerName.trim()
@@ -478,3 +548,5 @@ class GameService {
 }
 
 module.exports = new GameService();
+
+

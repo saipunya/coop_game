@@ -103,6 +103,17 @@ class AttemptModel {
       averageTime: Math.round(avgTime[0].avg) || 0
     };
   }
+
+  // Clear all player history and game attempts
+  async clearAllHistory(connection) {
+    const query = connection || pool;
+
+    await query.query('DELETE FROM attempt_answers');
+    await query.query('DELETE FROM attempt_questions');
+    const [result] = await query.query('DELETE FROM game_attempts');
+
+    return result.affectedRows;
+  }
 }
 
 module.exports = new AttemptModel();

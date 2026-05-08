@@ -1,69 +1,735 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><%= title %> - เกมตอบคำถามสหกรณ์</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
   <link rel="stylesheet" href="/coopgame/css/styles.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700;800&display=swap');
+
+    :root {
+      --bg-1: #0d2317;
+      --bg-2: #183623;
+      --bg-3: #1f5a35;
+      --card: rgba(255, 255, 255, 0.96);
+      --card-soft: rgba(255, 255, 255, 0.84);
+      --border: rgba(95, 196, 118, 0.24);
+      --green-900: #10361f;
+      --green-700: #1e6f37;
+      --green-500: #35b559;
+      --green-300: #7fd08d;
+      --text: #18321f;
+      --muted: #5b7264;
+      --shadow: 0 24px 70px rgba(8, 24, 14, 0.26);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: 'Sarabun', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(87, 196, 108, 0.28), transparent 26%),
+        radial-gradient(circle at top right, rgba(255, 255, 255, 0.12), transparent 22%),
+        radial-gradient(circle at bottom left, rgba(255, 255, 255, 0.08), transparent 18%),
+        linear-gradient(135deg, var(--bg-1) 0%, var(--bg-2) 44%, var(--bg-3) 100%);
+      overflow-x: hidden;
+    }
+
+    .play-page {
+      position: relative;
+      min-height: 100vh;
+      padding: 18px;
+      isolation: isolate;
+    }
+
+    .orb {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(8px);
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.85;
+    }
+
+    .orb-1 {
+      width: 280px;
+      height: 280px;
+      top: -80px;
+      left: -70px;
+      background: radial-gradient(circle, rgba(127, 208, 141, 0.34), rgba(127, 208, 141, 0) 70%);
+    }
+
+    .orb-2 {
+      width: 220px;
+      height: 220px;
+      right: -80px;
+      top: 14%;
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0) 70%);
+    }
+
+    .orb-3 {
+      width: 260px;
+      height: 260px;
+      left: 8%;
+      bottom: -110px;
+      background: radial-gradient(circle, rgba(95, 196, 118, 0.18), rgba(95, 196, 118, 0) 72%);
+    }
+
+    .game-shell {
+      position: relative;
+      z-index: 1;
+      max-width: 1280px;
+      margin: 0 auto;
+      display: grid;
+      gap: 18px;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      padding: 18px 22px;
+      border-radius: 24px;
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      backdrop-filter: blur(18px);
+      box-shadow: 0 18px 50px rgba(5, 20, 11, 0.14);
+      color: #fff;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .brand-mark {
+      width: 54px;
+      height: 54px;
+      display: grid;
+      place-items: center;
+      border-radius: 18px;
+      background: linear-gradient(135deg, #ffffff, rgba(255,255,255,0.74));
+      color: var(--green-700);
+      font-size: 1.4rem;
+      box-shadow: 0 14px 26px rgba(0, 0, 0, 0.16);
+    }
+
+    .brand-title {
+      margin: 0;
+      font-size: 1.2rem;
+      font-weight: 800;
+      line-height: 1.2;
+    }
+
+    .brand-subtitle {
+      margin: 4px 0 0;
+      color: rgba(255,255,255,0.78);
+      font-size: 0.95rem;
+    }
+
+    .top-stats {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    .stat-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.16);
+      border: 1px solid rgba(255,255,255,0.18);
+      font-weight: 700;
+      color: #fff;
+      backdrop-filter: blur(12px);
+    }
+
+    .stat-pill i {
+      color: #c9ffd5;
+    }
+
+    .content-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.6fr) minmax(280px, 0.62fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .panel {
+      border-radius: 30px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(16px);
+      overflow: hidden;
+    }
+
+    .panel-inner {
+      padding: 24px;
+    }
+
+    .loading-panel {
+      min-height: 500px;
+      display: grid;
+      place-items: center;
+      text-align: center;
+    }
+
+    .loading-visual {
+      width: 96px;
+      height: 96px;
+      display: grid;
+      place-items: center;
+      border-radius: 30px;
+      margin: 0 auto 18px;
+      background: linear-gradient(135deg, rgba(53, 181, 89, 0.16), rgba(127, 208, 141, 0.24));
+      color: var(--green-700);
+      font-size: 2.2rem;
+      animation: floaty 2.8s ease-in-out infinite;
+    }
+
+    .loading-title {
+      font-size: 1.45rem;
+      font-weight: 800;
+      margin: 0 0 8px;
+      color: var(--green-900);
+    }
+
+    .loading-text {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+
+    .question-banner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 18px;
+      padding: 16px 18px;
+      border-radius: 22px;
+      background: linear-gradient(135deg, rgba(233, 247, 235, 0.95), rgba(245, 251, 246, 0.95));
+      border: 1px solid rgba(95, 196, 118, 0.18);
+    }
+
+    .question-progress {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 800;
+      color: var(--green-900);
+    }
+
+    .question-progress i {
+      color: var(--green-700);
+    }
+
+    .question-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.76);
+      color: var(--green-700);
+      font-weight: 700;
+      box-shadow: 0 8px 20px rgba(21, 67, 33, 0.06);
+    }
+
+    .timer-wrap {
+      margin-bottom: 18px;
+      padding: 16px 18px 18px;
+      border-radius: 22px;
+      background: linear-gradient(135deg, rgba(15, 78, 31, 0.98), rgba(29, 121, 50, 0.96));
+      color: #fff;
+      box-shadow: 0 18px 40px rgba(8, 24, 14, 0.16);
+    }
+
+    .timer-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+      font-weight: 700;
+    }
+
+    .timer-text {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 1.2rem;
+    }
+
+    .timer-text i {
+      color: #d4ffd8;
+    }
+
+    .timer-bar-shell {
+      height: 14px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.18);
+      overflow: hidden;
+    }
+
+    .timer-bar {
+      height: 100%;
+      width: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #d4ffd8, #78e78a, #36c05b);
+      transition: width 1s linear;
+    }
+
+    .timer-bar.timer-warning {
+      background: linear-gradient(90deg, #fff3b0, #ffd166);
+    }
+
+    .timer-bar.timer-critical {
+      background: linear-gradient(90deg, #ffb4b4, #ff4d6d);
+    }
+
+    .question-card {
+      padding: 22px;
+      border-radius: 26px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(249, 252, 249, 0.98));
+      border: 1px solid rgba(95, 196, 118, 0.18);
+      box-shadow: 0 16px 34px rgba(8, 24, 14, 0.06);
+      margin-bottom: 18px;
+    }
+
+    .question-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(53, 181, 89, 0.12);
+      color: var(--green-700);
+      font-weight: 800;
+      font-size: 0.95rem;
+    }
+
+    .question-text {
+      margin: 0;
+      font-size: clamp(1.35rem, 2vw, 1.75rem);
+      line-height: 1.7;
+      color: var(--green-900);
+      font-weight: 800;
+    }
+
+    .options-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .option-btn {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-height: 92px;
+      padding: 16px 18px;
+      border: 1px solid rgba(95, 196, 118, 0.18);
+      border-radius: 24px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(247, 251, 248, 0.98));
+      box-shadow: 0 12px 24px rgba(8, 24, 14, 0.05);
+      text-align: left;
+      cursor: pointer;
+      transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+      color: var(--text);
+    }
+
+    .option-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      border-color: rgba(53, 181, 89, 0.45);
+      box-shadow: 0 18px 34px rgba(8, 24, 14, 0.1);
+    }
+
+    .option-btn:disabled {
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+
+    .option-btn.selected {
+      border-color: rgba(53, 181, 89, 0.72);
+      box-shadow: 0 18px 30px rgba(53, 181, 89, 0.16);
+      transform: translateY(-1px);
+    }
+
+    .option-btn.correct {
+      background: linear-gradient(180deg, rgba(231, 248, 234, 0.98), rgba(214, 247, 219, 0.98));
+      border-color: rgba(53, 181, 89, 0.5);
+    }
+
+    .option-btn.wrong {
+      background: linear-gradient(180deg, rgba(255, 240, 240, 0.98), rgba(255, 228, 228, 0.98));
+      border-color: rgba(255, 88, 88, 0.4);
+    }
+
+    .option-btn.disabled {
+      opacity: 0.68;
+    }
+
+    .option-label {
+      width: 48px;
+      height: 48px;
+      flex-shrink: 0;
+      display: grid;
+      place-items: center;
+      border-radius: 16px;
+      background: linear-gradient(135deg, var(--green-700), var(--green-500));
+      color: #fff;
+      font-weight: 800;
+      font-size: 1.1rem;
+      box-shadow: 0 10px 20px rgba(29, 110, 52, 0.22);
+    }
+
+    .option-text {
+      flex: 1;
+      font-size: 1.05rem;
+      font-weight: 700;
+      line-height: 1.6;
+      color: var(--green-900);
+    }
+
+    .side-stack {
+      display: grid;
+      gap: 18px;
+    }
+
+    .side-card {
+      padding: 22px;
+      border-radius: 28px;
+      background: rgba(255,255,255,0.94);
+      border: 1px solid rgba(95, 196, 118, 0.18);
+      box-shadow: 0 18px 40px rgba(8, 24, 14, 0.08);
+    }
+
+    .side-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 0 0 14px;
+      color: var(--green-900);
+      font-size: 1.05rem;
+      font-weight: 800;
+    }
+
+    .side-title i {
+      color: var(--green-700);
+    }
+
+    .hint-list {
+      display: grid;
+      gap: 12px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .hint-list li {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      padding: 12px 14px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, rgba(53, 181, 89, 0.08), rgba(127, 208, 141, 0.14));
+      color: var(--green-900);
+      line-height: 1.6;
+      font-weight: 600;
+    }
+
+    .hint-list i {
+      color: var(--green-700);
+      margin-top: 2px;
+    }
+
+    .result-area {
+      padding: 24px;
+    }
+
+    .result-card {
+      padding: 28px;
+      border-radius: 28px;
+      background:
+        radial-gradient(circle at top right, rgba(255,255,255,0.18), transparent 28%),
+        linear-gradient(180deg, rgba(255,255,255,0.98), rgba(248, 252, 249, 0.98));
+      border: 1px solid rgba(95, 196, 118, 0.18);
+      box-shadow: 0 24px 50px rgba(8, 24, 14, 0.08);
+      text-align: center;
+    }
+
+    .result-emoji {
+      width: 88px;
+      height: 88px;
+      margin: 0 auto 16px;
+      border-radius: 28px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, rgba(53, 181, 89, 0.14), rgba(127, 208, 141, 0.22));
+      color: var(--green-700);
+      font-size: 2.3rem;
+    }
+
+    .result-title {
+      margin: 0 0 10px;
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--green-900);
+    }
+
+    .result-message {
+      margin: 0 0 22px;
+      color: var(--muted);
+      font-size: 1.05rem;
+      line-height: 1.75;
+    }
+
+    .result-actions {
+      display: grid;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .btn-emerald {
+      border: none;
+      border-radius: 16px;
+      padding: 14px 18px;
+      font-weight: 800;
+      color: #fff;
+      background: linear-gradient(135deg, #166534 0%, #22a247 55%, #4ade80 100%);
+      box-shadow: 0 14px 28px rgba(29, 110, 52, 0.22);
+    }
+
+    .btn-emerald:hover {
+      color: #fff;
+    }
+
+    .btn-outline-emerald {
+      border-radius: 16px;
+      border: 1px solid rgba(53, 181, 89, 0.34);
+      color: var(--green-700);
+      background: #fff;
+      font-weight: 800;
+      padding: 14px 18px;
+    }
+
+    .btn-outline-emerald:hover {
+      background: rgba(53, 181, 89, 0.08);
+      color: var(--green-900);
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .fade-in {
+      animation: fadeIn 0.45s ease-out;
+    }
+
+    .spin-icon {
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes floaty {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 992px) {
+      .content-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .topbar {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .top-stats {
+        justify-content: flex-start;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .play-page {
+        padding: 12px;
+      }
+
+      .panel-inner,
+      .result-area,
+      .side-card,
+      .result-card,
+      .question-card,
+      .timer-wrap {
+        padding-left: 18px;
+        padding-right: 18px;
+      }
+
+      .options-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .question-banner {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .result-title {
+        font-size: 1.6rem;
+      }
+    }
+  </style>
 </head>
 <body>
-  <div class="container">
-    <header class="header game-header">
-      <div class="game-info">
-        <span class="score-display">คะแนน: <span id="score">0</span></span>
-        <span class="question-counter">ข้อ <span id="questionNum">1</span></span>
-      </div>
-    </header>
+  <div class="play-page">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
 
-    <main class="main game-main">
-      <div id="loading" class="loading">
-        <p>กำลังโหลดคำถาม...</p>
-      </div>
-
-      <div id="gameArea" class="game-area hidden">
-        <!-- Timer Bar -->
-        <div class="timer-container">
-          <div id="timerBar" class="timer-bar"></div>
-          <div id="timerText" class="timer-text">10</div>
+    <div class="game-shell">
+      <header class="topbar fade-in">
+        <div class="brand">
+          <div class="brand-mark">
+            <i class="bi bi-controller"></i>
+          </div>
+          <div>
+            <h1 class="brand-title">เกมตอบคำถามสหกรณ์</h1>
+            <p class="brand-subtitle">ตอบให้ไว เก็บคะแนนให้สูง แล้วไปต่อให้ถึงรอบจบ</p>
+          </div>
         </div>
 
-        <!-- Question -->
-        <div class="question-card">
-          <h2 id="questionText" class="question-text"></h2>
+        <div class="top-stats">
+          <div class="stat-pill"><i class="bi bi-star-fill"></i> คะแนน <span id="score">0</span></div>
+          <div class="stat-pill"><i class="bi bi-list-ol"></i> ข้อ <span id="questionNum">1</span></div>
         </div>
+      </header>
 
-        <!-- Options -->
-        <div class="options-grid">
-          <button class="option-btn" data-answer="A" id="btnA">
-            <span class="option-label">A</span>
-            <span class="option-text" id="textA"></span>
-          </button>
-          <button class="option-btn" data-answer="B" id="btnB">
-            <span class="option-label">B</span>
-            <span class="option-text" id="textB"></span>
-          </button>
-          <button class="option-btn" data-answer="C" id="btnC">
-            <span class="option-label">C</span>
-            <span class="option-text" id="textC"></span>
-          </button>
-          <button class="option-btn" data-answer="D" id="btnD">
-            <span class="option-label">D</span>
-            <span class="option-text" id="textD"></span>
-          </button>
-        </div>
-      </div>
+      <div class="content-grid">
+        <section class="panel fade-in">
+          <div id="loading" class="loading-panel panel-inner">
+            <div>
+              <div class="loading-visual">
+                <i class="bi bi-hourglass-split"></i>
+              </div>
+              <h2 class="loading-title">กำลังเตรียมคำถาม</h2>
+              <p class="loading-text">ระบบกำลังโหลดคำถามสำหรับรอบนี้ โปรดรอสักครู่ แล้วจะพาคุณเข้าสู่เกมทันที</p>
+            </div>
+          </div>
 
-      <div id="resultArea" class="result-area hidden">
-        <div class="result-card">
-          <h2 id="resultTitle"></h2>
-          <p id="resultMessage"></p>
-          <a href="/coopgame/game/finish?attemptId=<%= attemptId %>" class="btn btn-primary">
-            ดูผลลัพธ์
-          </a>
-        </div>
+          <div id="gameArea" class="panel-inner hidden">
+            <div class="question-banner">
+              <div class="question-progress">
+                <i class="bi bi-flag-fill"></i>
+                <span>คำถาม <span id="progressCurrent">1</span> จาก <span id="progressTotal">-</span></span>
+              </div>
+              <div class="question-tag" id="questionTag">
+                <i class="bi bi-lightning-charge-fill"></i>
+                <span>เตรียมพร้อม</span>
+              </div>
+            </div>
+
+            <div class="timer-wrap">
+              <div class="timer-top">
+                <div class="timer-text"><i class="bi bi-stopwatch-fill"></i> เวลาที่เหลือ</div>
+                <div class="timer-text"><span id="timerText">10</span> วินาที</div>
+              </div>
+              <div class="timer-bar-shell">
+                <div id="timerBar" class="timer-bar"></div>
+              </div>
+            </div>
+
+            <div class="question-card">
+              <div class="question-label">
+                <i class="bi bi-question-circle-fill"></i>
+                <span>คำถาม</span>
+              </div>
+              <h2 id="questionText" class="question-text"></h2>
+            </div>
+
+            <div class="options-grid">
+              <button class="option-btn" data-answer="A" id="btnA" type="button">
+                <span class="option-label">ก</span>
+                <span class="option-text" id="textA"></span>
+              </button>
+              <button class="option-btn" data-answer="B" id="btnB" type="button">
+                <span class="option-label">ข</span>
+                <span class="option-text" id="textB"></span>
+              </button>
+              <button class="option-btn" data-answer="C" id="btnC" type="button">
+                <span class="option-label">ค</span>
+                <span class="option-text" id="textC"></span>
+              </button>
+              <button class="option-btn" data-answer="D" id="btnD" type="button">
+                <span class="option-label">ง</span>
+                <span class="option-text" id="textD"></span>
+              </button>
+            </div>
+          </div>
+
+          <div id="resultArea" class="result-area hidden">
+            <div class="result-card">
+              <div class="result-emoji">
+                <i class="bi bi-emoji-sunglasses-fill"></i>
+              </div>
+              <h2 id="resultTitle" class="result-title"></h2>
+              <p id="resultMessage" class="result-message"></p>
+              <div class="result-actions">
+                <a href="/coopgame/game/finish?attemptId=<%= attemptId %>" class="btn btn-emerald">
+                  <i class="bi bi-clipboard2-check-fill"></i> ดูผลลัพธ์ท้ายเกม
+                </a>
+                <a href="/coopgame/game/start" class="btn btn-outline-emerald">
+                  <i class="bi bi-arrow-counterclockwise"></i> เล่นใหม่
+                </a>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <aside class="side-stack">
+          <div class="side-card fade-in">
+            <h3 class="side-title"><i class="bi bi-award-fill"></i> เคล็ดลับการเล่น</h3>
+            <ul class="hint-list">
+              <li><i class="bi bi-lightning-fill"></i> ตอบให้เร็วเพื่อรักษาเวลารวมให้น้อยที่สุด</li>
+              <li><i class="bi bi-badge-ad-fill"></i> คำถามเรียงระดับจากง่ายไปยาก เล่นให้ต่อเนื่อง</li>
+              <li><i class="bi bi-shield-check"></i> เลือกคำตอบแล้วระบบจะตรวจให้อัตโนมัติ</li>
+            </ul>
+          </div>
+
+          <div class="side-card fade-in">
+            <h3 class="side-title"><i class="bi bi-graph-up-arrow"></i> สถานะเกม</h3>
+            <div class="d-grid gap-2">
+              <div class="question-tag"><i class="bi bi-trophy-fill"></i> คะแนนสะสม <span id="scoreSide" class="ms-auto">0</span></div>
+              <div class="question-tag"><i class="bi bi-list-check"></i> ข้อปัจจุบัน <span id="questionNumSide" class="ms-auto">1</span></div>
+              <div class="question-tag"><i class="bi bi-stopwatch"></i> เวลาตอบ <span id="timerTextSide" class="ms-auto">10</span> วินาที</div>
+            </div>
+          </div>
+        </aside>
       </div>
-    </main>
+    </div>
   </div>
 
   <script>
@@ -75,22 +741,16 @@
     let timeLeft = 0;
     let isAnswering = false;
 
-    // Load first question
     loadQuestion();
 
     async function loadQuestion() {
       try {
-        console.log('[DEBUG] Loading question for attempt:', attemptId);
         const response = await fetch(`/coopgame/game/api/question?attemptId=${attemptId}`);
         const result = await response.json();
-        
-        console.log('[DEBUG] Question result:', result);
 
         if (result.success && result.data && result.data.question) {
           displayQuestion(result.data.question);
         } else {
-          // No more questions or error
-          console.log('[DEBUG] No question, redirecting to finish');
           window.location.href = `/coopgame/game/finish?attemptId=${attemptId}`;
         }
       } catch (error) {
@@ -100,11 +760,31 @@
       }
     }
 
+    function getDifficultyFromTimeLimit(timeLimit) {
+      if (timeLimit === 15) return 'ง่าย';
+      if (timeLimit === 20) return 'ปานกลาง';
+      if (timeLimit === 25) return 'ยาก';
+      return 'ระดับคำถาม';
+    }
+
+    function updateSharedStats() {
+      const scoreEl = document.getElementById('score');
+      const scoreSideEl = document.getElementById('scoreSide');
+      const questionNumEl = document.getElementById('questionNum');
+      const questionNumSideEl = document.getElementById('questionNumSide');
+      const timerTextSideEl = document.getElementById('timerTextSide');
+
+      if (scoreEl) scoreEl.textContent = score;
+      if (scoreSideEl) scoreSideEl.textContent = score;
+      if (questionNumEl && currentQuestion) questionNumEl.textContent = currentQuestion.questionNumber || 1;
+      if (questionNumSideEl && currentQuestion) questionNumSideEl.textContent = currentQuestion.questionNumber || 1;
+      if (timerTextSideEl) timerTextSideEl.textContent = timeLeft || 0;
+    }
+
     function displayQuestion(question) {
       currentQuestion = question;
       isAnswering = false;
 
-      // Update UI
       document.getElementById('loading').classList.add('hidden');
       document.getElementById('gameArea').classList.remove('hidden');
       document.getElementById('resultArea').classList.add('hidden');
@@ -114,26 +794,30 @@
       document.getElementById('textB').textContent = question.options.B;
       document.getElementById('textC').textContent = question.options.C;
       document.getElementById('textD').textContent = question.options.D;
-      document.getElementById('questionNum').textContent = question.questionNumber;
+      document.getElementById('progressCurrent').textContent = question.questionNumber;
+      document.getElementById('progressTotal').textContent = question.totalQuestions || '-';
 
-      // Reset timer
+      const questionTag = document.getElementById('questionTag');
+      if (questionTag) {
+        questionTag.innerHTML = `<i class="bi bi-lightning-charge-fill"></i><span>${getDifficultyFromTimeLimit(question.timeLimit)}</span>`;
+      }
+
       timeLeft = question.timeLimit;
       document.getElementById('timerText').textContent = timeLeft;
+      document.getElementById('timerTextSide').textContent = timeLeft;
       document.getElementById('timerBar').style.width = '100%';
       document.getElementById('timerBar').className = 'timer-bar';
 
-      // Start timer
       startTimer(question.timeLimit);
 
-      // Enable buttons
       document.querySelectorAll('.option-btn').forEach(btn => {
         btn.disabled = false;
-        btn.classList.remove('correct', 'wrong', 'disabled');
+        btn.classList.remove('correct', 'wrong', 'disabled', 'selected');
       });
 
-      // Record start time
       questionStartTime = Date.now();
       isAnswering = true;
+      updateSharedStats();
     }
 
     function startTimer(seconds) {
@@ -142,11 +826,11 @@
       timerInterval = setInterval(() => {
         timeLeft--;
         document.getElementById('timerText').textContent = timeLeft;
-        
+        document.getElementById('timerTextSide').textContent = timeLeft;
+
         const percentage = (timeLeft / seconds) * 100;
         document.getElementById('timerBar').style.width = percentage + '%';
 
-        // Change color when time is low
         if (timeLeft <= 3) {
           document.getElementById('timerBar').classList.add('timer-critical');
         } else if (timeLeft <= 5) {
@@ -163,7 +847,6 @@
     function handleTimeout() {
       if (!isAnswering) return;
       isAnswering = false;
-
       submitAnswer(null, currentQuestion.timeLimit);
     }
 
@@ -173,12 +856,11 @@
 
       clearInterval(timerInterval);
       const responseTime = Math.round((Date.now() - questionStartTime) / 1000);
-      
+
       submitAnswer(answer, responseTime);
     }
 
     async function submitAnswer(answer, responseTime) {
-      // Disable all buttons
       document.querySelectorAll('.option-btn').forEach(btn => {
         btn.disabled = true;
         btn.classList.add('disabled');
@@ -197,17 +879,15 @@
         });
 
         const result = await response.json();
-        console.log('[DEBUG] Answer result:', result);
 
         if (!result.success || (result.data && result.data.gameOver)) {
-          // Game over - wrong answer or timeout
           showGameOver(result.data ? result.data : { isCorrect: false });
         } else if (result.success && result.data) {
           if (result.data.isCorrect) {
             score++;
-            document.getElementById('score').textContent = score;
+            updateSharedStats();
           }
-          setTimeout(() => loadQuestion(), 1000);
+          setTimeout(() => loadQuestion(), 900);
         } else {
           alert(result.message);
           window.location.href = '/coopgame/game/start';
@@ -225,22 +905,29 @@
 
       const title = document.getElementById('resultTitle');
       const message = document.getElementById('resultMessage');
+      const emoji = document.querySelector('#resultArea .result-emoji i');
 
       if (result.reason === 'timeout') {
-        title.textContent = '⏰ หมดเวลา!';
-        message.textContent = `คุณตอบถูก ${result.finalScore} ข้อ`;
+        title.textContent = 'หมดเวลาแล้ว';
+        message.textContent = `คุณตอบถูก ${result.finalScore} ข้อ อย่าเพิ่งท้อ ลองใหม่เพื่อทำคะแนนให้สูงขึ้น`;
+        if (emoji) emoji.className = 'bi bi-hourglass-split';
       } else if (!result.isCorrect) {
-        title.textContent = '❌ ตอบผิด!';
-        message.textContent = `คุณตอบถูก ${result.finalScore} ข้อ`;
+        title.textContent = 'ตอบผิด';
+        message.textContent = `คุณตอบถูก ${result.finalScore} ข้อ แต่ยังเล่นใหม่เพื่อไต่คะแนนได้อีก`;
+        if (emoji) emoji.className = 'bi bi-x-circle-fill';
       } else {
-        title.textContent = '🎉 ผ่านทุกข้อ!';
-        message.textContent = `คุณตอบถูก ${result.finalScore} ข้อ เวลารวม ${result.totalTime} วินาที`;
+        title.textContent = 'ผ่านทุกข้อ';
+        message.textContent = `คุณตอบถูก ${result.finalScore} ข้อ ใช้เวลารวม ${result.totalTime} วินาที`;
+        if (emoji) emoji.className = 'bi bi-trophy-fill';
       }
     }
 
-    // Add click handlers to option buttons
     document.querySelectorAll('.option-btn').forEach(btn => {
       btn.addEventListener('click', () => {
+        if (!isAnswering) return;
+
+        document.querySelectorAll('.option-btn').forEach(item => item.classList.remove('selected'));
+        btn.classList.add('selected');
         const answer = btn.dataset.answer;
         handleAnswer(answer);
       });

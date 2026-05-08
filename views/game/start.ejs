@@ -4,482 +4,270 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><%= title %> - เกมตอบคำถามสหกรณ์</title>
-
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700;800&display=swap');
-    
-    body {
-      background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 50%, #a5d6a7 100%);
-      min-height: 100vh;
-      font-family: 'Sarabun', -apple-system, BlinkMacSystemFont, sans-serif;
-    }
-    .game-card {
-      border: none;
-      border-radius: 24px;
-      box-shadow: 0 20px 60px rgba(46, 125, 50, 0.15);
-      background: rgba(255, 255, 255, 0.92);
-      backdrop-filter: blur(20px);
-    }
-    .game-title {
-      background: linear-gradient(135deg, #43a047 0%, #66bb6a 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      font-weight: 800;
-      font-size: 2.5rem;
-      letter-spacing: 1px;
-    }
-    .code-input {
-      font-size: 2rem;
-      letter-spacing: 0.5rem;
-      text-align: center;
-      font-weight: 700;
-      border: 2px solid #a5d6a7;
-      border-radius: 16px;
-      padding: 18px;
-      transition: all 0.3s ease;
-      background: #f1f8e9;
-    }
-    .code-input:focus {
-      border-color: #43a047;
-      box-shadow: 0 0 0 4px rgba(67, 160, 71, 0.1);
-      background: white;
-      transform: scale(1.02);
-    }
-    .btn-start {
-      background: linear-gradient(135deg, #43a047 0%, #66bb6a 100%);
-      border: none;
-      border-radius: 16px;
-      padding: 16px 60px;
-      font-size: 1.3rem;
-      font-weight: 700;
-      letter-spacing: 2px;
-      transition: all 0.4s ease;
-      box-shadow: 0 8px 25px rgba(67, 160, 71, 0.3);
-    }
-    .btn-start:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 12px 35px rgba(67, 160, 71, 0.5);
-      background: linear-gradient(135deg, #388e3c 0%, #4caf50 100%);
-    }
-    .rules-card {
-      background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%);
-      border: 1px solid #c8e6c9;
-      border-radius: 24px;
-      color: #2e7d32;
-    }
-    .rules-card .card-header {
-      background: transparent;
-      border-bottom: 2px solid #c8e6c9;
-      font-weight: 700;
-      font-size: 1.3rem;
-      color: #1b5e20;
-    }
-    .rules-list li {
-      padding: 12px 0;
-      font-size: 1.05rem;
-      border-bottom: 1px solid #e8f5e9;
-      transition: all 0.3s ease;
-    }
-    .rules-list li:hover {
-      padding-left: 10px;
-      background: rgba(200, 230, 201, 0.3);
-      border-radius: 8px;
-    }
-    .rules-list li:last-child {
-      border-bottom: none;
-    }
-    .icon-bounce {
-      animation: bounce 2s ease-in-out infinite;
-    }
-    @keyframes bounce {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-10px); }
-    }
-    .fade-in {
-      animation: fadeIn 0.8s ease-out;
-    }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(30px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    .divider {
-      width: 80px;
-      height: 4px;
-      background: linear-gradient(90deg, #43a047, #66bb6a);
-      border-radius: 2px;
-      margin: 0 auto 20px;
-    }
-  </style>
-</head>
-<body>
-  <div class="container py-5">
-    <div class="row justify-content-center">
-      <div class="col-md-8 col-lg-6">
-        <div class="card game-card p-4 mb-4 fade-in">
-          <div class="card-body text-center">
-            <div class="mb-4">
-              <i class="bi bi-controller display-1 text-success icon-bounce"></i>
-            </div>
-            <h1 class="game-title mb-3">
-              <i class="bi bi-trophy-fill" style="color: #43a047;"></i>
-              เกมตอบคำถามสหกรณ์
-            </h1>
-            <p class="lead text-muted mb-4">กรอกรหัสเพื่อเริ่มเล่นเกม</p>
-            
-            <form id="codeForm">
-              <div class="mb-4">
-                <label for="code" class="form-label fw-bold" style="color: #2e7d32;">
-                  <i class="bi bi-key-fill"></i> รหัสเกม
-                </label>
-                <input 
-                  type="text" 
-                  id="code" 
-                  name="code" 
-                  class="form-control code-input"
-                  maxlength="6" 
-                  placeholder="ABC123"
-                  autocomplete="off"
-                  required
-                  style="text-transform: uppercase;"
-                >
-                <div class="form-text mt-2">
-                  <i class="bi bi-info-circle"></i> รหัส 6 ตัวอักษร (ตัวพิมพ์ใหญ่)
-                </div>
-              </div>
-              
-              <button type="submit" class="btn btn-start text-white">
-                <i class="bi bi-play-fill"></i> เริ่มเกม
-              </button>
-            </form>
-
-            <div id="message" class="mt-3"></div>
-            <div class="divider"></div>
-          </div>
-        </div>
-
-
-
-  <!-- Bootstrap 5.3 (ensure availability) -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
   <link rel="stylesheet" href="/coopgame/css/styles.css">
   <link rel="stylesheet" href="/coopgame/css/start.css">
 </head>
 <body>
   <div class="start-page">
-    <main class="start-main container-fluid py-5">
-      <div class="start-wrapper">
-        <section class="start-card card shadow-sm p-4 p-md-5 text-center" role="region" aria-labelledby="startTitle">
-          <div class="brand mb-3">
-            <h1 id="startTitle" class="h3 mb-0">เริ่มเกม</h1>
-            <p class="lead small text-muted mb-3">กรอกรหัส 6 ตัว แล้วมาแข่งขันเพื่อชิงคะแนนสูงสุด</p>
+    <div class="start-orb start-orb-1"></div>
+    <div class="start-orb start-orb-2"></div>
+
+    <main class="start-main container-fluid px-3 px-lg-4 py-4 py-lg-5">
+      <div class="start-layout">
+        <section class="hero-panel">
+          <div class="hero-badge">
+            <i class="bi bi-stars"></i>
+            <span>เกมตอบคำถามสหกรณ์</span>
+          </div>
+
+          <h1 class="hero-title">
+            <span class="hero-title-line">พร้อมเริ่มแล้ว</span>
+          </h1>
+
+          <p class="hero-description">
+            ใส่รหัสเกมเพื่อเข้าร่วมการแข่งขัน ตอบให้ไว เก็บคะแนนให้สูง และพาอันดับของคุณพุ่งขึ้นไปบนกระดานผู้นำ
+          </p>
+
+          <div class="hero-stats">
+            <div class="hero-stat">
+              <i class="bi bi-trophy-fill"></i>
+              <div>
+                <strong>แข่งขันจริง</strong>
+                <span>ลุ้นคะแนนสูงสุด</span>
+              </div>
+            </div>
+            <div class="hero-stat">
+              <i class="bi bi-stopwatch-fill"></i>
+              <div>
+                <strong>จับเวลา</strong>
+                <span>ทุกข้อมีเวลาจำกัด</span>
+              </div>
+            </div>
+            <div class="hero-stat">
+              <i class="bi bi-collection-play-fill"></i>
+              <div>
+                <strong>4 ตัวเลือก</strong>
+                <span>ก ข ค ง ให้เลือกตอบ</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="hero-features">
+            <div class="feature-chip"><i class="bi bi-lightning-charge-fill"></i> เล่นไว</div>
+            <div class="feature-chip"><i class="bi bi-award-fill"></i> ได้คะแนน</div>
+            <div class="feature-chip"><i class="bi bi-people-fill"></i> แข่งกับเพื่อน</div>
+            <div class="feature-chip"><i class="bi bi-graph-up-arrow"></i> ดูอันดับได้</div>
+          </div>
+
+          <div class="rules-grid">
+            <article class="rule-card">
+              <div class="rule-icon"><i class="bi bi-key-fill"></i></div>
+              <h3>กรอกรหัสเกม</h3>
+              <p>ใช้รหัส 6 ตัวอักษรที่ได้รับจากผู้ดูแลระบบ</p>
+            </article>
+            <article class="rule-card">
+              <div class="rule-icon"><i class="bi bi-brightness-high-fill"></i></div>
+              <h3>ตอบให้ทันเวลา</h3>
+              <p>แต่ละระดับมีเวลาต่างกัน ตอบเร็วช่วยรักษาคะแนน</p>
+            </article>
+            <article class="rule-card">
+              <div class="rule-icon"><i class="bi bi-emoji-sunglasses-fill"></i></div>
+              <h3>สนุกและท้าทาย</h3>
+              <p>คำถามเรียงจากง่ายไปยาก ให้เล่นลื่นและค่อย ๆ ไต่ระดับ</p>
+            </article>
+          </div>
+
+          <div class="leader-preview">
+            <div class="leader-preview-head">
+              <div>
+                <h3><i class="bi bi-trophy-fill"></i> กระดานผู้นำล่าสุด</h3>
+                <p>ดู 3 อันดับแรกก่อนเริ่มเล่น</p>
+              </div>
+              <a href="/coopgame/game/leaderboard" class="leader-preview-link">
+                ดูทั้งหมด <i class="bi bi-arrow-right"></i>
+              </a>
+            </div>
+            <div id="leaderboardPreview" class="leader-preview-list">
+              <div class="leader-preview-loading">
+                <i class="bi bi-arrow-repeat spin-icon"></i>
+                <span>กำลังโหลดข้อมูลอันดับ...</span>
+              </div>
+            </div>
+          </div>
+
+          <footer class="start-footer">
+            <span><i class="bi bi-c-circle"></i> 2026 naimet</span>
+          </footer>
+        </section>
+
+        <section class="start-card" aria-labelledby="startTitle">
+          <div class="start-card-header">
+            <div class="start-card-icon">
+              <i class="bi bi-controller"></i>
+            </div>
+            <div>
+              <h2 id="startTitle">เริ่มเกม</h2>
+              <p>กรอกรหัสเพื่อเข้าสู่รอบแข่งขัน</p>
+            </div>
           </div>
 
           <% if (typeof query !== 'undefined' && query.system) { %>
-            <div class="alert alert-info mx-auto" style="max-width:520px">คุณมาเริ่มจากการเลือกระบบ: <strong><%= query.system %></strong></div>
+            <div class="system-banner">
+              <i class="bi bi-broadcast-pin"></i>
+              <span>คุณมาเริ่มจากระบบ: <strong><%= query.system %></strong></span>
+            </div>
           <% } %>
 
-          <form id="codeForm" class="code-form mx-auto" aria-describedby="codeHelp">
-            <div class="input-group input-group-lg mb-3 shadow-sm rounded-pill overflow-hidden">
-              <span class="input-group-text bg-white border-0 px-3" id="codeLabel">🔒</span>
+          <form id="codeForm" class="code-form" aria-describedby="codeHelp">
+            <label for="code" class="form-label">
+              <i class="bi bi-key-fill"></i> รหัสเกม
+            </label>
+            <div class="code-field">
+              <span class="code-prefix"><i class="bi bi-shield-lock-fill"></i></span>
               <input
                 type="text"
                 id="code"
                 name="code"
-                class="form-control form-control-lg border-0 text-center fs-3 fw-bold"
+                class="form-control code-input"
                 maxlength="6"
                 placeholder="ABC123"
                 inputmode="search"
                 autocomplete="off"
-                aria-labelledby="codeLabel"
+                aria-labelledby="codeHelp"
                 required
               />
-              <button class="btn btn-primary btn-lg px-4 rounded-end" type="submit" aria-label="เริ่มเกม">เริ่มเกม</button>
+            </div>
+            <div id="codeHelp" class="form-text">
+              รหัสเป็นตัวอักษร/ตัวเลข 6 ตัว พิมพ์เล็กหรือใหญ่ได้ ระบบจะปรับให้อัตโนมัติ
             </div>
 
-            <div id="codeHelp" class="form-text text-muted">รหัสเป็นตัวอักษร/ตัวเลข 6 ตัว ตัวพิมพ์ใหญ่/เล็กไม่ต่างกัน</div>
+            <button type="submit" class="btn start-btn w-100">
+              <i class="bi bi-play-fill"></i> เริ่มเล่นเกม
+            </button>
           </form>
 
-          <div id="message" class="mt-3" aria-live="polite"></div>
-        </section>
+          <div id="message" class="message-slot" aria-live="polite"></div>
 
-        <section class="highlights d-flex gap-2 justify-content-center mt-4" aria-hidden="false">
-          <div class="badge-card text-center p-3 rounded shadow-sm">
-            <div class="badge-icon mb-1">⚡</div>
-            <div class="badge-text">เล่นได้ทันที</div>
-          </div>
-          <div class="badge-card text-center p-3 rounded shadow-sm">
-            <div class="badge-icon mb-1">👥</div>
-            <div class="badge-text">ไม่ต้องสมัคร</div>
-          </div>
-          <div class="badge-card text-center p-3 rounded shadow-sm">
-            <div class="badge-icon mb-1">🏆</div>
-            <div class="badge-text">ลุ้นคะแนนสูงสุด</div>
+          <div class="start-note">
+            <i class="bi bi-info-circle-fill"></i>
+            <span>ถ้ายังไม่มีรหัส กรุณาติดต่อผู้ดูแลระบบก่อนเริ่มเล่น</span>
           </div>
         </section>
-
-        <section class="rules-section row gx-3 gy-3 mt-4" aria-labelledby="rulesTitle">
-          <h2 id="rulesTitle" class="visually-hidden">กติกาการเล่น</h2>
-          <div class="col-12 col-md-4">
-            <article class="rule card p-3 h-100">
-              <div class="rule-icon">📝</div>
-              <h3 class="rule-title">ตอบคำถามทีละข้อ</h3>
-              <p class="rule-text">ตอบให้เร็วและถูกเพื่อสะสมคะแนน</p>
-            </article>
-          </div>
-          <div class="col-12 col-md-4">
-            <article class="rule card p-3 h-100">
-              <div class="rule-icon">⏱️</div>
-              <h3 class="rule-title">เวลาจำกัด</h3>
-              <p class="rule-text">คำถามมีเวลาจำกัด — ตอบช้าอาจพลาด</p>
-            </article>
-          </div>
-          <div class="col-12 col-md-4">
-            <article class="rule card p-3 h-100">
-              <div class="rule-icon">❗</div>
-              <h3 class="rule-title">ผิด = จบ</h3>
-              <p class="rule-text">ตอบผิดหรือหมดเวลา จะจบเกมทันที</p>
-            </article>
-          </div>
-        </section>
-
-        <footer class="start-footer text-center mt-4 small text-muted">© 2026 naimet</footer>
       </div>
     </main>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700;800&display=swap');
-    
-    body {
-      background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 50%, #a5d6a7 100%);
-      min-height: 100vh;
-      font-family: 'Sarabun', -apple-system, BlinkMacSystemFont, sans-serif;
-    }
-    .game-card {
-      border: none;
-      border-radius: 24px;
-      box-shadow: 0 20px 60px rgba(46, 125, 50, 0.15);
-      background: rgba(255, 255, 255, 0.92);
-      backdrop-filter: blur(20px);
-    }
-    .game-title {
-      background: linear-gradient(135deg, #43a047 0%, #66bb6a 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      font-weight: 800;
-      font-size: 2.5rem;
-      letter-spacing: 1px;
-    }
-    .code-input {
-      font-size: 2rem;
-      letter-spacing: 0.5rem;
-      text-align: center;
-      font-weight: 700;
-      border: 2px solid #a5d6a7;
-      border-radius: 16px;
-      padding: 18px;
-      transition: all 0.3s ease;
-      background: #f1f8e9;
-    }
-    .code-input:focus {
-      border-color: #43a047;
-      box-shadow: 0 0 0 4px rgba(67, 160, 71, 0.1);
-      background: white;
-      transform: scale(1.02);
-    }
-    .btn-start {
-      background: linear-gradient(135deg, #43a047 0%, #66bb6a 100%);
-      border: none;
-      border-radius: 16px;
-      padding: 16px 60px;
-      font-size: 1.3rem;
-      font-weight: 700;
-      letter-spacing: 2px;
-      transition: all 0.4s ease;
-      box-shadow: 0 8px 25px rgba(67, 160, 71, 0.3);
-    }
-    .btn-start:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 12px 35px rgba(67, 160, 71, 0.5);
-      background: linear-gradient(135deg, #388e3c 0%, #4caf50 100%);
-    }
-    .rules-card {
-      background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%);
-      border: 1px solid #c8e6c9;
-      border-radius: 24px;
-      color: #2e7d32;
-    }
-    .rules-card .card-header {
-      background: transparent;
-      border-bottom: 2px solid #c8e6c9;
-      font-weight: 700;
-      font-size: 1.3rem;
-      color: #1b5e20;
-    }
-    .rules-list li {
-      padding: 12px 0;
-      font-size: 1.05rem;
-      border-bottom: 1px solid #e8f5e9;
-      transition: all 0.3s ease;
-    }
-    .rules-list li:hover {
-      padding-left: 10px;
-      background: rgba(200, 230, 201, 0.3);
-      border-radius: 8px;
-    }
-    .rules-list li:last-child {
-      border-bottom: none;
-    }
-    .icon-bounce {
-      animation: bounce 2s ease-in-out infinite;
-    }
-    @keyframes bounce {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-10px); }
-    }
-    .fade-in {
-      animation: fadeIn 0.8s ease-out;
-    }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(30px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    .divider {
-      width: 80px;
-      height: 4px;
-      background: linear-gradient(90deg, #43a047, #66bb6a);
-      border-radius: 2px;
-      margin: 0 auto 20px;
-    }
-  </style>
-</head>
-<body>
-  <div class="container py-5">
-    <div class="row justify-content-center">
-      <div class="col-md-8 col-lg-6">
-        <div class="card game-card p-4 mb-4 fade-in">
-          <div class="card-body text-center">
-            <div class="mb-4">
-              <i class="bi bi-controller display-1 text-success icon-bounce"></i>
-            </div>
-            <h1 class="game-title mb-3">
-              <i class="bi bi-trophy-fill" style="color: #43a047;"></i>
-              เกมตอบคำถามสหกรณ์
-            </h1>
-            <p class="lead text-muted mb-4">กรอกรหัสเพื่อเริ่มเล่นเกม</p>
-            
-            <form id="codeForm">
-              <div class="mb-4">
-                <label for="code" class="form-label fw-bold" style="color: #2e7d32;">
-                  <i class="bi bi-key-fill"></i> รหัสเกม
-                </label>
-                <input 
-                  type="text" 
-                  id="code" 
-                  name="code" 
-                  class="form-control code-input"
-                  maxlength="6" 
-                  placeholder="ABC123"
-                  autocomplete="off"
-                  required
-                  style="text-transform: uppercase;"
-                >
-                <div class="form-text mt-2">
-                  <i class="bi bi-info-circle"></i> รหัส 6 ตัวอักษร (ตัวพิมพ์ใหญ่)
-                </div>
-              </div>
-              
-              <button type="submit" class="btn btn-start text-white">
-                <i class="bi bi-play-fill"></i> เริ่มเกม
-              </button>
-            </form>
-
-            <div id="message" class="mt-3"></div>
-            <div class="divider"></div>
-          </div>
-        </div>
-
-        <div class="card rules-card fade-in">
-          <div class="card-header text-center">
-            <i class="bi bi-clipboard2-check"></i> กติกาการเล่น
-          </div>
-          <div class="card-body">
-            <ul class="list-unstyled rules-list mb-0">
-              <li><i class="bi bi-check-circle me-2" style="color: #43a047;"></i> ตอบคำถามทีละข้อ</li>
-              <li><i class="bi bi-x-circle me-2" style="color: #e53935;"></i> ตอบผิดหรือหมดเวลา = เกมจบทันที</li>
-              <li><i class="bi bi-clock me-2" style="color: #fb8c00;"></i> คำถามง่าย 10 วินาที | ปานกลาง 15 วินาที | ยาก 20 วินาที</li>
-              <li><i class="bi bi-award me-2" style="color: #43a047;"></i> ผู้ที่ตอบถูกมากที่สุดชนะ</li>
-              <li><i class="bi bi-stopwatch me-2" style="color: #0288d1;"></i> ถ้าคะแนนเท่ากัน ใช้เวลารวมน้อยกว่าชนะ</li>
-            </ul>
-          </div>
-        </div>
-
-        <footer class="text-center mt-4 text-white">
-          <p><i class="bi bi-c-circle"></i> 2026 naimet</p>
-        </footer>
-      </div>
-    </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script>
-    document.getElementById('codeForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const code = document.getElementById('code').value.toUpperCase();
-      const messageDiv = document.getElementById('message');
-      
+    const codeForm = document.getElementById('codeForm');
+    const codeInput = document.getElementById('code');
+    const messageDiv = document.getElementById('message');
+
+    function showMessage(type, icon, text) {
       messageDiv.innerHTML = `
-        <div class="alert d-flex align-items-center" style="background: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9;" role="alert">
-          <div class="spinner-border spinner-border-sm me-2" role="status" style="color: #43a047;"></div>
-          <div>กำลังตรวจสอบ...</div>
+        <div class="alert alert-${type} d-flex align-items-center start-alert" role="alert">
+          <i class="bi ${icon} me-2"></i>
+          <div>${text}</div>
         </div>
       `;
-      
+    }
+
+    codeForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const code = codeInput.value.trim().toUpperCase();
+      if (!code) {
+        showMessage('danger', 'bi-exclamation-triangle-fill', 'กรุณากรอกรหัสเกม');
+        return;
+      }
+
+      codeInput.value = code;
+      codeForm.querySelector('button[type="submit"]').disabled = true;
+      showMessage('info', 'bi-arrow-repeat spin-icon', 'กำลังตรวจสอบรหัส...');
+
       try {
         const response = await fetch('/coopgame/game/verify-code', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ code })
         });
-        
+
         const result = await response.json();
-        
+
         if (result.success) {
-          messageDiv.innerHTML = `
-            <div class="alert d-flex align-items-center" style="background: #e8f5e9; color: #1b5e20; border: 1px solid #a5d6a7;" role="alert">
-              <i class="bi bi-check-circle-fill me-2" style="color: #43a047;"></i>
-              <div>รหัสถูกต้อง! กำลังนำทาง...</div>
-            </div>
-          `;
+          showMessage('success', 'bi-check-circle-fill', 'ตรวจสอบรหัสสำเร็จ กำลังพาเข้าสู่เกม...');
           setTimeout(() => {
             window.location.href = `/coopgame/game/play?attemptId=${result.data.attemptId}`;
-          }, 500);
+          }, 650);
         } else {
-          messageDiv.innerHTML = `
-            <div class="alert d-flex align-items-center" style="background: #ffebee; color: #c62828; border: 1px solid #ffcdd2;" role="alert">
-              <i class="bi bi-exclamation-triangle-fill me-2" style="color: #e53935;"></i>
-              <div>${result.message}</div>
-            </div>
-          `;
+          showMessage('danger', 'bi-x-circle-fill', result.message || 'รหัสไม่ถูกต้อง');
         }
       } catch (error) {
-        messageDiv.innerHTML = `
-          <div class="alert d-flex align-items-center" style="background: #ffebee; color: #c62828; border: 1px solid #ffcdd2;" role="alert">
-            <i class="bi bi-exclamation-octagon-fill me-2" style="color: #e53935;"></i>
-            <div>เกิดข้อผิดพลาด กรุณาลองใหม่</div>
-          </div>
-        `;
+        console.error('Error verifying code:', error);
+        showMessage('danger', 'bi-exclamation-octagon-fill', 'เกิดข้อผิดพลาด กรุณาลองใหม่');
+      } finally {
+        codeForm.querySelector('button[type="submit"]').disabled = false;
       }
     });
 
-    // Auto uppercase input
-    document.getElementById('code').addEventListener('input', function(e) {
+    codeInput.addEventListener('input', function () {
       this.value = this.value.toUpperCase();
     });
+
+    codeInput.focus();
+
+    async function loadLeaderboardPreview() {
+      const preview = document.getElementById('leaderboardPreview');
+
+      try {
+        const response = await fetch('/coopgame/game/api/leaderboard?limit=3');
+        const result = await response.json();
+
+        if (!result.success || !Array.isArray(result.data) || result.data.length === 0) {
+          preview.innerHTML = `
+            <div class="leader-preview-empty">
+              <i class="bi bi-emoji-smile"></i>
+              <span>ยังไม่มีข้อมูลอันดับ</span>
+            </div>
+          `;
+          return;
+        }
+
+        preview.innerHTML = result.data.map((entry) => `
+          <div class="leader-preview-item ${entry.rank <= 3 ? 'top-' + entry.rank : ''}">
+            <div class="leader-rank">${entry.rank}</div>
+            <div class="leader-meta">
+              <div class="leader-name">${escapeHtml(entry.playerName || 'ไม่ระบุชื่อ')}</div>
+              <div class="leader-sub">
+                <span><i class="bi bi-star-fill"></i> ${entry.score || 0} ข้อ</span>
+                <span><i class="bi bi-stopwatch"></i> ${entry.totalTime || 0} วินาที</span>
+              </div>
+            </div>
+          </div>
+        `).join('');
+      } catch (error) {
+        console.error('Error loading leaderboard preview:', error);
+        preview.innerHTML = `
+          <div class="leader-preview-empty">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <span>ไม่สามารถโหลดกระดานผู้นำได้</span>
+          </div>
+        `;
+      }
+    }
+
+    function escapeHtml(text) {
+      return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    loadLeaderboardPreview();
   </script>
 </body>
 </html>

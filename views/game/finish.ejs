@@ -4,82 +4,488 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><%= title %> - เกมตอบคำถามสหกรณ์</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
   <link rel="stylesheet" href="/coopgame/css/styles.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700;800&display=swap');
+
+    :root {
+      --bg-1: #0d2317;
+      --bg-2: #183623;
+      --bg-3: #1f5a35;
+      --card: rgba(255, 255, 255, 0.96);
+      --border: rgba(95, 196, 118, 0.24);
+      --green-900: #10361f;
+      --green-700: #1e6f37;
+      --green-500: #35b559;
+      --text: #18321f;
+      --muted: #5b7264;
+      --shadow: 0 24px 70px rgba(8, 24, 14, 0.26);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: 'Sarabun', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(87, 196, 108, 0.28), transparent 26%),
+        radial-gradient(circle at top right, rgba(255, 255, 255, 0.12), transparent 22%),
+        linear-gradient(135deg, var(--bg-1) 0%, var(--bg-2) 44%, var(--bg-3) 100%);
+      overflow-x: hidden;
+    }
+
+    .finish-page {
+      position: relative;
+      min-height: 100vh;
+      padding: 18px;
+    }
+
+    .orb {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(8px);
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.85;
+    }
+
+    .orb-1 {
+      width: 280px;
+      height: 280px;
+      top: -80px;
+      left: -70px;
+      background: radial-gradient(circle, rgba(127, 208, 141, 0.34), rgba(127, 208, 141, 0) 70%);
+    }
+
+    .orb-2 {
+      width: 220px;
+      height: 220px;
+      right: -80px;
+      top: 14%;
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0) 70%);
+    }
+
+    .finish-shell {
+      position: relative;
+      z-index: 1;
+      max-width: 1120px;
+      margin: 0 auto;
+      display: grid;
+      gap: 18px;
+      min-height: calc(100vh - 36px);
+      align-items: center;
+    }
+
+    .top-note {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.18);
+      color: #fff;
+      font-weight: 700;
+      backdrop-filter: blur(12px);
+      width: fit-content;
+    }
+
+    .result-panel {
+      border-radius: 34px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(16px);
+      overflow: hidden;
+    }
+
+    .result-panel-inner {
+      padding: 28px;
+    }
+
+    .hero-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, rgba(53, 181, 89, 0.12), rgba(127, 208, 141, 0.2));
+      color: var(--green-700);
+      font-weight: 800;
+    }
+
+    .hero-title {
+      margin: 14px 0 8px;
+      font-size: clamp(2rem, 4vw, 3.4rem);
+      line-height: 1.08;
+      font-weight: 800;
+      color: var(--green-900);
+    }
+
+    .hero-subtitle {
+      margin: 0;
+      color: var(--muted);
+      font-size: 1.04rem;
+      line-height: 1.7;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin: 22px 0;
+    }
+
+    .summary-card {
+      padding: 18px;
+      border-radius: 22px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(248, 252, 249, 0.98));
+      border: 1px solid rgba(95, 196, 118, 0.18);
+      box-shadow: 0 14px 28px rgba(8, 24, 14, 0.05);
+    }
+
+    .summary-card .label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    .summary-card .value {
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--green-900);
+      line-height: 1.1;
+    }
+
+    .summary-card .value small {
+      font-size: 0.95rem;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .content-grid {
+      display: grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    .form-card,
+    .rank-card {
+      padding: 24px;
+      border-radius: 28px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(248,252,249,0.98));
+      border: 1px solid rgba(95, 196, 118, 0.18);
+      box-shadow: 0 18px 36px rgba(8, 24, 14, 0.06);
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 0 0 14px;
+      font-weight: 800;
+      color: var(--green-900);
+    }
+
+    .field {
+      margin-bottom: 14px;
+    }
+
+    .field label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 800;
+      color: var(--green-900);
+    }
+
+    .field input {
+      width: 100%;
+      min-height: 52px;
+      border-radius: 16px;
+      border: 1px solid rgba(95, 196, 118, 0.22);
+      background: #fff;
+      padding: 12px 14px;
+      font-size: 1rem;
+      font-family: inherit;
+      transition: border-color 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .field input:focus {
+      outline: none;
+      border-color: rgba(53, 181, 89, 0.6);
+      box-shadow: 0 0 0 4px rgba(53, 181, 89, 0.1);
+    }
+
+    .field small {
+      display: block;
+      margin-top: 8px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .btn-emerald {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      min-height: 54px;
+      border: none;
+      border-radius: 16px;
+      padding: 14px 18px;
+      font-weight: 800;
+      color: #fff;
+      background: linear-gradient(135deg, #166534 0%, #22a247 55%, #4ade80 100%);
+      box-shadow: 0 14px 28px rgba(29, 110, 52, 0.22);
+      text-decoration: none;
+    }
+
+    .btn-ghost {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      min-height: 54px;
+      border-radius: 16px;
+      border: 1px solid rgba(53, 181, 89, 0.34);
+      color: var(--green-700);
+      background: #fff;
+      font-weight: 800;
+      padding: 14px 18px;
+      text-decoration: none;
+    }
+
+    .btn-ghost:hover {
+      color: var(--green-900);
+      background: rgba(53, 181, 89, 0.08);
+    }
+
+    .message {
+      margin-top: 14px;
+      padding: 14px 16px;
+      border-radius: 16px;
+      font-weight: 700;
+    }
+
+    .message.error {
+      background: rgba(255, 104, 104, 0.12);
+      color: #a41f2c;
+      border: 1px solid rgba(255, 104, 104, 0.18);
+    }
+
+    .message.success {
+      background: rgba(40, 167, 69, 0.12);
+      color: #186c2c;
+      border: 1px solid rgba(40, 167, 69, 0.18);
+    }
+
+    .rank-card {
+      display: grid;
+      gap: 16px;
+      text-align: center;
+    }
+
+    .rank-visual {
+      width: 110px;
+      height: 110px;
+      border-radius: 34px;
+      margin: 0 auto;
+      display: grid;
+      place-items: center;
+      font-size: 2.6rem;
+      color: #fff;
+      background: linear-gradient(135deg, #166534 0%, #22a247 55%, #4ade80 100%);
+      box-shadow: 0 16px 30px rgba(29, 110, 52, 0.28);
+    }
+
+    .rank-number {
+      font-size: clamp(3rem, 7vw, 4.6rem);
+      font-weight: 800;
+      line-height: 1;
+      background: linear-gradient(135deg, var(--green-700), var(--green-500));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .rank-note {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+
+    .rank-actions {
+      display: grid;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .footer {
+      text-align: center;
+      color: rgba(255,255,255,0.72);
+      font-weight: 600;
+      padding: 10px 0 2px;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .fade-in {
+      animation: fadeIn 0.45s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 992px) {
+      .content-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .summary-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .finish-page {
+        padding: 12px;
+      }
+
+      .result-panel-inner,
+      .form-card,
+      .rank-card {
+        padding: 18px;
+      }
+
+      .hero-title {
+        font-size: clamp(1.7rem, 8vw, 2.4rem);
+      }
+    }
+  </style>
 </head>
 <body>
-  <div class="container">
-    <header class="header">
-      <h1>🎮 เกมตอบคำถามสหกรณ์</h1>
-    </header>
+  <div class="finish-page">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
 
-    <main class="main">
-      <div class="card result-card-large">
-        <h2>📊 ผลลัพธ์</h2>
-        
-        <div class="score-summary">
-          <div class="score-item">
-            <span class="score-label">คะแนน</span>
-            <span class="score-value"><%= score %>/<%= totalQuestions %></span>
-          </div>
-          <div class="score-item">
-            <span class="score-label">เวลารวม</span>
-            <span class="score-value"><%= totalTime %> วินาที</span>
-          </div>
-        </div>
-
-        <div id="playerForm" class="player-form">
-          <h3>บันทึกข้อมูลเพื่อรับรางวัล</h3>
-          <form id="finishForm" class="form">
-            <div class="form-group">
-              <label for="playerName">ชื่อ:</label>
-              <input 
-                type="text" 
-                id="playerName" 
-                name="playerName" 
-                placeholder="ชื่อของคุณ"
-              >
-              <small>หากไม่ระบุชื่อ ระบบจะแสดงเป็น "ไม่ประสงค์จะออกนาม"</small>
-            </div>
-            
-            <div class="form-group">
-              <label for="phoneNumber">เบอร์โทรศัพท์:</label>
-              <input 
-                type="tel" 
-                id="phoneNumber" 
-                name="phoneNumber" 
-                placeholder="08xxxxxxxx"
-                pattern="[0-9]{9,10}"
-              >
-              <small>เว้นว่างได้ หรือกรอกเป็นเบอร์โทรศัพท์ 9-10 หลัก</small>
-            </div>
-            
-            <button type="submit" class="btn btn-primary btn-large">
-              บันทึกและดูอันดับ
-            </button>
-          </form>
-          
-          <div id="message" class="message"></div>
-        </div>
-
-        <div id="rankResult" class="rank-result hidden">
-          <h3>🏆 อันดับของคุณ</h3>
-          <div class="rank-display">
-            <span class="rank-number" id="rankNumber">-</span>
-          </div>
-          <p>ขอบคุณที่ร่วมสนุก!</p>
-          <a onclick="window.location.href = '/coopgame/game/leaderboard';" class="btn btn-secondary">
-            ดู Leaderboard
-          </a>
-          <a href="/coopgame/game/start" class="btn btn-outline">
-            เล่นใหม่
-          </a>
-        </div>
+    <div class="finish-shell">
+      <div class="top-note fade-in">
+        <i class="bi bi-check2-circle"></i>
+        <span>คุณเล่นเกมจบแล้ว กรอกชื่อเพื่อบันทึกผลและดูอันดับ</span>
       </div>
-    </main>
 
-    <footer class="footer">
-      <p>© 2026 naimet</p>
-    </footer>
+      <section class="result-panel fade-in">
+        <div class="result-panel-inner">
+          <div class="hero-head">
+            <div>
+              <div class="hero-badge"><i class="bi bi-trophy-fill"></i> สรุปผลการแข่งขัน</div>
+              <h1 class="hero-title">จบเกมอย่างสวยงาม</h1>
+              <p class="hero-subtitle">ตรวจสอบคะแนนของคุณ แล้วบันทึกชื่อเพื่อขึ้นอันดับบนกระดานผู้นำ</p>
+            </div>
+            <div class="d-none d-md-block">
+              <a href="/coopgame/game/start" class="btn-ghost">
+                <i class="bi bi-arrow-counterclockwise"></i> เล่นอีกครั้ง
+              </a>
+            </div>
+          </div>
+
+          <div class="summary-grid">
+            <div class="summary-card">
+              <div class="label"><i class="bi bi-stars"></i> คะแนนที่ได้</div>
+              <div class="value"><%= score %><small>/ <%= totalQuestions %> ข้อ</small></div>
+            </div>
+            <div class="summary-card">
+              <div class="label"><i class="bi bi-stopwatch-fill"></i> เวลารวม</div>
+              <div class="value"><%= totalTime %><small> วินาที</small></div>
+            </div>
+            <div class="summary-card">
+              <div class="label"><i class="bi bi-graph-up-arrow"></i> ความสำเร็จ</div>
+              <div class="value"><small>บันทึกอันดับ</small></div>
+            </div>
+          </div>
+
+          <div class="content-grid">
+            <div id="playerForm" class="form-card">
+              <h2 class="section-title"><i class="bi bi-person-badge-fill"></i> บันทึกข้อมูลผู้เล่น</h2>
+              <form id="finishForm">
+                <div class="field">
+                  <label for="playerName">ชื่อผู้เล่น</label>
+                  <input
+                    type="text"
+                    id="playerName"
+                    name="playerName"
+                    placeholder="ใส่ชื่อของคุณ"
+                  >
+                  <small>ถ้าไม่ระบุชื่อ ระบบจะบันทึกเป็น “ไม่ประสงค์จะออกนาม”</small>
+                </div>
+
+                <div class="field">
+                  <label for="phoneNumber">เบอร์โทรศัพท์</label>
+                  <input
+                    type="tel"
+                    id="phoneNumber"
+                    name="phoneNumber"
+                    placeholder="08xxxxxxxx"
+                    pattern="[0-9]{9,10}"
+                  >
+                  <small>เว้นไว้ได้ หรือกรอกเบอร์ 9-10 หลักเพื่อใช้ติดต่อผู้ชนะ</small>
+                </div>
+
+                <button type="submit" class="btn-emerald">
+                  <i class="bi bi-save2-fill"></i> บันทึกและดูอันดับ
+                </button>
+              </form>
+
+              <div id="message" class="message"></div>
+            </div>
+
+            <div id="rankResult" class="rank-card hidden">
+              <div class="rank-visual">
+                <i class="bi bi-trophy-fill"></i>
+              </div>
+              <h2 class="section-title justify-content-center"><i class="bi bi-award-fill"></i> อันดับของคุณ</h2>
+              <div class="rank-number" id="rankNumber">-</div>
+              <p class="rank-note">ขอบคุณที่ร่วมสนุก คะแนนของคุณถูกบันทึกเรียบร้อยแล้ว</p>
+
+              <div class="rank-actions">
+                <a href="/coopgame/game/leaderboard" class="btn-emerald">
+                  <i class="bi bi-people-fill"></i> ดู Leaderboard
+                </a>
+                <a href="/coopgame/game/start" class="btn-ghost">
+                  <i class="bi bi-play-circle-fill"></i> เล่นใหม่อีกครั้ง
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <footer class="footer">
+        <p>© 2026 naimet</p>
+      </footer>
+    </div>
   </div>
 
   <script>
@@ -90,31 +496,35 @@
       const playerName = document.getElementById('playerName').value.trim();
       const phoneNumber = document.getElementById('phoneNumber').value.trim();
       const messageDiv = document.getElementById('message');
-      
-      messageDiv.textContent = 'กำลังบันทึก...';
+      const submitBtn = e.currentTarget.querySelector('button[type="submit"]');
+
+      messageDiv.textContent = 'กำลังบันทึกผลการแข่งขัน...';
       messageDiv.className = 'message';
-      
+      submitBtn.disabled = true;
+
       try {
         const response = await fetch('/coopgame/game/api/finish', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ attemptId, playerName, phoneNumber })
         });
-        
+
         const result = await response.json();
-        
+
         if (result.success && result.data) {
           document.getElementById('playerForm').classList.add('hidden');
           document.getElementById('rankResult').classList.remove('hidden');
           document.getElementById('rankNumber').textContent = '#' + result.data.rank;
         } else {
-          messageDiv.textContent = result.message;
+          messageDiv.textContent = result.message || 'ไม่สามารถบันทึกผลได้';
           messageDiv.className = 'message error';
         }
       } catch (error) {
         console.error('Error finishing game:', error);
         messageDiv.textContent = 'เกิดข้อผิดพลาด กรุณาลองใหม่';
         messageDiv.className = 'message error';
+      } finally {
+        submitBtn.disabled = false;
       }
     });
   </script>

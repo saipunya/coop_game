@@ -139,6 +139,62 @@ class AdminController {
     }
   }
 
+  // Clear player history and gameplay stats
+  async clearPlayerHistory(req, res) {
+    try {
+      const result = await adminService.clearPlayerHistory();
+      success(res, { count: result.count }, `Cleared ${result.count} game attempts`);
+    } catch (err) {
+      logger.error('Error clearing player history:', err);
+      error(res, 'Failed to clear player history');
+    }
+  }
+
+  // Import questions from DOCX
+  async importQuestionsFromDocx(req, res) {
+    try {
+      if (!req.file || !req.file.buffer) {
+        return validationError(res, [{ msg: 'กรุณาเลือกไฟล์ .docx' }]);
+      }
+
+      const filename = (req.file.originalname || '').toLowerCase();
+      const allowedMimeTypes = [
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/octet-stream'
+      ];
+
+      if (
+        !filename.endsWith('.docx') &&
+        !allowedMimeTypes.includes(req.file.mimetype)
+      ) {
+        return validationError(res, [{ msg: 'รองรับเฉพาะไฟล์ .docx เท่านั้น' }]);
+      }
+
+      const result = await adminService.importQuestionsFromDocx(req.file.buffer);
+
+      if (!result.success) {
+        return validationError(res, [
+          {
+            msg: result.message || 'ไม่สามารถนำเข้าคำถามได้'
+          },
+          ...(result.errors || []).map(message => ({ msg: message }))
+        ]);
+      }
+
+      return success(
+        res,
+        {
+          importedCount: result.importedCount,
+          questionIds: result.questionIds
+        },
+        `นำเข้าคำถามสำเร็จ ${result.importedCount} ข้อ`
+      );
+    } catch (err) {
+      logger.error('Error importing questions from docx:', err);
+      error(res, 'ไม่สามารถนำเข้าคำถามจากไฟล์ Word ได้');
+    }
+  }
+
   // Delete code
   async deleteCode(req, res) {
     try {
@@ -176,7 +232,6 @@ class AdminController {
         optionD,
         correctAnswer,
         difficulty,
-        timeLimit
       } = req.body;
 
       // Validation
@@ -192,13 +247,12 @@ class AdminController {
       if (!difficulty || !['easy', 'medium', 'hard'].includes(difficulty)) {
         errors.push({ msg: 'difficulty must be easy, medium, or hard' });
       }
-      if (!timeLimit || timeLimit < 5 || timeLimit > 60) {
-        errors.push({ msg: 'timeLimit must be between 5 and 60' });
-      }
 
       if (errors.length > 0) {
         return validationError(res, errors);
       }
+
+      const timeLimit = adminService.resolveQuestionTimeLimit(difficulty);
 
       const questionData = {
         questionText,
@@ -235,7 +289,20 @@ class AdminController {
   async updateQuestion(req, res) {
     try {
       const { id } = req.params;
-      const questionData = req.body;
+      const errors = [];
+
+      if (!req.body.difficulty || !['easy', 'medium', 'hard'].includes(req.body.difficulty)) {
+        errors.push({ msg: 'difficulty must be easy, medium, or hard' });
+      }
+
+      if (errors.length > 0) {
+        return validationError(res, errors);
+      }
+
+      const questionData = {
+        ...req.body,
+        timeLimit: adminService.resolveQuestionTimeLimit(req.body.difficulty)
+      };
 
       const result = await adminService.updateQuestion(parseInt(id), questionData);
       
@@ -275,6 +342,31 @@ class AdminController {
     } catch (err) {
       logger.error('Error getting question stats:', err);
       error(res, 'Failed to get question statistics');
+    }
+  }
+
+  async getGameSettings(req, res) {
+    try {
+      const result = await adminService.getGameSettings();
+      success(res, result.settings, 'Game settings retrieved successfully');
+    } catch (err) {
+      logger.error('Error getting game settings:', err);
+      error(res, 'Failed to get game settings');
+    }
+  }
+
+  async updateGameSettings(req, res) {
+    try {
+      const result = await adminService.updateGameSettings(req.body);
+
+      if (!result.success) {
+        return validationError(res, [{ msg: result.message }]);
+      }
+
+      success(res, result.settings, 'Game settings updated successfully');
+    } catch (err) {
+      logger.error('Error updating game settings:', err);
+      error(res, 'Failed to update game settings');
     }
   }
 

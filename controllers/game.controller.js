@@ -33,21 +33,15 @@ class GameController {
     try {
       const { code } = req.body;
 
-      console.log('[DEBUG] Verify code request:', { code });
-
       if (!code) {
-        console.log('[DEBUG] No code provided');
         return validationError(res, [{ msg: 'กรุณากรอกรหัส' }]);
       }
 
       const result = await gameService.verifyCode(code.trim().toUpperCase());
-      
-      console.log('[DEBUG] Verify code result:', result);
-      
+
       if (result.success) {
         success(res, { attemptId: result.attemptId, totalQuestions: result.totalQuestions }, 'เริ่มเกมสำเร็จ');
       } else {
-        console.log('[DEBUG] Verify failed:', result.message);
         error(res, result.message, 400);
       }
     } catch (error) {
@@ -60,19 +54,13 @@ class GameController {
   async renderPlay(req, res) {
     const { attemptId } = req.query;
 
-    console.log('[DEBUG] Render play, attemptId:', attemptId);
-
     if (!attemptId || isNaN(attemptId)) {
-      console.log('[DEBUG] Invalid attemptId');
       return res.redirect('/coopgame/game/start');
     }
 
     const attempt = await gameService.getAttempt(parseInt(attemptId));
 
-    console.log('[DEBUG] Attempt:', attempt);
-
     if (!attempt || attempt.status !== 'in_progress') {
-      console.log('[DEBUG] Invalid attempt status');
       return res.redirect('/coopgame/game/start');
     }
 
@@ -109,10 +97,7 @@ class GameController {
     try {
       const { attemptId, questionId, answer, responseTime } = req.body;
 
-      console.log('[DEBUG] Submit answer:', { attemptId, questionId, answer, responseTime });
-
       if (!attemptId || !questionId || !answer || responseTime === undefined) {
-        console.log('[DEBUG] Missing required fields');
         return validationError(res, [{ msg: 'Missing required fields' }]);
       }
 
@@ -122,8 +107,6 @@ class GameController {
         answer,
         parseInt(responseTime)
       );
-
-      console.log('[DEBUG] Submit result:', result);
 
       success(res, result, 'Answer submitted');
     } catch (error) {
@@ -137,15 +120,11 @@ class GameController {
     try {
       const { attemptId } = req.query;
 
-      console.log('[DEBUG] Render finish, attemptId:', attemptId);
-
       if (!attemptId) {
         return res.redirect('/coopgame/game/start');
       }
 
       const attempt = await gameService.getAttempt(parseInt(attemptId));
-
-      console.log('[DEBUG] Attempt:', attempt);
 
       if (!attempt) {
         return res.redirect('/coopgame/game/start');
@@ -154,8 +133,6 @@ class GameController {
       // Get total questions count
       const attemptQuestionModel = require('../models/attemptQuestion.model');
       const totalQuestions = await attemptQuestionModel.countByAttemptId(parseInt(attemptId));
-
-      console.log('[DEBUG] Total questions:', totalQuestions);
 
       res.render('game/finish', { 
         title: 'สรุปผล',
@@ -177,10 +154,7 @@ class GameController {
       const normalizedPlayerName = typeof playerName === 'string' ? playerName.trim() : '';
       const normalizedPhoneNumber = typeof phoneNumber === 'string' ? phoneNumber.trim() : '';
 
-      console.log('[DEBUG] Finish game request:', { attemptId, playerName, phoneNumber });
-
       if (!attemptId) {
-        console.log('[DEBUG] Missing required fields');
         return validationError(res, [{ msg: 'ไม่พบข้อมูลการเล่นเกม' }]);
       }
 
@@ -189,8 +163,6 @@ class GameController {
         normalizedPlayerName || ANONYMOUS_PLAYER_NAME,
         normalizedPhoneNumber
       );
-
-      console.log('[DEBUG] Finish game result:', result);
 
       success(res, result, 'บันทึกข้อมูลสำเร็จ');
     } catch (error) {
@@ -211,13 +183,11 @@ class GameController {
   // Get leaderboard (API)
   async getLeaderboard(req, res) {
     try {
-      console.log('[DEBUG] Get leaderboard request');
       const { limit, offset } = req.query;
       const result = await gameService.getLeaderboard(
         parseInt(limit) || 50,
         parseInt(offset) || 0
       );
-      console.log('[DEBUG] Leaderboard service result:', result);
       success(res, result.leaderboard, 'Leaderboard retrieved');
     } catch (error) {
       console.error('[ERROR] Error getting leaderboard:', error);

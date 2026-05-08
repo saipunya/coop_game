@@ -23,7 +23,6 @@
   function sendEvent(name, params){
     try{ gtag('event', name, params || {}); }
     catch(e){ console.warn('gtag error', e); }
-    console.log('TRACK EVENT', name, params||{});
   }
 
   // Click listener for elements with data-track

@@ -68,6 +68,27 @@ class QuestionModel {
     return result.insertId;
   }
 
+  async createWithConnection(connection, questionData) {
+    const {
+      questionText,
+      optionA,
+      optionB,
+      optionC,
+      optionD,
+      correctAnswer,
+      difficulty,
+      timeLimit
+    } = questionData;
+
+    const [result] = await connection.query(
+      `INSERT INTO questions 
+       (question_text, option_a, option_b, option_c, option_d, correct_answer, difficulty, time_limit) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [questionText, optionA, optionB, optionC, optionD, correctAnswer, difficulty, timeLimit]
+    );
+    return result.insertId;
+  }
+
   // Update question
   async update(id, questionData) {
     const {

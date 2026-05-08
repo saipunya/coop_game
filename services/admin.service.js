@@ -1,8 +1,21 @@
 const gameCodeModel = require('../models/gameCode.model');
 const questionModel = require('../models/question.model');
 const attemptModel = require('../models/attempt.model');
+const gameSettingModel = require('../models/gameSetting.model');
+const pool = require('../config/database');
 const { generateGameCodes, calculateExpiry } = require('../utils/crypto');
 const logger = require('../utils/logger');
+const mammoth = require('mammoth');
+
+const QUESTION_TIME_LIMITS = {
+  easy: 15,
+  medium: 20,
+  hard: 25
+};
+
+const DEFAULT_GAME_SETTINGS = {
+  totalQuestions: 9
+};
 
 class AdminService {
   /**
@@ -293,6 +306,7 @@ class AdminService {
       const gameStats = await attemptModel.getStats();
       const codeStats = await this.getCodeStats();
       const questionStats = await this.getQuestionStats();
+      const gameSettings = await this.getGameSettings();
 
       return {
         success: true,
@@ -302,7 +316,8 @@ class AdminService {
           averageScore: gameStats.averageScore,
           averageTime: gameStats.averageTime,
           codes: codeStats.stats,
-          questions: questionStats.stats
+          questions: questionStats.stats,
+          gameSettings: gameSettings.settings
         }
       };
     } catch (error) {
@@ -342,6 +357,326 @@ class AdminService {
       logger.error('Error getting conversion stats:', error);
       throw error;
     }
+  }
+
+  /**
+   * Clear player history and gameplay statistics.
+   * This removes attempts, answers, and attempt-question mappings.
+   */
+  async clearPlayerHistory() {
+    const connection = await pool.getConnection();
+
+    try {
+      await connection.beginTransaction();
+
+      const deletedAttempts = await attemptModel.clearAllHistory(connection);
+
+      await connection.commit();
+
+      logger.info(`Cleared player history and deleted ${deletedAttempts} game attempts`);
+      return {
+        success: true,
+        count: deletedAttempts
+      };
+    } catch (error) {
+      await connection.rollback();
+      logger.error('Error clearing player history:', error);
+      throw error;
+    } finally {
+      connection.release();
+    }
+  }
+
+  normalizeImportedText(value) {
+    return String(value || '')
+      .replace(/\u00a0/g, ' ')
+      .replace(/\r/g, '')
+      .trim();
+  }
+
+  normalizeDifficultyValue(value) {
+    const normalized = String(value || '').trim().toLowerCase();
+
+    if (normalized === 'easy' || normalized === 'ง่าย') return 'easy';
+    if (normalized === 'medium' || normalized === 'ปานกลาง') return 'medium';
+    if (normalized === 'hard' || normalized === 'ยาก') return 'hard';
+
+    return '';
+  }
+
+  normalizeAnswerValue(value) {
+    const normalized = String(value || '').trim().toUpperCase();
+    return ['A', 'B', 'C', 'D'].includes(normalized) ? normalized : '';
+  }
+
+  parseQuestionsFromText(rawText) {
+    const text = this.normalizeImportedText(rawText);
+
+    if (!text) {
+      return {
+        questions: [],
+        errors: ['ไม่พบข้อความในไฟล์ Word']
+      };
+    }
+
+    const blocks = text
+      .split(/\n\s*\n+/)
+      .map(block => block.trim())
+      .filter(Boolean);
+
+    const questions = [];
+    const errors = [];
+
+    blocks.forEach((block, blockIndex) => {
+      const lines = block
+        .split('\n')
+        .map(line => line.trim())
+        .filter(Boolean);
+
+      const parsed = {
+        questionText: '',
+        optionA: '',
+        optionB: '',
+        optionC: '',
+        optionD: '',
+        correctAnswer: '',
+        difficulty: ''
+      };
+
+      for (const line of lines) {
+        if (/^ข้อ\s*\d+/i.test(line)) {
+          continue;
+        }
+
+        const labeledMatch = line.match(/^(.*?)\s*[:：]\s*(.+)$/u);
+        const optionMatch = line.match(/^(?:ตัวเลือก\s*)?([ABCD])(?:[\.\)\-]|[:：])?\s*(.+)$/iu);
+
+        if (labeledMatch) {
+          const label = labeledMatch[1].trim().toLowerCase();
+          const value = labeledMatch[2].trim();
+
+          if (label === 'คำถาม' || label === 'question') {
+            parsed.questionText = value;
+            continue;
+          }
+
+          if (label === 'คำตอบ' || label === 'answer' || label === 'เฉลย') {
+            parsed.correctAnswer = value;
+            continue;
+          }
+
+          if (label === 'ระดับ' || label === 'difficulty' || label === 'level') {
+            parsed.difficulty = value;
+            continue;
+          }
+
+          const optionLabel = label.match(/^ตัวเลือก\s*([abcd])$/i) || label.match(/^option\s*([abcd])$/i);
+          if (optionLabel) {
+            parsed[`option${optionLabel[1].toUpperCase()}`] = value;
+            continue;
+          }
+        }
+
+        if (optionMatch) {
+          parsed[`option${optionMatch[1].toUpperCase()}`] = optionMatch[2].trim();
+          continue;
+        }
+
+        if (!parsed.questionText) {
+          parsed.questionText = line;
+        }
+      }
+
+      const blockErrors = [];
+      const questionLabel = `ข้อที่ ${blockIndex + 1}`;
+
+      if (!parsed.questionText) {
+        blockErrors.push(`${questionLabel}: ไม่พบข้อความคำถาม`);
+      }
+      if (!parsed.optionA) blockErrors.push(`${questionLabel}: ไม่พบตัวเลือก A`);
+      if (!parsed.optionB) blockErrors.push(`${questionLabel}: ไม่พบตัวเลือก B`);
+      if (!parsed.optionC) blockErrors.push(`${questionLabel}: ไม่พบตัวเลือก C`);
+      if (!parsed.optionD) blockErrors.push(`${questionLabel}: ไม่พบตัวเลือก D`);
+
+      parsed.correctAnswer = this.normalizeAnswerValue(parsed.correctAnswer);
+      if (!parsed.correctAnswer) {
+        blockErrors.push(`${questionLabel}: คำตอบต้องเป็น A, B, C, หรือ D`);
+      }
+
+      parsed.difficulty = this.normalizeDifficultyValue(parsed.difficulty);
+      if (!parsed.difficulty) {
+        blockErrors.push(`${questionLabel}: ระดับความยากต้องเป็น easy, medium, hard หรือ ง่าย, ปานกลาง, ยาก`);
+      }
+
+      if (blockErrors.length > 0) {
+        errors.push(...blockErrors);
+        return;
+      }
+
+      questions.push({
+        questionText: parsed.questionText,
+        optionA: parsed.optionA,
+        optionB: parsed.optionB,
+        optionC: parsed.optionC,
+        optionD: parsed.optionD,
+        correctAnswer: parsed.correctAnswer,
+        difficulty: parsed.difficulty
+      });
+    });
+
+    return { questions, errors };
+  }
+
+  async importQuestionsFromDocx(buffer) {
+    try {
+      const extracted = await mammoth.extractRawText({ buffer });
+      const parsed = this.parseQuestionsFromText(extracted.value);
+
+      if (parsed.errors.length > 0) {
+        return {
+          success: false,
+          message: 'ไฟล์ Word มีรูปแบบไม่ถูกต้อง',
+          errors: parsed.errors
+        };
+      }
+
+      if (parsed.questions.length === 0) {
+        return {
+          success: false,
+          message: 'ไม่พบคำถามในไฟล์ Word'
+        };
+      }
+
+      const connection = await pool.getConnection();
+
+      try {
+        await connection.beginTransaction();
+
+        const questionIds = [];
+        for (const question of parsed.questions) {
+          const questionId = await questionModel.createWithConnection(connection, {
+            ...question,
+            timeLimit: this.resolveQuestionTimeLimit(question.difficulty)
+          });
+          questionIds.push(questionId);
+        }
+
+        await connection.commit();
+
+        logger.info(`Imported ${questionIds.length} questions from DOCX`);
+
+        return {
+          success: true,
+          importedCount: questionIds.length,
+          questionIds
+        };
+      } catch (error) {
+        await connection.rollback();
+        throw error;
+      } finally {
+        connection.release();
+      }
+    } catch (error) {
+      logger.error('Error importing questions from docx:', error);
+      throw error;
+    }
+  }
+
+  resolveQuestionTimeLimit(difficulty) {
+    return QUESTION_TIME_LIMITS[difficulty] || QUESTION_TIME_LIMITS.easy;
+  }
+
+  async getGameSettings() {
+    try {
+      const totalQuestions = await gameSettingModel.getValue(
+        'totalQuestions',
+        DEFAULT_GAME_SETTINGS.totalQuestions
+      );
+
+      return {
+        success: true,
+        settings: {
+          totalQuestions: Number.isFinite(Number(totalQuestions))
+            ? parseInt(totalQuestions, 10)
+            : DEFAULT_GAME_SETTINGS.totalQuestions
+        }
+      };
+    } catch (error) {
+      logger.error('Error getting game settings:', error);
+      throw error;
+    }
+  }
+
+  async updateGameSettings(settingsData) {
+    try {
+      const totalQuestions = parseInt(settingsData.totalQuestions, 10);
+
+      if (!Number.isInteger(totalQuestions) || totalQuestions < 1 || totalQuestions > 100) {
+        return {
+          success: false,
+          message: 'Total questions must be between 1 and 100'
+        };
+      }
+
+      await gameSettingModel.set('totalQuestions', totalQuestions);
+
+      logger.info(`Updated game settings: totalQuestions=${totalQuestions}`);
+
+      return {
+        success: true,
+        settings: {
+          totalQuestions
+        }
+      };
+    } catch (error) {
+      logger.error('Error updating game settings:', error);
+      throw error;
+    }
+  }
+
+  buildQuestionDistribution(totalQuestions) {
+    const ratios = [
+      { difficulty: 'easy', ratio: 0.30 },
+      { difficulty: 'medium', ratio: 0.35 },
+      { difficulty: 'hard', ratio: 0.35 }
+    ];
+
+    const baseCounts = ratios.map(item => Math.floor(totalQuestions * item.ratio));
+    const fractions = ratios.map((item, index) => ({
+      index,
+      fraction: totalQuestions * item.ratio - baseCounts[index]
+    }));
+
+    let remainder = totalQuestions - baseCounts.reduce((sum, count) => sum + count, 0);
+
+    fractions.sort((a, b) => {
+      if (b.fraction !== a.fraction) {
+        return b.fraction - a.fraction;
+      }
+      return a.index - b.index;
+    });
+
+    let cursor = 0;
+    while (remainder > 0) {
+      baseCounts[fractions[cursor % fractions.length].index] += 1;
+      remainder -= 1;
+      cursor += 1;
+    }
+
+    return {
+      easy: baseCounts[0],
+      medium: baseCounts[1],
+      hard: baseCounts[2]
+    };
+  }
+
+  getQuestionOrderPreview(totalQuestions) {
+    const distribution = this.buildQuestionDistribution(totalQuestions);
+    return [
+      ...Array.from({ length: distribution.easy }, () => 'easy'),
+      ...Array.from({ length: distribution.medium }, () => 'medium'),
+      ...Array.from({ length: distribution.hard }, () => 'hard')
+    ];
   }
 }
 
