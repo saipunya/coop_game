@@ -85,6 +85,32 @@ class GameCodeModel {
     return result.affectedRows;
   }
 
+  // Delete every code and all game history rows that reference those codes
+  async clearAllWithHistory() {
+    const connection = await pool.getConnection();
+
+    try {
+      await connection.beginTransaction();
+
+      await connection.query('DELETE FROM attempt_answers');
+      await connection.query('DELETE FROM attempt_questions');
+      const [attemptResult] = await connection.query('DELETE FROM game_attempts');
+      const [codeResult] = await connection.query('DELETE FROM game_codes');
+
+      await connection.commit();
+
+      return {
+        deletedCodes: codeResult.affectedRows,
+        deletedAttempts: attemptResult.affectedRows
+      };
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+  }
+
   // Create new code
   async create(code, expiresAt) {
     const [result] = await pool.query(
@@ -109,6 +135,15 @@ class GameCodeModel {
     const [rows] = await pool.query(
       'SELECT * FROM game_codes WHERE status = ? ORDER BY created_at DESC LIMIT ? OFFSET ?',
       [status, limit, offset]
+    );
+    return rows;
+  }
+
+  // Get all codes
+  async getAll(limit = 50, offset = 0) {
+    const [rows] = await pool.query(
+      'SELECT * FROM game_codes ORDER BY created_at DESC LIMIT ? OFFSET ?',
+      [limit, offset]
     );
     return rows;
   }

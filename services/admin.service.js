@@ -102,7 +102,7 @@ class AdminService {
       if (status) {
         codes = await gameCodeModel.getByStatus(status, limit, offset);
       } else {
-        codes = await gameCodeModel.getByStatus('unused', limit, offset);
+        codes = await gameCodeModel.getAll(limit, offset);
       }
 
       return {
@@ -157,18 +157,19 @@ class AdminService {
   }
 
   /**
-   * Clear removable codes from the system
-   * Only deletes unused and expired codes to keep game history intact.
+   * Clear all codes from the system, including game history tied to those codes.
    */
   async clearCodes() {
     try {
-      const statusesToDelete = ['unused', 'expired'];
-      const deletedCount = await gameCodeModel.deleteByStatuses(statusesToDelete);
+      const result = await gameCodeModel.clearAllWithHistory();
 
-      logger.info(`Cleared ${deletedCount} removable codes`);
+      logger.info(
+        `Cleared ${result.deletedCodes} codes and ${result.deletedAttempts} game attempts`
+      );
       return {
         success: true,
-        count: deletedCount
+        count: result.deletedCodes,
+        attempts: result.deletedAttempts
       };
     } catch (error) {
       logger.error('Error clearing codes:', error);
@@ -239,16 +240,24 @@ class AdminService {
   }
 
   /**
-   * Delete question (soft delete)
+   * Permanently delete question and any game-history rows that reference it.
    */
   async deleteQuestion(id) {
     try {
-      const success = await questionModel.softDelete(id);
-      if (!success) {
+      const result = await questionModel.deletePermanently(id);
+      if (!result.deleted) {
         return { success: false, message: 'Question not found' };
       }
-      logger.info(`Deleted question ${id}`);
-      return { success: true };
+
+      logger.info(
+        `Permanently deleted question ${id}, ` +
+        `${result.deletedAnswers} answers, ${result.deletedAttemptQuestions} attempt questions`
+      );
+      return {
+        success: true,
+        deletedAnswers: result.deletedAnswers,
+        deletedAttemptQuestions: result.deletedAttemptQuestions
+      };
     } catch (error) {
       logger.error('Error deleting question:', error);
       throw error;
@@ -399,14 +408,227 @@ class AdminService {
 
     if (normalized === 'easy' || normalized === 'ง่าย') return 'easy';
     if (normalized === 'medium' || normalized === 'ปานกลาง') return 'medium';
-    if (normalized === 'hard' || normalized === 'ยาก') return 'hard';
+    if (normalized === 'hard' || normalized === 'difficult' || normalized === 'ยาก') return 'hard';
 
     return '';
   }
 
+  normalizeOptionKey(value) {
+    const normalized = String(value || '')
+      .trim()
+      .toUpperCase()
+      .match(/^[ABCDกขคง]/u)?.[0] || '';
+    const optionMap = {
+      A: 'A',
+      B: 'B',
+      C: 'C',
+      D: 'D',
+      ก: 'A',
+      ข: 'B',
+      ค: 'C',
+      ง: 'D'
+    };
+
+    return optionMap[normalized] || '';
+  }
+
   normalizeAnswerValue(value) {
-    const normalized = String(value || '').trim().toUpperCase();
-    return ['A', 'B', 'C', 'D'].includes(normalized) ? normalized : '';
+    return this.normalizeOptionKey(value);
+  }
+
+  stripQuestionPrefix(line) {
+    return String(line || '')
+      .replace(/^ข้อ\s*(?:ที่\s*)?\d+\s*(?:[\.\)\-]|[:：])?\s*/iu, '')
+      .replace(/^\d+\s*(?:[\.\)\-]|[:：])\s*/iu, '')
+      .trim();
+  }
+
+  isQuestionNumberLine(line) {
+    return /^(?:ข้อ\s*(?:ที่\s*)?\d+|\d+\s*[\.\)\-]|ข้อ\s*(?:ที่\s*)?\d+\s*[:：])/iu.test(String(line || '').trim());
+  }
+
+  isQuestionLabelLine(line) {
+    const normalized = String(line || '').trim().toLowerCase();
+    return normalized === 'คำถาม'
+      || normalized === 'question'
+      || /^(คำถาม|question)(?:\s|[:：])/iu.test(normalized);
+  }
+
+  hasCompletedImportedQuestion(lines) {
+    const joined = lines.join('\n');
+    return /(คำตอบ|answer|เฉลย)/iu.test(joined)
+      && /(ระดับความยาก|ระดับ|difficulty|level)/iu.test(joined);
+  }
+
+  splitImportedQuestionBlocks(text) {
+    const lines = text
+      .replace(/\t/g, '\n')
+      .split('\n')
+      .map(line => line.trim())
+      .filter(Boolean);
+
+    const blocks = [];
+    let currentBlock = [];
+
+    for (const line of lines) {
+      const shouldStartNewBlock = currentBlock.length > 0
+        && (
+          this.isQuestionNumberLine(line)
+          || (this.isQuestionLabelLine(line) && this.hasCompletedImportedQuestion(currentBlock))
+        );
+
+      if (shouldStartNewBlock) {
+        blocks.push(currentBlock);
+        currentBlock = [];
+      }
+
+      currentBlock.push(line);
+    }
+
+    if (currentBlock.length > 0) {
+      blocks.push(currentBlock);
+    }
+
+    return blocks;
+  }
+
+  getImportedLineLabel(line) {
+    const normalized = String(line || '').trim().toLowerCase();
+
+    if (normalized === 'คำถาม' || normalized === 'question') {
+      return { type: 'questionText' };
+    }
+
+    if (normalized === 'คำตอบ' || normalized === 'answer' || normalized === 'เฉลย') {
+      return { type: 'correctAnswer' };
+    }
+
+    if (normalized === 'ระดับ' || normalized === 'ระดับความยาก' || normalized === 'difficulty' || normalized === 'level') {
+      return { type: 'difficulty' };
+    }
+
+    const optionLabel = normalized.match(/^ตัวเลือก\s*([abcdกขคง])$/i)
+      || normalized.match(/^option\s*([abcd])$/i)
+      || normalized.match(/^([abcdกขคง])$/i);
+    if (optionLabel) {
+      const optionKey = this.normalizeOptionKey(optionLabel[1]);
+      if (optionKey) {
+        return { type: `option${optionKey}` };
+      }
+    }
+
+    return null;
+  }
+
+  setImportedQuestionField(parsed, type, value) {
+    if (!type || !value) return false;
+    parsed[type] = String(value).trim();
+    return true;
+  }
+
+  parseInlineImportedFields(parsed, line) {
+    const labelPattern = /(คำถาม|question|ตัวเลือก\s*[ABCDกขคง]|option\s*[ABCD]|คำตอบ|answer|เฉลย|ระดับความยาก|ระดับ|difficulty|level)\s*[:：]?/giu;
+    const matches = [...String(line || '').matchAll(labelPattern)];
+
+    if (matches.length < 2) {
+      return false;
+    }
+
+    let hasParsedField = false;
+
+    matches.forEach((match, index) => {
+      const field = this.getImportedLineLabel(match[1]);
+      const valueStart = match.index + match[0].length;
+      const valueEnd = matches[index + 1]?.index ?? line.length;
+      const value = line.slice(valueStart, valueEnd).trim();
+
+      if (field && value) {
+        this.setImportedQuestionField(parsed, field.type, value);
+        hasParsedField = true;
+      }
+    });
+
+    return hasParsedField;
+  }
+
+  parseImportedQuestionBlock(lines) {
+    const parsed = {
+      questionText: '',
+      optionA: '',
+      optionB: '',
+      optionC: '',
+      optionD: '',
+      correctAnswer: '',
+      difficulty: ''
+    };
+
+    for (let index = 0; index < lines.length; index += 1) {
+      const contentLine = this.stripQuestionPrefix(lines[index]);
+
+      if (!contentLine) {
+        continue;
+      }
+
+      if (this.parseInlineImportedFields(parsed, contentLine)) {
+        continue;
+      }
+
+      const labeledMatch = contentLine.match(/^(.*?)\s*[:：]\s*(.+)$/u);
+      const inlineQuestionMatch = contentLine.match(/^(คำถาม|question)\s+(.+)$/iu);
+      const inlineAnswerMatch = contentLine.match(/^(คำตอบ|answer|เฉลย)\s+(.+)$/iu);
+      const inlineDifficultyMatch = contentLine.match(/^(ระดับความยาก|ระดับ|difficulty|level)\s+(.+)$/iu);
+      const optionMatch = contentLine.match(/^(?:ตัวเลือก\s*)?([ABCDกขคง])(?:[\.\)\-]|[:：])?\s*(.+)$/iu);
+      const standaloneLabel = this.getImportedLineLabel(contentLine);
+
+      if (labeledMatch) {
+        const label = labeledMatch[1].trim();
+        const value = labeledMatch[2].trim();
+        const field = this.getImportedLineLabel(label);
+
+        if (field) {
+          this.setImportedQuestionField(parsed, field.type, value);
+          continue;
+        }
+      }
+
+      if (inlineQuestionMatch) {
+        parsed.questionText = inlineQuestionMatch[2].trim();
+        continue;
+      }
+
+      if (inlineAnswerMatch) {
+        parsed.correctAnswer = inlineAnswerMatch[2].trim();
+        continue;
+      }
+
+      if (inlineDifficultyMatch) {
+        parsed.difficulty = inlineDifficultyMatch[2].trim();
+        continue;
+      }
+
+      if (standaloneLabel) {
+        const nextLine = this.stripQuestionPrefix(lines[index + 1] || '');
+        if (nextLine) {
+          this.setImportedQuestionField(parsed, standaloneLabel.type, nextLine);
+          index += 1;
+        }
+        continue;
+      }
+
+      if (optionMatch) {
+        const optionKey = this.normalizeOptionKey(optionMatch[1]);
+        if (optionKey) {
+          parsed[`option${optionKey}`] = optionMatch[2].trim();
+        }
+        continue;
+      }
+
+      if (!parsed.questionText) {
+        parsed.questionText = contentLine;
+      }
+    }
+
+    return parsed;
   }
 
   parseQuestionsFromText(rawText) {
@@ -419,74 +641,12 @@ class AdminService {
       };
     }
 
-    const blocks = text
-      .split(/\n\s*\n+/)
-      .map(block => block.trim())
-      .filter(Boolean);
-
+    const blocks = this.splitImportedQuestionBlocks(text);
     const questions = [];
     const errors = [];
 
-    blocks.forEach((block, blockIndex) => {
-      const lines = block
-        .split('\n')
-        .map(line => line.trim())
-        .filter(Boolean);
-
-      const parsed = {
-        questionText: '',
-        optionA: '',
-        optionB: '',
-        optionC: '',
-        optionD: '',
-        correctAnswer: '',
-        difficulty: ''
-      };
-
-      for (const line of lines) {
-        if (/^ข้อ\s*\d+/i.test(line)) {
-          continue;
-        }
-
-        const labeledMatch = line.match(/^(.*?)\s*[:：]\s*(.+)$/u);
-        const optionMatch = line.match(/^(?:ตัวเลือก\s*)?([ABCD])(?:[\.\)\-]|[:：])?\s*(.+)$/iu);
-
-        if (labeledMatch) {
-          const label = labeledMatch[1].trim().toLowerCase();
-          const value = labeledMatch[2].trim();
-
-          if (label === 'คำถาม' || label === 'question') {
-            parsed.questionText = value;
-            continue;
-          }
-
-          if (label === 'คำตอบ' || label === 'answer' || label === 'เฉลย') {
-            parsed.correctAnswer = value;
-            continue;
-          }
-
-          if (label === 'ระดับ' || label === 'difficulty' || label === 'level') {
-            parsed.difficulty = value;
-            continue;
-          }
-
-          const optionLabel = label.match(/^ตัวเลือก\s*([abcd])$/i) || label.match(/^option\s*([abcd])$/i);
-          if (optionLabel) {
-            parsed[`option${optionLabel[1].toUpperCase()}`] = value;
-            continue;
-          }
-        }
-
-        if (optionMatch) {
-          parsed[`option${optionMatch[1].toUpperCase()}`] = optionMatch[2].trim();
-          continue;
-        }
-
-        if (!parsed.questionText) {
-          parsed.questionText = line;
-        }
-      }
-
+    blocks.forEach((lines, blockIndex) => {
+      const parsed = this.parseImportedQuestionBlock(lines);
       const blockErrors = [];
       const questionLabel = `ข้อที่ ${blockIndex + 1}`;
 
@@ -500,7 +660,7 @@ class AdminService {
 
       parsed.correctAnswer = this.normalizeAnswerValue(parsed.correctAnswer);
       if (!parsed.correctAnswer) {
-        blockErrors.push(`${questionLabel}: คำตอบต้องเป็น A, B, C, หรือ D`);
+        blockErrors.push(`${questionLabel}: คำตอบต้องเป็น A, B, C, D หรือ ก, ข, ค, ง`);
       }
 
       parsed.difficulty = this.normalizeDifficultyValue(parsed.difficulty);

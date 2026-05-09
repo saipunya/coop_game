@@ -445,7 +445,7 @@
     <section class="panel fade-in">
       <h3><i class="bi bi-file-earmark-word me-2" style="color:#43a047;"></i>นำเข้าคำถามจากไฟล์ Word</h3>
       <p style="margin-bottom: 12px; color:#4f8d52; font-weight:600;">
-        รองรับไฟล์ <code>.docx</code> เท่านั้น โดยแต่ละข้อควรแยกด้วยบรรทัดว่าง และใช้รูปแบบนี้:
+        รองรับไฟล์ <code>.docx</code> เท่านั้น ใช้ตัวเลือกได้ทั้ง <code>ก ข ค ง</code> หรือ <code>A B C D</code> และใช้รูปแบบนี้:
       </p>
       <pre style="background:#f6fbf5; border:1px solid #d7ead6; border-radius:14px; padding:14px; overflow:auto; color:#2f6f34; font-size:13px; line-height:1.7; margin-bottom: 16px;">ข้อ 1
 คำถาม: สหกรณ์คืออะไร?
@@ -916,7 +916,7 @@
     }
 
     async function deleteQuestion(id) {
-      if (!confirm('คุณแน่ใจหรือไม่ที่จะลบคำถามนี้?')) return;
+      if (!confirm('คุณแน่ใจหรือไม่ที่จะลบคำถามนี้ออกจากระบบถาวร? ประวัติเกมที่อ้างอิงคำถามนี้จะถูกลบตามไปด้วย')) return;
 
       try {
         const response = await fetch(`/coopgame/admin/api/questions/${id}`, {
@@ -925,7 +925,7 @@
 
         const result = await response.json();
         if (result.success) {
-          alert('✅ ลบคำถามสำเร็จ');
+          alert('✅ ลบคำถามออกจากระบบถาวรสำเร็จ');
           loadQuestions();
           loadStats();
         } else {
@@ -971,7 +971,7 @@
       if (preview) {
         preview.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
-      alert('ให้ใช้รูปแบบตามตัวอย่างในกล่อง Word ด้านบน โดยแยกแต่ละข้อด้วยบรรทัดว่าง');
+      alert('ให้ใช้รูปแบบตามตัวอย่างในกล่อง Word ด้านบน โดยใช้ตัวเลือก ก ข ค ง หรือ A B C D');
     });
 
     document.getElementById('importDocxForm').addEventListener('submit', async (e) => {

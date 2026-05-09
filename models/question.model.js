@@ -122,6 +122,46 @@ class QuestionModel {
     return result.affectedRows > 0;
   }
 
+  // Delete question permanently, including game-history references to it
+  async deletePermanently(id) {
+    const connection = await pool.getConnection();
+
+    try {
+      await connection.beginTransaction();
+
+      const [answerResult] = await connection.query(
+        'DELETE FROM attempt_answers WHERE question_id = ?',
+        [id]
+      );
+      const [attemptQuestionResult] = await connection.query(
+        'DELETE FROM attempt_questions WHERE question_id = ?',
+        [id]
+      );
+      const [questionResult] = await connection.query(
+        'DELETE FROM questions WHERE id = ?',
+        [id]
+      );
+
+      if (questionResult.affectedRows === 0) {
+        await connection.rollback();
+        return { deleted: false };
+      }
+
+      await connection.commit();
+
+      return {
+        deleted: true,
+        deletedAnswers: answerResult.affectedRows,
+        deletedAttemptQuestions: attemptQuestionResult.affectedRows
+      };
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+  }
+
   // Count by difficulty
   async countByDifficulty(difficulty) {
     const [rows] = await pool.query(

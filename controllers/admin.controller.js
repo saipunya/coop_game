@@ -132,7 +132,11 @@ class AdminController {
   async clearCodes(req, res) {
     try {
       const result = await adminService.clearCodes();
-      success(res, { count: result.count }, `Cleared ${result.count} removable codes`);
+      success(
+        res,
+        { count: result.count, attempts: result.attempts },
+        `Cleared ${result.count} codes`
+      );
     } catch (err) {
       logger.error('Error clearing codes:', err);
       error(res, 'Failed to clear codes');
@@ -327,7 +331,14 @@ class AdminController {
         return notFound(res, 'Question not found');
       }
 
-      success(res, null, 'Question deleted successfully');
+      success(
+        res,
+        {
+          deletedAnswers: result.deletedAnswers,
+          deletedAttemptQuestions: result.deletedAttemptQuestions
+        },
+        'Question permanently deleted successfully'
+      );
     } catch (err) {
       logger.error('Error deleting question:', err);
       error(res, 'Failed to delete question');
