@@ -103,12 +103,14 @@ class QuestionModel {
       isActive
     } = questionData;
 
+    const normalizedIsActive = isActive === undefined ? null : isActive;
+
     const [result] = await pool.query(
       `UPDATE questions 
        SET question_text = ?, option_a = ?, option_b = ?, option_c = ?, option_d = ?, 
-           correct_answer = ?, difficulty = ?, time_limit = ?, is_active = ?
+           correct_answer = ?, difficulty = ?, time_limit = ?, is_active = COALESCE(?, is_active)
        WHERE id = ?`,
-      [questionText, optionA, optionB, optionC, optionD, correctAnswer, difficulty, timeLimit, isActive, id]
+      [questionText, optionA, optionB, optionC, optionD, correctAnswer, difficulty, timeLimit, normalizedIsActive, id]
     );
     return result.affectedRows > 0;
   }
