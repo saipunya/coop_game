@@ -8,6 +8,11 @@ const gameSettingModel = require('../models/gameSetting.model');
 const { generateGameCode, shuffleArray, calculateExpiry } = require('../utils/crypto');
 const logger = require('../utils/logger');
 const ANONYMOUS_PLAYER_NAME = 'Anonymous';
+const DEFAULT_QUESTION_DISTRIBUTION = {
+  easy: 30,
+  medium: 35,
+  hard: 35
+};
 
 class GameService {
   /**
@@ -15,6 +20,8 @@ class GameService {
    * Uses transaction to ensure atomicity
    */
   async verifyCode(code) {
+    await attemptQuestionModel.ensureOptionOrderColumn();
+    await this.ensureAttemptAnswerNullableColumn();
     const connection = await pool.getConnection();
     
     try {
@@ -60,10 +67,16 @@ class GameService {
       logger.info(`Code ${upperCode} locked for new game`);
 
       const gameSettings = await this.getGameSettings();
+      if (!gameSettings.gameEnabled) {
+        await connection.rollback();
+        return { success: false, message: 'ระบบเกมปิดอยู่ชั่วคราว กรุณาติดต่อผู้ดูแลระบบ' };
+      }
+
       const result = await this.createGameAttempt(
         connection,
         gameCode.id,
-        gameSettings.totalQuestions
+        gameSettings.totalQuestions,
+        gameSettings.questionDistribution
       );
 
       if (!result.success) {
@@ -88,7 +101,7 @@ class GameService {
     }
   }
 
-  async createGameAttempt(connection, gameCodeId, totalQuestions) {
+  async createGameAttempt(connection, gameCodeId, totalQuestions, questionDistribution = DEFAULT_QUESTION_DISTRIBUTION) {
     const query = connection || pool;
 
     await query.query(
@@ -104,16 +117,17 @@ class GameService {
     const attemptId = attemptResult.insertId;
     logger.info(`Created attempt ${attemptId} for game code ${gameCodeId}`);
 
-    const questions = await this.selectRandomQuestions(connection, totalQuestions);
+    const questions = await this.selectRandomQuestions(connection, totalQuestions, questionDistribution);
 
     if (questions.length === 0) {
       return { success: false, message: 'No questions available in the system' };
     }
 
     for (let i = 0; i < questions.length; i += 1) {
+      const optionOrder = this.shuffleOptionOrder();
       await query.query(
-        'INSERT INTO attempt_questions (attempt_id, question_id, question_order) VALUES (?, ?, ?)',
-        [attemptId, questions[i].id, i + 1]
+        'INSERT INTO attempt_questions (attempt_id, question_id, question_order, option_order) VALUES (?, ?, ?, ?)',
+        [attemptId, questions[i].id, i + 1, JSON.stringify(optionOrder)]
       );
     }
 
@@ -124,13 +138,59 @@ class GameService {
     };
   }
 
+  shuffleOptionOrder() {
+    return shuffleArray(['A', 'B', 'C', 'D']);
+  }
+
+  parseOptionOrder(optionOrder) {
+    try {
+      const parsed = typeof optionOrder === 'string' ? JSON.parse(optionOrder) : optionOrder;
+      if (
+        Array.isArray(parsed) &&
+        parsed.length === 4 &&
+        ['A', 'B', 'C', 'D'].every(key => parsed.includes(key))
+      ) {
+        return parsed;
+      }
+    } catch (error) {
+      // Fall through to default order.
+    }
+
+    return ['A', 'B', 'C', 'D'];
+  }
+
+  getDisplayedOptions(questionData) {
+    const sourceOptions = {
+      A: questionData.option_a,
+      B: questionData.option_b,
+      C: questionData.option_c,
+      D: questionData.option_d
+    };
+    const optionOrder = this.parseOptionOrder(questionData.option_order);
+
+    return ['A', 'B', 'C', 'D'].reduce((options, displayKey, index) => {
+      const sourceKey = optionOrder[index];
+      options[displayKey] = sourceOptions[sourceKey];
+      return options;
+    }, {});
+  }
+
+  getSourceAnswerFromDisplayedAnswer(displayedAnswer, optionOrder) {
+    const displayIndex = ['A', 'B', 'C', 'D'].indexOf(String(displayedAnswer || '').toUpperCase());
+    if (displayIndex === -1) {
+      return '';
+    }
+
+    return this.parseOptionOrder(optionOrder)[displayIndex];
+  }
+
   /**
    * Select random questions from each difficulty level
    * Returns questions in easy -> medium -> hard order
    */
-  async selectRandomQuestions(connection, totalQuestions) {
+  async selectRandomQuestions(connection, totalQuestions, questionDistribution = DEFAULT_QUESTION_DISTRIBUTION) {
     const query = connection || pool;
-    const distribution = this.buildQuestionDistribution(totalQuestions);
+    const distribution = this.buildQuestionDistribution(totalQuestions, questionDistribution);
     const selectedIds = new Set();
     const selectedQuestions = [];
 
@@ -176,11 +236,30 @@ class GameService {
     return selectedQuestions.slice(0, totalQuestions);
   }
 
-  buildQuestionDistribution(totalQuestions) {
+  normalizeQuestionDistribution(rawDistribution = {}) {
+    const distribution = {};
+
+    for (const difficulty of ['easy', 'medium', 'hard']) {
+      const parsed = parseInt(rawDistribution?.[difficulty], 10);
+      distribution[difficulty] = Number.isInteger(parsed) && parsed >= 0 && parsed <= 100
+        ? parsed
+        : DEFAULT_QUESTION_DISTRIBUTION[difficulty];
+    }
+
+    const total = distribution.easy + distribution.medium + distribution.hard;
+    if (total !== 100 || total <= 0) {
+      return { ...DEFAULT_QUESTION_DISTRIBUTION };
+    }
+
+    return distribution;
+  }
+
+  buildQuestionDistribution(totalQuestions, questionDistribution = DEFAULT_QUESTION_DISTRIBUTION) {
+    const normalizedDistribution = this.normalizeQuestionDistribution(questionDistribution);
     const ratios = [
-      { difficulty: 'easy', ratio: 0.30 },
-      { difficulty: 'medium', ratio: 0.35 },
-      { difficulty: 'hard', ratio: 0.35 }
+      { difficulty: 'easy', ratio: normalizedDistribution.easy / 100 },
+      { difficulty: 'medium', ratio: normalizedDistribution.medium / 100 },
+      { difficulty: 'hard', ratio: normalizedDistribution.hard / 100 }
     ];
 
     const baseCounts = ratios.map(item => Math.floor(totalQuestions * item.ratio));
@@ -218,13 +297,20 @@ class GameService {
   }
 
   async getGameSettings() {
+    const gameEnabled = await gameSettingModel.getValue('gameEnabled', true);
     const totalQuestions = await gameSettingModel.getValue('totalQuestions', 9);
+    const questionDistribution = await gameSettingModel.getValue(
+      'questionDistribution',
+      DEFAULT_QUESTION_DISTRIBUTION
+    );
     const parsedTotalQuestions = parseInt(totalQuestions, 10);
 
     return {
+      gameEnabled: gameEnabled !== false,
       totalQuestions: Number.isInteger(parsedTotalQuestions) && parsedTotalQuestions > 0
         ? parsedTotalQuestions
-        : 9
+        : 9,
+      questionDistribution: this.normalizeQuestionDistribution(questionDistribution)
     };
   }
 
@@ -241,6 +327,16 @@ class GameService {
       }
 
       const isAdminAttempt = typeof attempt.game_code === 'string' && attempt.game_code.startsWith('ADM');
+
+      if (!isAdminAttempt) {
+        const gameSettings = await this.getGameSettings();
+        if (!gameSettings.gameEnabled) {
+          return {
+            gameDisabled: true,
+            message: 'ระบบเกมปิดอยู่ชั่วคราว กรุณาติดต่อผู้ดูแลระบบ'
+          };
+        }
+      }
 
       if (!isAdminAttempt && (!attempt.player_name || !attempt.phone_number)) {
         return { playerInfoRequired: true };
@@ -270,12 +366,7 @@ class GameService {
       return {
         id: questionData.id,
         text: questionData.question_text,
-        options: {
-          A: questionData.option_a,
-          B: questionData.option_b,
-          C: questionData.option_c,
-          D: questionData.option_d
-        },
+        options: this.getDisplayedOptions(questionData),
         difficulty: questionData.difficulty,
         timeLimit: this.getQuestionTimeLimit(questionData),
         questionNumber: currentQuestionIndex + 1,
@@ -327,6 +418,8 @@ class GameService {
   }
 
   async startAdminGame() {
+    await attemptQuestionModel.ensureOptionOrderColumn();
+    await this.ensureAttemptAnswerNullableColumn();
     const connection = await pool.getConnection();
 
     try {
@@ -361,7 +454,12 @@ class GameService {
         return { success: false, message: 'ไม่สามารถสร้างเกมทดสอบได้ กรุณาลองใหม่' };
       }
 
-      const result = await this.createGameAttempt(connection, gameCodeId, gameSettings.totalQuestions);
+      const result = await this.createGameAttempt(
+        connection,
+        gameCodeId,
+        gameSettings.totalQuestions,
+        gameSettings.questionDistribution
+      );
 
       if (!result.success) {
         await connection.rollback();
@@ -390,6 +488,7 @@ class GameService {
    * Submit answer with server-side timeout validation
    */
   async submitAnswer(attemptId, questionId, answer, responseTime) {
+    await this.ensureAttemptAnswerNullableColumn();
     const connection = await pool.getConnection();
 
     try {
@@ -419,6 +518,14 @@ class GameService {
       );
       const gameCode = codeRows[0]?.code || '';
       const isAdminAttempt = gameCode.startsWith('ADM');
+
+      if (!isAdminAttempt) {
+        const gameSettings = await this.getGameSettings();
+        if (!gameSettings.gameEnabled) {
+          await connection.rollback();
+          return { success: false, message: 'ระบบเกมปิดอยู่ชั่วคราว กรุณาติดต่อผู้ดูแลระบบ' };
+        }
+      }
 
       if (!isAdminAttempt && (!attempt.player_name || !attempt.phone_number)) {
         await connection.rollback();
@@ -474,30 +581,50 @@ class GameService {
           `INSERT INTO attempt_answers 
            (attempt_id, question_id, selected_answer, is_correct, response_time) 
            VALUES (?, ?, ?, ?, ?)`,
-          [attemptId, questionId, answer || '', false, responseTime]
+          [attemptId, questionId, null, false, responseTime]
         );
+
+        const [completedAttempts] = await connection.query(
+          'SELECT score, total_time, finished_at FROM game_attempts WHERE id = ?',
+          [attemptId]
+        );
+        const completedAttempt = completedAttempts[0] || attempt;
 
         await connection.commit();
         logger.info(`Attempt ${attemptId} timed out on question ${questionId}`);
+
+        const rank = isAdminAttempt || !attempt.player_name
+          ? null
+          : await this.calculateRank(
+            completedAttempt.score,
+            completedAttempt.total_time,
+            completedAttempt.finished_at
+          );
 
         return {
           success: true,
           isCorrect: false,
           gameOver: true,
           reason: 'timeout',
-          finalScore: attempt.score
+          finalScore: completedAttempt.score,
+          rank
         };
       }
 
       // Validate answer
-      const isCorrect = answer.toUpperCase() === question.correct_answer;
+      const attemptQuestion = mapping[0];
+      const selectedSourceAnswer = this.getSourceAnswerFromDisplayedAnswer(
+        answer,
+        attemptQuestion.option_order
+      );
+      const isCorrect = selectedSourceAnswer === question.correct_answer;
 
       // Record answer
       await connection.query(
         `INSERT INTO attempt_answers 
          (attempt_id, question_id, selected_answer, is_correct, response_time) 
          VALUES (?, ?, ?, ?, ?)`,
-        [attemptId, questionId, answer.toUpperCase(), isCorrect, responseTime]
+        [attemptId, questionId, selectedSourceAnswer || answer.toUpperCase(), isCorrect, responseTime]
       );
 
       if (isCorrect) {
@@ -526,15 +653,34 @@ class GameService {
             ['completed', attemptId]
           );
 
+          const [completedAttempts] = await connection.query(
+            'SELECT score, total_time, finished_at FROM game_attempts WHERE id = ?',
+            [attemptId]
+          );
+          const completedAttempt = completedAttempts[0] || {
+            score: newScore,
+            total_time: attempt.total_time + responseTime,
+            finished_at: new Date()
+          };
+
           await connection.commit();
           logger.info(`Attempt ${attemptId} completed with score ${newScore}`);
+
+          const rank = isAdminAttempt || !attempt.player_name
+            ? null
+            : await this.calculateRank(
+              completedAttempt.score,
+              completedAttempt.total_time,
+              completedAttempt.finished_at
+            );
 
           return {
             success: true,
             isCorrect: true,
             gameOver: true,
-            finalScore: newScore,
-            totalTime: attempt.total_time + responseTime
+            finalScore: completedAttempt.score,
+            totalTime: completedAttempt.total_time,
+            rank
           };
         }
 
@@ -555,15 +701,30 @@ class GameService {
           ['completed', attemptId]
         );
 
+        const [completedAttempts] = await connection.query(
+          'SELECT score, total_time, finished_at FROM game_attempts WHERE id = ?',
+          [attemptId]
+        );
+        const completedAttempt = completedAttempts[0] || attempt;
+
         await connection.commit();
         logger.info(`Attempt ${attemptId} failed on question ${questionId}`);
+
+        const rank = isAdminAttempt || !attempt.player_name
+          ? null
+          : await this.calculateRank(
+            completedAttempt.score,
+            completedAttempt.total_time,
+            completedAttempt.finished_at
+          );
 
         return {
           success: true,
           isCorrect: false,
           gameOver: true,
           reason: 'wrong_answer',
-          finalScore: attempt.score
+          finalScore: completedAttempt.score,
+          rank
         };
       }
 
@@ -685,6 +846,20 @@ class GameService {
 
   async getAttemptWithCode(attemptId) {
     return await attemptModel.findByIdWithCode(attemptId);
+  }
+
+  async ensureAttemptAnswerNullableColumn() {
+    const [columns] = await pool.query(
+      `SHOW COLUMNS FROM attempt_answers LIKE 'selected_answer'`
+    );
+    const selectedAnswerColumn = columns[0];
+
+    if (selectedAnswerColumn && selectedAnswerColumn.Null === 'NO') {
+      await pool.query(
+        `ALTER TABLE attempt_answers
+         MODIFY selected_answer ENUM('A', 'B', 'C', 'D') NULL`
+      );
+    }
   }
 }
 

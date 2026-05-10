@@ -50,6 +50,7 @@ router.delete('/api/codes/:id', adminController.deleteCode);
 // Question management
 router.post('/api/questions', adminController.addQuestion);
 router.post('/api/questions/import-docx', upload.single('file'), adminController.importQuestionsFromDocx);
+router.post('/api/questions/import-text', adminController.importQuestionsFromText);
 router.get('/api/questions', adminController.getQuestions);
 router.put('/api/questions/:id', adminController.updateQuestion);
 router.delete('/api/questions/:id', adminController.deleteQuestion);

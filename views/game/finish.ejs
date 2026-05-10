@@ -349,6 +349,120 @@
       display: none !important;
     }
 
+    .top-rank-popup {
+      position: fixed;
+      inset: 0;
+      z-index: 40;
+      display: grid;
+      place-items: center;
+      padding: 18px;
+      background: rgba(4, 18, 10, 0.58);
+      backdrop-filter: blur(10px);
+    }
+
+    .top-rank-card {
+      position: relative;
+      width: min(520px, 100%);
+      padding: 34px 26px 28px;
+      border-radius: 34px;
+      border: 1px solid rgba(255,255,255,0.56);
+      background:
+        radial-gradient(circle at 20% 6%, rgba(255, 235, 153, 0.58), transparent 32%),
+        radial-gradient(circle at 82% 12%, rgba(127, 208, 141, 0.42), transparent 28%),
+        linear-gradient(180deg, rgba(255,255,255,0.99), rgba(245, 252, 247, 0.99));
+      box-shadow: 0 34px 90px rgba(2, 13, 6, 0.38);
+      text-align: center;
+      overflow: hidden;
+      animation: rankPop 0.32s ease-out;
+    }
+
+    .top-rank-sparks {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .top-rank-sparks i {
+      position: absolute;
+      color: #f59e0b;
+      font-size: 1.25rem;
+      animation: rankSpark 1.55s ease-in-out infinite;
+    }
+
+    .top-rank-sparks i:nth-child(1) { top: 28px; left: 42px; }
+    .top-rank-sparks i:nth-child(2) { top: 44px; right: 50px; animation-delay: 0.2s; }
+    .top-rank-sparks i:nth-child(3) { bottom: 78px; left: 58px; animation-delay: 0.38s; }
+    .top-rank-sparks i:nth-child(4) { bottom: 68px; right: 64px; animation-delay: 0.56s; }
+
+    .top-rank-icon {
+      position: relative;
+      z-index: 1;
+      width: 112px;
+      height: 112px;
+      display: grid;
+      place-items: center;
+      margin: 0 auto 16px;
+      border-radius: 36px;
+      color: #fff;
+      background: linear-gradient(135deg, #b7791f 0%, #f6c343 45%, #22a247 100%);
+      box-shadow: 0 18px 42px rgba(183, 121, 31, 0.26);
+      font-size: 3rem;
+    }
+
+    .top-rank-title {
+      position: relative;
+      z-index: 1;
+      margin: 0 0 8px;
+      color: var(--green-900);
+      font-size: clamp(1.85rem, 6vw, 2.65rem);
+      font-weight: 800;
+      line-height: 1.22;
+    }
+
+    .top-rank-number {
+      position: relative;
+      z-index: 1;
+      margin: 8px 0;
+      font-size: clamp(3.6rem, 14vw, 5.8rem);
+      line-height: 1;
+      font-weight: 800;
+      background: linear-gradient(135deg, #b7791f, #22a247);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .top-rank-message {
+      position: relative;
+      z-index: 1;
+      margin: 0 auto 20px;
+      max-width: 390px;
+      color: var(--muted);
+      font-size: 1.08rem;
+      font-weight: 700;
+      line-height: 1.7;
+    }
+
+    .top-rank-ok {
+      position: relative;
+      z-index: 1;
+      min-width: 150px;
+      border: none;
+      border-radius: 16px;
+      padding: 14px 24px;
+      color: #fff;
+      font-weight: 800;
+      background: linear-gradient(135deg, #166534 0%, #22a247 58%, #4ade80 100%);
+      box-shadow: 0 14px 28px rgba(29, 110, 52, 0.22);
+    }
+
+    .top-rank-ok:focus {
+      outline: none;
+      box-shadow:
+        0 14px 28px rgba(29, 110, 52, 0.22),
+        0 0 0 4px rgba(53, 181, 89, 0.18);
+    }
+
     .fade-in {
       animation: fadeIn 0.45s ease-out;
     }
@@ -356,6 +470,16 @@
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(12px); }
       to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes rankPop {
+      from { opacity: 0; transform: translateY(14px) scale(0.95); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    @keyframes rankSpark {
+      0%, 100% { transform: translateY(0) scale(0.88) rotate(0deg); opacity: 0.58; }
+      50% { transform: translateY(-9px) scale(1.16) rotate(14deg); opacity: 1; }
     }
 
     @media (max-width: 992px) {
@@ -381,6 +505,11 @@
 
       .hero-title {
         font-size: clamp(1.7rem, 8vw, 2.4rem);
+      }
+
+      .top-rank-card {
+        padding: 30px 20px 24px;
+        border-radius: 28px;
       }
     }
   </style>
@@ -492,8 +621,54 @@
     </div>
   </div>
 
+  <div id="topRankPopup" class="top-rank-popup hidden" role="dialog" aria-modal="true" aria-labelledby="topRankTitle">
+    <div class="top-rank-card">
+      <div class="top-rank-sparks" aria-hidden="true">
+        <i class="bi bi-star-fill"></i>
+        <i class="bi bi-stars"></i>
+        <i class="bi bi-star-fill"></i>
+        <i class="bi bi-stars"></i>
+      </div>
+      <div class="top-rank-icon">
+        <i class="bi bi-trophy-fill"></i>
+      </div>
+      <h2 id="topRankTitle" class="top-rank-title">ยินดีด้วย!</h2>
+      <div id="topRankNumber" class="top-rank-number">#1</div>
+      <p id="topRankMessage" class="top-rank-message"></p>
+      <button id="topRankOkBtn" class="top-rank-ok" type="button">OK</button>
+    </div>
+  </div>
+
   <script>
     const attemptId = <%= attemptId %>;
+    const initialRank = <%= rank ? Number(rank) : 'null' %>;
+    const isAdminPlay = <%= isAdminPlay ? 'true' : 'false' %>;
+    const startUrl = '/coopgame/game/start';
+
+    function showTopRankPopup(rankValue) {
+      const rankNumber = Number(rankValue);
+      if (isAdminPlay || !Number.isInteger(rankNumber) || rankNumber < 1 || rankNumber > 3) {
+        return;
+      }
+
+      const popup = document.getElementById('topRankPopup');
+      const rankNumberEl = document.getElementById('topRankNumber');
+      const messageEl = document.getElementById('topRankMessage');
+      const okBtn = document.getElementById('topRankOkBtn');
+
+      rankNumberEl.textContent = `#${rankNumber}`;
+      messageEl.textContent = `ตอนนี้คุณมีคะแนนอยู่ในอันดับ ${rankNumber} ของกระดานผู้นำ เก่งมากครับ!`;
+      popup.classList.remove('hidden');
+
+      okBtn.onclick = () => {
+        window.location.replace(startUrl);
+      };
+      setTimeout(() => okBtn.focus(), 50);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      showTopRankPopup(initialRank);
+    });
 
     document.getElementById('finishForm').addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -519,6 +694,7 @@
           document.getElementById('playerForm').classList.add('hidden');
           document.getElementById('rankResult').classList.remove('hidden');
           document.getElementById('rankNumber').textContent = '#' + result.data.rank;
+          showTopRankPopup(result.data.rank);
         } else {
           messageDiv.textContent = result.message || 'ไม่สามารถบันทึกผลได้';
           messageDiv.className = 'message error';

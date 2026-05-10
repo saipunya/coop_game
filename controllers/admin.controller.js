@@ -199,6 +199,40 @@ class AdminController {
     }
   }
 
+  // Import questions from pasted text
+  async importQuestionsFromText(req, res) {
+    try {
+      const { importText } = req.body;
+
+      if (!importText || !String(importText).trim()) {
+        return validationError(res, [{ msg: 'กรุณาวางข้อความคำถามก่อนนำเข้า' }]);
+      }
+
+      const result = await adminService.importQuestionsFromText(importText);
+
+      if (!result.success) {
+        return validationError(res, [
+          {
+            msg: result.message || 'ไม่สามารถนำเข้าคำถามได้'
+          },
+          ...(result.errors || []).map(message => ({ msg: message }))
+        ]);
+      }
+
+      return success(
+        res,
+        {
+          importedCount: result.importedCount,
+          questionIds: result.questionIds
+        },
+        `นำเข้าคำถามสำเร็จ ${result.importedCount} ข้อ`
+      );
+    } catch (err) {
+      logger.error('Error importing questions from text:', err);
+      error(res, 'ไม่สามารถนำเข้าคำถามจากข้อความได้');
+    }
+  }
+
   // Delete code
   async deleteCode(req, res) {
     try {

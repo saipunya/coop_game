@@ -72,6 +72,7 @@ CREATE TABLE IF NOT EXISTS attempt_questions (
   attempt_id INT NOT NULL,
   question_id INT NOT NULL,
   question_order INT NOT NULL COMMENT '1, 2, 3...',
+  option_order VARCHAR(20) NULL COMMENT 'JSON array of source option keys in displayed order',
   FOREIGN KEY (attempt_id) REFERENCES game_attempts(id),
   FOREIGN KEY (question_id) REFERENCES questions(id),
   UNIQUE KEY unique_attempt_order (attempt_id, question_order),
@@ -84,7 +85,7 @@ CREATE TABLE IF NOT EXISTS attempt_answers (
   id INT AUTO_INCREMENT PRIMARY KEY,
   attempt_id INT NOT NULL,
   question_id INT NOT NULL,
-  selected_answer ENUM('A', 'B', 'C', 'D') NOT NULL,
+  selected_answer ENUM('A', 'B', 'C', 'D') NULL,
   is_correct BOOLEAN NOT NULL,
   response_time INT NOT NULL COMMENT 'seconds taken to answer',
   answered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -109,5 +110,3 @@ INSERT INTO questions (question_text, option_a, option_b, option_c, option_d, co
 INSERT INTO game_settings (setting_key, setting_value) VALUES
 ('totalQuestions', '9')
 ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value), updated_at = CURRENT_TIMESTAMP;
-
-

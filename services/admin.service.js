@@ -14,8 +14,14 @@ const QUESTION_TIME_LIMITS = {
 };
 
 const DEFAULT_GAME_SETTINGS = {
+  gameEnabled: true,
   totalQuestions: 9,
-  timeLimits: QUESTION_TIME_LIMITS
+  timeLimits: QUESTION_TIME_LIMITS,
+  questionDistribution: {
+    easy: 30,
+    medium: 35,
+    hard: 35
+  }
 };
 
 class AdminService {
@@ -528,7 +534,7 @@ class AdminService {
   }
 
   parseInlineImportedFields(parsed, line) {
-    const labelPattern = /(คำถาม|question|ตัวเลือก\s*[ABCDกขคง]|option\s*[ABCD]|คำตอบ|answer|เฉลย|ระดับความยาก|ระดับ|difficulty|level)\s*[:：]?/giu;
+    const labelPattern = /(^|\s)(คำถาม|question|ตัวเลือก\s*[ABCDกขคง]|option\s*[ABCD]|คำตอบ|answer|เฉลย|ระดับความยาก|ระดับ|difficulty|level)\s*[:：]?/giu;
     const matches = [...String(line || '').matchAll(labelPattern)];
 
     if (matches.length < 2) {
@@ -538,7 +544,7 @@ class AdminService {
     let hasParsedField = false;
 
     matches.forEach((match, index) => {
-      const field = this.getImportedLineLabel(match[1]);
+      const field = this.getImportedLineLabel(match[2]);
       const valueStart = match.index + match[0].length;
       const valueEnd = matches[index + 1]?.index ?? line.length;
       const value = line.slice(valueStart, valueEnd).trim();
@@ -688,6 +694,65 @@ class AdminService {
     return { questions, errors };
   }
 
+  async createImportedQuestions(parsedQuestions, sourceLabel) {
+    const connection = await pool.getConnection();
+
+    try {
+      await connection.beginTransaction();
+
+      const questionIds = [];
+      const gameSettings = await this.getGameSettings();
+      for (const question of parsedQuestions) {
+        const questionId = await questionModel.createWithConnection(connection, {
+          ...question,
+          timeLimit: gameSettings.settings.timeLimits[question.difficulty]
+        });
+        questionIds.push(questionId);
+      }
+
+      await connection.commit();
+
+      logger.info(`Imported ${questionIds.length} questions from ${sourceLabel}`);
+
+      return {
+        success: true,
+        importedCount: questionIds.length,
+        questionIds
+      };
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+  }
+
+  async importQuestionsFromText(rawText) {
+    try {
+      const parsed = this.parseQuestionsFromText(rawText);
+
+      if (parsed.errors.length > 0) {
+        return {
+          success: false,
+          message: 'ข้อความมีรูปแบบไม่ถูกต้อง',
+          errors: parsed.errors
+        };
+      }
+
+      if (parsed.questions.length === 0) {
+        return {
+          success: false,
+          message: 'ไม่พบคำถามในข้อความ'
+        };
+      }
+
+      return await this.createImportedQuestions(parsed.questions, 'pasted text');
+    } catch (error) {
+      logger.error('Error importing questions from text:', error);
+      throw error;
+    }
+  }
+
   async importQuestionsFromDocx(buffer) {
     try {
       const extracted = await mammoth.extractRawText({ buffer });
@@ -708,36 +773,7 @@ class AdminService {
         };
       }
 
-      const connection = await pool.getConnection();
-
-      try {
-        await connection.beginTransaction();
-
-        const questionIds = [];
-        const gameSettings = await this.getGameSettings();
-        for (const question of parsed.questions) {
-          const questionId = await questionModel.createWithConnection(connection, {
-            ...question,
-            timeLimit: gameSettings.settings.timeLimits[question.difficulty]
-          });
-          questionIds.push(questionId);
-        }
-
-        await connection.commit();
-
-        logger.info(`Imported ${questionIds.length} questions from DOCX`);
-
-        return {
-          success: true,
-          importedCount: questionIds.length,
-          questionIds
-        };
-      } catch (error) {
-        await connection.rollback();
-        throw error;
-      } finally {
-        connection.release();
-      }
+      return await this.createImportedQuestions(parsed.questions, 'DOCX');
     } catch (error) {
       logger.error('Error importing questions from docx:', error);
       throw error;
@@ -754,11 +790,20 @@ class AdminService {
         'totalQuestions',
         DEFAULT_GAME_SETTINGS.totalQuestions
       );
+      const gameEnabled = await gameSettingModel.getValue(
+        'gameEnabled',
+        DEFAULT_GAME_SETTINGS.gameEnabled
+      );
       const savedTimeLimits = await gameSettingModel.getValue(
         'questionTimeLimits',
         DEFAULT_GAME_SETTINGS.timeLimits
       );
+      const savedQuestionDistribution = await gameSettingModel.getValue(
+        'questionDistribution',
+        DEFAULT_GAME_SETTINGS.questionDistribution
+      );
       const timeLimits = this.normalizeQuestionTimeLimits(savedTimeLimits);
+      const questionDistribution = this.normalizeQuestionDistribution(savedQuestionDistribution);
 
       return {
         success: true,
@@ -766,7 +811,9 @@ class AdminService {
           totalQuestions: Number.isFinite(Number(totalQuestions))
             ? parseInt(totalQuestions, 10)
             : DEFAULT_GAME_SETTINGS.totalQuestions,
-          timeLimits
+          gameEnabled: gameEnabled !== false,
+          timeLimits,
+          questionDistribution
         }
       };
     } catch (error) {
@@ -788,14 +835,39 @@ class AdminService {
     return timeLimits;
   }
 
+  normalizeQuestionDistribution(rawDistribution = {}) {
+    const distribution = {};
+
+    for (const difficulty of ['easy', 'medium', 'hard']) {
+      const parsed = parseInt(rawDistribution?.[difficulty], 10);
+      distribution[difficulty] = Number.isInteger(parsed) && parsed >= 0 && parsed <= 100
+        ? parsed
+        : DEFAULT_GAME_SETTINGS.questionDistribution[difficulty];
+    }
+
+    const total = distribution.easy + distribution.medium + distribution.hard;
+    if (total !== 100 || total <= 0) {
+      return { ...DEFAULT_GAME_SETTINGS.questionDistribution };
+    }
+
+    return distribution;
+  }
+
   async updateGameSettings(settingsData) {
     try {
       const totalQuestions = parseInt(settingsData.totalQuestions, 10);
+      const gameEnabled = settingsData.gameEnabled !== false;
       const rawTimeLimits = settingsData.timeLimits || {};
+      const rawQuestionDistribution = settingsData.questionDistribution || {};
       const timeLimits = {
         easy: parseInt(rawTimeLimits.easy, 10),
         medium: parseInt(rawTimeLimits.medium, 10),
         hard: parseInt(rawTimeLimits.hard, 10)
+      };
+      const questionDistribution = {
+        easy: parseInt(rawQuestionDistribution.easy, 10),
+        medium: parseInt(rawQuestionDistribution.medium, 10),
+        hard: parseInt(rawQuestionDistribution.hard, 10)
       };
 
       if (!Number.isInteger(totalQuestions) || totalQuestions < 1 || totalQuestions > 100) {
@@ -814,8 +886,27 @@ class AdminService {
         }
       }
 
+      for (const [difficulty, percentage] of Object.entries(questionDistribution)) {
+        if (!Number.isInteger(percentage) || percentage < 0 || percentage > 100) {
+          return {
+            success: false,
+            message: `${difficulty} question distribution must be between 0 and 100 percent`
+          };
+        }
+      }
+
+      const distributionTotal = questionDistribution.easy + questionDistribution.medium + questionDistribution.hard;
+      if (distributionTotal !== 100) {
+        return {
+          success: false,
+          message: 'Question distribution must add up to 100 percent'
+        };
+      }
+
+      await gameSettingModel.set('gameEnabled', gameEnabled);
       await gameSettingModel.set('totalQuestions', totalQuestions);
       await gameSettingModel.set('questionTimeLimits', timeLimits);
+      await gameSettingModel.set('questionDistribution', questionDistribution);
 
       await pool.query(
         `UPDATE questions
@@ -830,14 +921,18 @@ class AdminService {
 
       logger.info(
         `Updated game settings: totalQuestions=${totalQuestions}, ` +
-        `timeLimits=${JSON.stringify(timeLimits)}`
+        `gameEnabled=${gameEnabled}, ` +
+        `timeLimits=${JSON.stringify(timeLimits)}, ` +
+        `questionDistribution=${JSON.stringify(questionDistribution)}`
       );
 
       return {
         success: true,
         settings: {
           totalQuestions,
-          timeLimits
+          gameEnabled,
+          timeLimits,
+          questionDistribution
         }
       };
     } catch (error) {
@@ -846,11 +941,12 @@ class AdminService {
     }
   }
 
-  buildQuestionDistribution(totalQuestions) {
+  buildQuestionDistribution(totalQuestions, questionDistribution = DEFAULT_GAME_SETTINGS.questionDistribution) {
+    const normalizedDistribution = this.normalizeQuestionDistribution(questionDistribution);
     const ratios = [
-      { difficulty: 'easy', ratio: 0.30 },
-      { difficulty: 'medium', ratio: 0.35 },
-      { difficulty: 'hard', ratio: 0.35 }
+      { difficulty: 'easy', ratio: normalizedDistribution.easy / 100 },
+      { difficulty: 'medium', ratio: normalizedDistribution.medium / 100 },
+      { difficulty: 'hard', ratio: normalizedDistribution.hard / 100 }
     ];
 
     const baseCounts = ratios.map(item => Math.floor(totalQuestions * item.ratio));

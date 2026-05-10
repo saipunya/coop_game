@@ -41,7 +41,7 @@ class QuestionModel {
   // Get all questions (including inactive) for admin
   async getAll() {
     const [rows] = await pool.query(
-      'SELECT * FROM questions ORDER BY difficulty, id DESC'
+      'SELECT * FROM questions ORDER BY id DESC'
     );
     return rows;
   }

@@ -928,6 +928,85 @@
         0 0 0 4px rgba(53, 181, 89, 0.18);
     }
 
+    .top-rank-popup {
+      position: fixed;
+      inset: 0;
+      z-index: 42;
+      display: grid;
+      place-items: center;
+      padding: 18px;
+      background: rgba(4, 18, 10, 0.6);
+      backdrop-filter: blur(10px);
+    }
+
+    .top-rank-card {
+      position: relative;
+      width: min(520px, 100%);
+      padding: 34px 26px 28px;
+      border-radius: 34px;
+      border: 1px solid rgba(255,255,255,0.56);
+      background:
+        radial-gradient(circle at 20% 6%, rgba(255, 235, 153, 0.58), transparent 32%),
+        radial-gradient(circle at 82% 12%, rgba(127, 208, 141, 0.42), transparent 28%),
+        linear-gradient(180deg, rgba(255,255,255,0.99), rgba(245, 252, 247, 0.99));
+      box-shadow: 0 34px 90px rgba(2, 13, 6, 0.38);
+      text-align: center;
+      overflow: hidden;
+      animation: feedbackPop 0.32s ease-out;
+    }
+
+    .top-rank-icon {
+      width: 112px;
+      height: 112px;
+      display: grid;
+      place-items: center;
+      margin: 0 auto 16px;
+      border-radius: 36px;
+      color: #fff;
+      background: linear-gradient(135deg, #b7791f 0%, #f6c343 45%, #22a247 100%);
+      box-shadow: 0 18px 42px rgba(183, 121, 31, 0.26);
+      font-size: 3rem;
+    }
+
+    .top-rank-title {
+      margin: 0 0 8px;
+      color: var(--green-900);
+      font-size: clamp(1.85rem, 6vw, 2.65rem);
+      font-weight: 800;
+      line-height: 1.22;
+    }
+
+    .top-rank-number {
+      margin: 8px 0;
+      font-size: clamp(3.6rem, 14vw, 5.8rem);
+      line-height: 1;
+      font-weight: 800;
+      background: linear-gradient(135deg, #b7791f, #22a247);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .top-rank-message {
+      margin: 0 auto 20px;
+      max-width: 390px;
+      color: var(--muted);
+      font-size: 1.08rem;
+      font-weight: 700;
+      line-height: 1.7;
+    }
+
+    .top-rank-ok {
+      min-width: 150px;
+      border: none;
+      border-radius: 16px;
+      padding: 14px 24px;
+      color: #fff;
+      font-weight: 800;
+      background: linear-gradient(135deg, #166534 0%, #22a247 58%, #4ade80 100%);
+      box-shadow: 0 14px 28px rgba(29, 110, 52, 0.22);
+    }
+
     .fade-in {
       animation: fadeIn 0.45s ease-out;
     }
@@ -1045,6 +1124,11 @@
 
       .answer-feedback-title {
         font-size: 1.45rem;
+      }
+
+      .top-rank-card {
+        padding: 30px 20px 24px;
+        border-radius: 28px;
       }
 
       .prize-card {
@@ -1199,10 +1283,10 @@
               <h2 id="resultTitle" class="result-title"></h2>
               <p id="resultMessage" class="result-message"></p>
               <div class="result-actions">
-                <a href="/coopgame/game/finish?attemptId=<%= attemptId %>" class="btn btn-emerald">
+                <a href="/coopgame/game/finish?attemptId=<%= attemptId %>" class="btn btn-emerald" id="finishResultLink">
                   <i class="bi bi-clipboard2-check-fill"></i> ดูผลลัพธ์ท้ายเกม
                 </a>
-                <a href="/coopgame/game/start" class="btn btn-outline-emerald">
+                <a href="/coopgame/game/start" class="btn btn-outline-emerald" id="playAgainLink">
                   <i class="bi bi-arrow-counterclockwise"></i> เล่นใหม่
                 </a>
               </div>
@@ -1261,6 +1345,18 @@
     </div>
   </div>
 
+  <div id="topRankPopup" class="top-rank-popup hidden" role="dialog" aria-modal="true" aria-labelledby="topRankTitle">
+    <div class="top-rank-card">
+      <div class="top-rank-icon">
+        <i class="bi bi-trophy-fill"></i>
+      </div>
+      <h2 id="topRankTitle" class="top-rank-title">ยินดีด้วย!</h2>
+      <div id="topRankNumber" class="top-rank-number">#1</div>
+      <p id="topRankMessage" class="top-rank-message"></p>
+      <button id="topRankOkBtn" class="top-rank-ok" type="button">OK</button>
+    </div>
+  </div>
+
   <script>
     const attemptId = <%= attemptId %>;
     const isAdminPlay = <%= isAdminPlay ? 'true' : 'false' %>;
@@ -1274,6 +1370,7 @@
     let timerInterval = null;
     let timeLeft = 0;
     let isAnswering = false;
+    let gameCompleted = false;
 
     const correctFeedbackMessages = [
       { title: 'เยี่ยมมาก', message: 'ตอบถูกต้อง ไปต่อข้อถัดไปกันเลย' },
@@ -1334,6 +1431,28 @@
 
     playerNameInput.value = initialPlayerName;
     phoneNumberInput.value = initialPhoneNumber;
+
+    function replaceToGameEndUrl(url = gameEndRedirectUrl) {
+      window.location.replace(url);
+    }
+
+    window.addEventListener('pageshow', (event) => {
+      if (event.persisted && gameCompleted) {
+        replaceToGameEndUrl();
+      }
+    });
+
+    document.getElementById('finishResultLink')?.addEventListener('click', (event) => {
+      event.preventDefault();
+      gameCompleted = true;
+      replaceToGameEndUrl(event.currentTarget.href);
+    });
+
+    document.getElementById('playAgainLink')?.addEventListener('click', (event) => {
+      event.preventDefault();
+      gameCompleted = true;
+      replaceToGameEndUrl('/coopgame/game/start');
+    });
 
     if (hasPlayerInfo) {
       if (isAdminPlay) {
@@ -1427,12 +1546,13 @@
             showPlayerIntro(result.message || 'กรุณากรอกชื่อและเบอร์โทรศัพท์ก่อนเริ่มเกม');
             return;
           }
-          window.location.href = `/coopgame/game/finish?attemptId=${attemptId}`;
+          gameCompleted = true;
+          replaceToGameEndUrl(`/coopgame/game/finish?attemptId=${attemptId}`);
         }
       } catch (error) {
         console.error('Error loading question:', error);
         alert('เกิดข้อผิดพลาด กรุณาลองใหม่');
-        window.location.href = '/coopgame/game/start';
+        replaceToGameEndUrl('/coopgame/game/start');
       }
     }
 
@@ -1510,6 +1630,32 @@
           feedback.classList.add('hidden');
           resolve();
         }, duration);
+      });
+    }
+
+    function isTopThreeRank(rankValue) {
+      const rankNumber = Number(rankValue);
+      return !isAdminPlay && Number.isInteger(rankNumber) && rankNumber >= 1 && rankNumber <= 3;
+    }
+
+    function showTopRankPopup(rankValue) {
+      const rankNumber = Number(rankValue);
+      const popup = document.getElementById('topRankPopup');
+      const rankNumberEl = document.getElementById('topRankNumber');
+      const messageEl = document.getElementById('topRankMessage');
+      const okBtn = document.getElementById('topRankOkBtn');
+
+      rankNumberEl.textContent = `#${rankNumber}`;
+      messageEl.textContent = `ตอนนี้คุณมีคะแนนอยู่ในอันดับ ${rankNumber} ของกระดานผู้นำ เก่งมากครับ!`;
+      popup.classList.remove('hidden');
+
+      return new Promise(resolve => {
+        okBtn.onclick = () => {
+          popup.classList.add('hidden');
+          okBtn.onclick = null;
+          resolve();
+        };
+        setTimeout(() => okBtn.focus(), 50);
       });
     }
 
@@ -1623,25 +1769,34 @@
 
         if (!result.success) {
           alert(result.errors?.[0]?.msg || result.message || 'เกิดข้อผิดพลาด กรุณาลองใหม่');
-          window.location.href = gameEndRedirectUrl;
+          replaceToGameEndUrl();
         } else if (result.data && result.data.gameOver) {
+          gameCompleted = true;
           const resultData = result.data;
           const feedbackType = resultData.reason === 'timeout'
             ? 'timeout'
             : resultData.isCorrect ? 'correct' : 'wrong';
           if (isAdminPlay) {
             await showAnswerFeedback(feedbackType, { actionLabel: 'OK' });
-            window.location.href = gameEndRedirectUrl;
+            replaceToGameEndUrl();
             return;
           }
 
           if (!resultData.isCorrect || resultData.reason === 'timeout') {
             await showAnswerFeedback(feedbackType, { actionLabel: 'OK' });
-            window.location.href = gameEndRedirectUrl;
+            if (isTopThreeRank(resultData.rank)) {
+              await showTopRankPopup(resultData.rank);
+            }
+            replaceToGameEndUrl();
             return;
           }
 
           await showAnswerFeedback(feedbackType);
+          if (isTopThreeRank(resultData.rank)) {
+            await showTopRankPopup(resultData.rank);
+            replaceToGameEndUrl();
+            return;
+          }
           showGameOver(resultData);
         } else if (result.success && result.data) {
           if (result.data.isCorrect) {
@@ -1652,12 +1807,12 @@
           loadQuestion();
         } else {
           alert(result.message);
-          window.location.href = gameEndRedirectUrl;
+          replaceToGameEndUrl();
         }
       } catch (error) {
         console.error('Error submitting answer:', error);
         alert('เกิดข้อผิดพลาด กรุณาลองใหม่');
-        window.location.href = gameEndRedirectUrl;
+        replaceToGameEndUrl();
       }
     }
 

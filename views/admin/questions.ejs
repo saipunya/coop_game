@@ -448,12 +448,39 @@
       <form id="gameSettingsForm">
         <div class="settings-grid">
           <div class="form-group">
+            <label for="gameEnabledSwitch"><i class="bi bi-power me-1"></i>สถานะระบบเกม</label>
+            <div class="form-check form-switch status-switch" style="min-height:46px;">
+              <input class="form-check-input" type="checkbox" role="switch" id="gameEnabledSwitch" checked>
+              <label class="form-check-label" for="gameEnabledSwitch" id="gameEnabledLabel">เปิดให้เล่น</label>
+            </div>
+          </div>
+          <div class="form-group">
             <label for="gameTotalQuestions"><i class="bi bi-list-ol me-1"></i>จำนวนข้อสอบทั้งหมด</label>
             <input type="number" id="gameTotalQuestions" name="totalQuestions" class="form-control" min="1" max="100" step="1" required>
           </div>
+        </div>
+        <div class="settings-grid">
           <div class="form-group">
-            <label><i class="bi bi-diagram-3 me-1"></i>สัดส่วนการสุ่มคำถาม</label>
+            <label><i class="bi bi-diagram-3 me-1"></i>ตัวอย่างจำนวนข้อจากสัดส่วน</label>
             <div id="distributionPreview" class="distribution-preview"></div>
+          </div>
+        </div>
+        <div class="settings-grid">
+          <div class="form-group">
+            <label for="easyQuestionRatio"><i class="bi bi-emoji-smile me-1"></i>สัดส่วนคำถามง่าย (%)</label>
+            <input type="number" id="easyQuestionRatio" class="form-control difficulty-ratio-input" min="0" max="100" step="1" data-difficulty="easy" required>
+          </div>
+          <div class="form-group">
+            <label for="mediumQuestionRatio"><i class="bi bi-emoji-neutral me-1"></i>สัดส่วนคำถามปานกลาง (%)</label>
+            <input type="number" id="mediumQuestionRatio" class="form-control difficulty-ratio-input" min="0" max="100" step="1" data-difficulty="medium" required>
+          </div>
+          <div class="form-group">
+            <label for="hardQuestionRatio"><i class="bi bi-emoji-frown me-1"></i>สัดส่วนคำถามยาก (%)</label>
+            <input type="number" id="hardQuestionRatio" class="form-control difficulty-ratio-input" min="0" max="100" step="1" data-difficulty="hard" required>
+          </div>
+          <div class="form-group">
+            <label><i class="bi bi-percent me-1"></i>รวมสัดส่วน</label>
+            <div id="distributionTotalPreview" class="time-limit-display">100%</div>
           </div>
         </div>
         <div class="settings-grid">
@@ -483,9 +510,9 @@
     </section>
 
     <section class="panel fade-in">
-      <h3><i class="bi bi-file-earmark-word me-2" style="color:#43a047;"></i>นำเข้าคำถามจากไฟล์ Word</h3>
+      <h3><i class="bi bi-cloud-arrow-up me-2" style="color:#43a047;"></i>นำเข้าคำถาม</h3>
       <p style="margin-bottom: 12px; color:#4f8d52; font-weight:600;">
-        รองรับไฟล์ <code>.docx</code> เท่านั้น ใช้ตัวเลือกได้ทั้ง <code>ก ข ค ง</code> หรือ <code>A B C D</code> และใช้รูปแบบนี้:
+        วางข้อความในช่องด้านล่างหรืออัปโหลดไฟล์ <code>.docx</code> ใช้ตัวเลือกได้ทั้ง <code>ก ข ค ง</code> หรือ <code>A B C D</code> และใช้รูปแบบนี้:
       </p>
       <pre style="background:#f6fbf5; border:1px solid #d7ead6; border-radius:14px; padding:14px; overflow:auto; color:#2f6f34; font-size:13px; line-height:1.7; margin-bottom: 16px;">ข้อ 1
 คำถาม: สหกรณ์คืออะไร?
@@ -495,6 +522,28 @@
 ตัวเลือก ง: หน่วยงานราชการ
 คำตอบ: ข
 ระดับ: easy</pre>
+      <form id="importTextForm">
+        <div class="form-group">
+          <label for="importText"><i class="bi bi-clipboard-plus me-1"></i>วางข้อความคำถามที่ต้องการนำเข้า</label>
+          <textarea
+            id="importText"
+            name="importText"
+            class="form-control"
+            placeholder="วางคำถามหลายข้อได้เลย เช่น&#10;&#10;ข้อ 1&#10;คำถาม: ...&#10;ตัวเลือก ก: ...&#10;ตัวเลือก ข: ...&#10;ตัวเลือก ค: ...&#10;ตัวเลือก ง: ...&#10;คำตอบ: ก&#10;ระดับ: easy"
+            style="min-height: 220px;"
+          ></textarea>
+        </div>
+        <div class="btn-group" style="margin-bottom: 18px;">
+          <button type="submit" class="btn" style="background: linear-gradient(135deg, #1b5e20 0%, #43a047 100%); color: white; border: none;">
+            <i class="bi bi-clipboard-check"></i> นำเข้าจากข้อความ
+          </button>
+          <button type="button" class="btn btn-outline-success" id="clearImportTextBtn">
+            <i class="bi bi-eraser"></i> ล้างข้อความ
+          </button>
+        </div>
+        <div id="importTextStatus" style="margin: -6px 0 18px; color:#4f8d52; font-weight:600;"></div>
+      </form>
+
       <form id="importDocxForm">
         <div class="form-row">
           <div class="form-group">
@@ -666,11 +715,17 @@
     let questions = [];
     let editingId = null;
     let gameSettings = {
+      gameEnabled: true,
       totalQuestions: 9,
       timeLimits: {
         easy: 15,
         medium: 20,
         hard: 25
+      },
+      questionDistribution: {
+        easy: 30,
+        medium: 35,
+        hard: 35
       }
     };
 
@@ -680,8 +735,16 @@
       hard: 25
     };
 
+    const DEFAULT_QUESTION_DISTRIBUTION = {
+      easy: 30,
+      medium: 35,
+      hard: 35
+    };
+
     document.addEventListener('DOMContentLoaded', () => {
+      setGameEnabledSwitch(gameSettings.gameEnabled);
       setTimeLimitInputs(gameSettings.timeLimits);
+      setDistributionInputs(gameSettings.questionDistribution);
       renderTimeSettingsPreview();
       loadQuestions();
       loadStats();
@@ -711,10 +774,14 @@
         const result = await response.json();
 
         if (result.success && result.data) {
+          gameSettings.gameEnabled = result.data.gameEnabled !== false;
           gameSettings.totalQuestions = parseInt(result.data.totalQuestions, 10) || 9;
           gameSettings.timeLimits = normalizeTimeLimits(result.data.timeLimits);
+          gameSettings.questionDistribution = normalizeQuestionDistribution(result.data.questionDistribution);
           document.getElementById('gameTotalQuestions').value = gameSettings.totalQuestions;
+          setGameEnabledSwitch(gameSettings.gameEnabled);
           setTimeLimitInputs(gameSettings.timeLimits);
+          setDistributionInputs(gameSettings.questionDistribution);
           renderDistributionPreview(gameSettings.totalQuestions);
           renderTimeSettingsPreview();
           updateQuestionTimeLimit(document.getElementById('difficulty').value || 'easy');
@@ -722,8 +789,10 @@
         }
       } catch (error) {
         console.error('Error loading game settings:', error);
+        setGameEnabledSwitch(gameSettings.gameEnabled);
         document.getElementById('gameTotalQuestions').value = gameSettings.totalQuestions;
         setTimeLimitInputs(gameSettings.timeLimits);
+        setDistributionInputs(gameSettings.questionDistribution);
         renderDistributionPreview(gameSettings.totalQuestions);
         renderTimeSettingsPreview();
       }
@@ -745,11 +814,12 @@
       }
     }
 
-    function buildDistribution(totalQuestions) {
+    function buildDistribution(totalQuestions, questionDistribution = gameSettings.questionDistribution) {
+      const normalizedDistribution = normalizeQuestionDistribution(questionDistribution);
       const ratios = [
-        { key: 'easy', ratio: 0.30 },
-        { key: 'medium', ratio: 0.35 },
-        { key: 'hard', ratio: 0.35 }
+        { key: 'easy', ratio: normalizedDistribution.easy / 100 },
+        { key: 'medium', ratio: normalizedDistribution.medium / 100 },
+        { key: 'hard', ratio: normalizedDistribution.hard / 100 }
       ];
 
       const baseCounts = ratios.map(item => Math.floor(totalQuestions * item.ratio));
@@ -781,18 +851,36 @@
 
     function renderDistributionPreview(totalQuestions) {
       const preview = document.getElementById('distributionPreview');
+      const totalPreview = document.getElementById('distributionTotalPreview');
       if (!preview) return;
+
+      const questionDistribution = getDistributionFromInputs();
+      const distributionTotal = Object.values(questionDistribution).reduce((sum, value) => (
+        sum + (Number.isInteger(value) ? value : 0)
+      ), 0);
+
+      if (totalPreview) {
+        totalPreview.textContent = `${distributionTotal}%`;
+        totalPreview.style.color = distributionTotal === 100 ? 'var(--green-900)' : '#b42318';
+        totalPreview.style.borderColor = distributionTotal === 100 ? '#a5d6a7' : '#f6b1ad';
+        totalPreview.style.background = distributionTotal === 100 ? '#f1f8e9' : '#fff4f2';
+      }
 
       if (!Number.isInteger(totalQuestions) || totalQuestions <= 0) {
         preview.innerHTML = '<div class="distribution-item"><span>กรุณากรอกจำนวนข้อ</span><span>-</span></div>';
         return;
       }
 
-      const distribution = buildDistribution(totalQuestions);
+      if (distributionTotal !== 100) {
+        preview.innerHTML = '<div class="distribution-item"><span>สัดส่วนรวมต้องเท่ากับ 100%</span><span>-</span></div>';
+        return;
+      }
+
+      const distribution = buildDistribution(totalQuestions, questionDistribution);
       preview.innerHTML = `
-        <div class="distribution-item"><span>ง่าย</span><span>${distribution.easy} ข้อ</span></div>
-        <div class="distribution-item"><span>ปานกลาง</span><span>${distribution.medium} ข้อ</span></div>
-        <div class="distribution-item"><span>ยาก</span><span>${distribution.hard} ข้อ</span></div>
+        <div class="distribution-item"><span>ง่าย (${questionDistribution.easy}%)</span><span>${distribution.easy} ข้อ</span></div>
+        <div class="distribution-item"><span>ปานกลาง (${questionDistribution.medium}%)</span><span>${distribution.medium} ข้อ</span></div>
+        <div class="distribution-item"><span>ยาก (${questionDistribution.hard}%)</span><span>${distribution.hard} ข้อ</span></div>
       `;
     }
 
@@ -814,6 +902,43 @@
       document.getElementById('easyTimeLimit').value = timeLimits.easy;
       document.getElementById('mediumTimeLimit').value = timeLimits.medium;
       document.getElementById('hardTimeLimit').value = timeLimits.hard;
+    }
+
+    function setGameEnabledSwitch(isEnabled) {
+      const switchEl = document.getElementById('gameEnabledSwitch');
+      const labelEl = document.getElementById('gameEnabledLabel');
+      if (!switchEl || !labelEl) return;
+
+      switchEl.checked = Boolean(isEnabled);
+      labelEl.textContent = switchEl.checked ? 'เปิดให้เล่น' : 'ปิดระบบเกม';
+      labelEl.style.color = switchEl.checked ? 'var(--green-700)' : '#b42318';
+    }
+
+    function normalizeQuestionDistribution(questionDistribution = {}) {
+      const normalized = ['easy', 'medium', 'hard'].reduce((result, difficulty) => {
+        const parsed = parseInt(questionDistribution[difficulty], 10);
+        result[difficulty] = Number.isInteger(parsed) && parsed >= 0 && parsed <= 100
+          ? parsed
+          : DEFAULT_QUESTION_DISTRIBUTION[difficulty];
+        return result;
+      }, {});
+
+      const total = normalized.easy + normalized.medium + normalized.hard;
+      return total === 100 ? normalized : { ...DEFAULT_QUESTION_DISTRIBUTION };
+    }
+
+    function setDistributionInputs(questionDistribution) {
+      document.getElementById('easyQuestionRatio').value = questionDistribution.easy;
+      document.getElementById('mediumQuestionRatio').value = questionDistribution.medium;
+      document.getElementById('hardQuestionRatio').value = questionDistribution.hard;
+    }
+
+    function getDistributionFromInputs() {
+      return {
+        easy: parseInt(document.getElementById('easyQuestionRatio').value, 10),
+        medium: parseInt(document.getElementById('mediumQuestionRatio').value, 10),
+        hard: parseInt(document.getElementById('hardQuestionRatio').value, 10)
+      };
     }
 
     function getTimeLimitsFromInputs() {
@@ -928,8 +1053,10 @@
     document.getElementById('gameSettingsForm').addEventListener('submit', async (e) => {
       e.preventDefault();
 
+      const gameEnabled = document.getElementById('gameEnabledSwitch').checked;
       const totalQuestions = parseInt(document.getElementById('gameTotalQuestions').value, 10);
       const timeLimits = getTimeLimitsFromInputs();
+      const questionDistribution = getDistributionFromInputs();
       if (!Number.isInteger(totalQuestions) || totalQuestions < 1 || totalQuestions > 100) {
         alert('กรุณากรอกจำนวนข้อสอบระหว่าง 1 ถึง 100');
         return;
@@ -938,19 +1065,31 @@
         alert('กรุณากรอกเวลาตอบระหว่าง 5 ถึง 300 วินาที');
         return;
       }
+      if (Object.values(questionDistribution).some(value => !Number.isInteger(value) || value < 0 || value > 100)) {
+        alert('กรุณากรอกสัดส่วนคำถามระหว่าง 0 ถึง 100');
+        return;
+      }
+      if (questionDistribution.easy + questionDistribution.medium + questionDistribution.hard !== 100) {
+        alert('สัดส่วนคำถามง่าย ปานกลาง และยาก ต้องรวมกันเท่ากับ 100%');
+        return;
+      }
 
       try {
         const response = await fetch('/coopgame/admin/api/game-settings', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ totalQuestions, timeLimits })
+          body: JSON.stringify({ gameEnabled, totalQuestions, timeLimits, questionDistribution })
         });
         const result = await response.json();
 
         if (result.success) {
+          gameSettings.gameEnabled = result.data?.gameEnabled !== false;
           gameSettings.totalQuestions = totalQuestions;
           gameSettings.timeLimits = normalizeTimeLimits(result.data?.timeLimits || timeLimits);
+          gameSettings.questionDistribution = normalizeQuestionDistribution(result.data?.questionDistribution || questionDistribution);
+          setGameEnabledSwitch(gameSettings.gameEnabled);
           setTimeLimitInputs(gameSettings.timeLimits);
+          setDistributionInputs(gameSettings.questionDistribution);
           renderDistributionPreview(totalQuestions);
           renderTimeSettingsPreview();
           updateQuestionTimeLimit(document.getElementById('difficulty').value || 'easy');
@@ -999,10 +1138,11 @@
         const result = await response.json();
 
         if (result.success) {
-          alert(editingId ? '✅ แก้ไขคำถามสำเร็จ' : '✅ เพิ่มคำถามสำเร็จ');
+          const successMessage = editingId ? '✅ แก้ไขคำถามสำเร็จ' : '✅ เพิ่มคำถามสำเร็จ';
           resetForm();
-          loadQuestions();
-          loadStats();
+          await loadQuestions();
+          await loadStats();
+          alert(successMessage);
         } else {
           alert('❌ ' + result.message);
         }
@@ -1112,6 +1252,22 @@
       const value = parseInt(e.target.value, 10);
       renderDistributionPreview(Number.isInteger(value) && value > 0 ? value : 0);
     });
+    document.getElementById('gameEnabledSwitch').addEventListener('change', (e) => {
+      setGameEnabledSwitch(e.target.checked);
+    });
+    document.querySelectorAll('.difficulty-ratio-input').forEach(input => {
+      input.addEventListener('input', () => {
+        const draftDistribution = getDistributionFromInputs();
+        if (Object.values(draftDistribution).every(value => Number.isInteger(value) && value >= 0 && value <= 100)) {
+          const total = draftDistribution.easy + draftDistribution.medium + draftDistribution.hard;
+          if (total === 100) {
+            gameSettings.questionDistribution = draftDistribution;
+          }
+        }
+        const totalQuestions = parseInt(document.getElementById('gameTotalQuestions').value, 10);
+        renderDistributionPreview(Number.isInteger(totalQuestions) && totalQuestions > 0 ? totalQuestions : 0);
+      });
+    });
     document.querySelectorAll('.difficulty-time-input').forEach(input => {
       input.addEventListener('input', () => {
         const draftTimeLimits = getTimeLimitsFromInputs();
@@ -1124,8 +1280,8 @@
       });
     });
 
-    function setImportStatus(message, isError = false) {
-      const statusEl = document.getElementById('importStatus');
+    function setImportStatus(message, isError = false, targetId = 'importStatus') {
+      const statusEl = document.getElementById(targetId);
       if (!statusEl) return;
       statusEl.textContent = message || '';
       statusEl.style.color = isError ? '#b42318' : '#2f6f34';
@@ -1137,6 +1293,54 @@
         preview.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
       alert('ให้ใช้รูปแบบตามตัวอย่างในกล่อง Word ด้านบน โดยใช้ตัวเลือก ก ข ค ง หรือ A B C D');
+    });
+
+    document.getElementById('clearImportTextBtn').addEventListener('click', () => {
+      document.getElementById('importText').value = '';
+      setImportStatus('', false, 'importTextStatus');
+    });
+
+    document.getElementById('importTextForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const importTextEl = document.getElementById('importText');
+      const importText = importTextEl.value.trim();
+
+      if (!importText) {
+        alert('กรุณาวางข้อความคำถามก่อนนำเข้า');
+        importTextEl.focus();
+        return;
+      }
+
+      try {
+        setImportStatus('กำลังนำเข้าคำถามจากข้อความ...', false, 'importTextStatus');
+
+        const response = await fetch('/coopgame/admin/api/questions/import-text', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ importText })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          setImportStatus(`นำเข้าคำถามสำเร็จ ${result.data.importedCount} ข้อ`, false, 'importTextStatus');
+          importTextEl.value = '';
+          await loadQuestions();
+          await loadStats();
+          alert(`นำเข้าคำถามสำเร็จ ${result.data.importedCount} ข้อ`);
+        } else {
+          const errorText = (result.errors && result.errors.length > 0)
+            ? result.errors.map(item => item.msg || item).join('\n')
+            : result.message || 'ไม่สามารถนำเข้าคำถามได้';
+          setImportStatus(errorText, true, 'importTextStatus');
+          alert(errorText);
+        }
+      } catch (error) {
+        console.error('Error importing text:', error);
+        setImportStatus('ไม่สามารถนำเข้าคำถามจากข้อความได้', true, 'importTextStatus');
+        alert('ไม่สามารถนำเข้าคำถามจากข้อความได้');
+      }
     });
 
     document.getElementById('importDocxForm').addEventListener('submit', async (e) => {
@@ -1165,10 +1369,10 @@
 
         if (result.success) {
           setImportStatus(`นำเข้าคำถามสำเร็จ ${result.data.importedCount} ข้อ`);
-          alert(`นำเข้าคำถามสำเร็จ ${result.data.importedCount} ข้อ`);
           fileInput.value = '';
-          loadQuestions();
-          loadStats();
+          await loadQuestions();
+          await loadStats();
+          alert(`นำเข้าคำถามสำเร็จ ${result.data.importedCount} ข้อ`);
         } else {
           const errorText = (result.errors && result.errors.length > 0)
             ? result.errors.map(item => item.msg || item).join('\n')

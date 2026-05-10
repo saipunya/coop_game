@@ -81,13 +81,21 @@ class GameController {
 
       const attempt = await gameService.getAttemptWithCode(parseInt(attemptId));
 
-      if (!attempt || attempt.status !== 'in_progress') {
+      if (!attempt) {
         return res.redirect('/coopgame/game/start');
       }
 
       const isAdminPlay = Boolean(
         typeof attempt.game_code === 'string' && attempt.game_code.startsWith('ADM')
       );
+
+      if (attempt.status !== 'in_progress') {
+        return res.redirect(isAdminPlay ? '/coopgame/admin' : '/coopgame/game/start');
+      }
+
+      res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+      res.set('Pragma', 'no-cache');
+      res.set('Expires', '0');
 
       res.render('game/play', {
         title: 'เล่นเกม',
@@ -119,6 +127,15 @@ class GameController {
 
       if (question.playerInfoRequired) {
         return error(res, 'กรุณากรอกชื่อและเบอร์โทรศัพท์ก่อนเริ่มเกม', 400, 'PLAYER_INFO_REQUIRED');
+      }
+
+      if (question.gameDisabled) {
+        return error(
+          res,
+          question.message || 'ระบบเกมปิดอยู่ชั่วคราว กรุณาติดต่อผู้ดูแลระบบ',
+          403,
+          'GAME_DISABLED'
+        );
       }
 
       success(res, { question }, 'Question retrieved');

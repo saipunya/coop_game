@@ -1,12 +1,28 @@
 const pool = require('../config/database');
 
 class AttemptQuestionModel {
+  async ensureOptionOrderColumn(query = pool) {
+    const [columns] = await query.query(
+      `SHOW COLUMNS FROM attempt_questions LIKE 'option_order'`
+    );
+
+    if (columns.length === 0) {
+      await query.query(
+        `ALTER TABLE attempt_questions
+         ADD COLUMN option_order VARCHAR(20) NULL COMMENT 'JSON array of source option keys in displayed order'
+         AFTER question_order`
+      );
+    }
+  }
+
   // Assign question to attempt
-  async assign(attemptId, questionId, questionOrder, connection) {
+  async assign(attemptId, questionId, questionOrder, connection, optionOrder = null) {
     const query = connection || pool;
+    await this.ensureOptionOrderColumn(query);
+    const serializedOptionOrder = optionOrder ? JSON.stringify(optionOrder) : null;
     const [result] = await query.query(
-      'INSERT INTO attempt_questions (attempt_id, question_id, question_order) VALUES (?, ?, ?)',
-      [attemptId, questionId, questionOrder]
+      'INSERT INTO attempt_questions (attempt_id, question_id, question_order, option_order) VALUES (?, ?, ?, ?)',
+      [attemptId, questionId, questionOrder, serializedOptionOrder]
     );
     return result.insertId;
   }
@@ -14,12 +30,18 @@ class AttemptQuestionModel {
   // Batch assign questions to attempt
   async assignBatch(attemptId, questions, connection) {
     const query = connection || pool;
-    const values = questions.map((q, index) => [attemptId, q.id, index + 1]);
+    await this.ensureOptionOrderColumn(query);
+    const values = questions.map((q, index) => [
+      attemptId,
+      q.id,
+      index + 1,
+      q.optionOrder ? JSON.stringify(q.optionOrder) : null
+    ]);
     
     if (values.length === 0) return 0;
     
     const [result] = await query.query(
-      'INSERT INTO attempt_questions (attempt_id, question_id, question_order) VALUES ?',
+      'INSERT INTO attempt_questions (attempt_id, question_id, question_order, option_order) VALUES ?',
       [values]
     );
     return result.affectedRows;
