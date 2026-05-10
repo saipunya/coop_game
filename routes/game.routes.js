@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const gameController = require('../controllers/game.controller');
+const { adminAuthMiddleware } = require('../utils/adminAuth');
 
 // Default redirect to start page
 router.get('/', (req, res) => {
@@ -14,12 +15,16 @@ router.get('/onboarding', gameController.renderOnboarding);
 
 // Verify code API
 router.post('/verify-code', gameController.verifyCode);
+router.post('/api/admin/start', adminAuthMiddleware, gameController.startAdminGame);
 
 // Play page
 router.get('/play', gameController.renderPlay);
 
 // Get current question API
 router.get('/api/question', gameController.getCurrentQuestion);
+
+// Save player info before starting questions
+router.post('/api/player-info', gameController.savePlayerInfo);
 
 // Submit answer API
 router.post('/api/answer', gameController.submitAnswer);

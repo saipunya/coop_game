@@ -376,6 +376,9 @@
         <button type="button" class="btn btn-danger" onclick="clearPlayerHistory()">
           <i class="bi bi-archive-x"></i> เคลียร์สถิติ
         </button>
+        <button type="button" class="btn" style="background: linear-gradient(135deg, #1b5e20 0%, #43a047 100%); color: white; border: none;" onclick="startAdminGame(this)">
+          <i class="bi bi-controller"></i> เล่นแบบผู้ดูแล
+        </button>
         <a href="/coopgame/game/start" class="btn" style="background: linear-gradient(135deg, #43a047 0%, #66bb6a 100%); color: white; border: none;">
           <i class="bi bi-controller"></i> เล่นเกม
         </a>
@@ -730,6 +733,38 @@
       } catch (error) {
         console.error('Error clearing player history:', error);
         alert('เกิดข้อผิดพลาด กรุณาลองใหม่');
+      }
+    }
+
+    async function startAdminGame(button) {
+      const confirmed = confirm('เริ่มเกมแบบผู้ดูแลโดยไม่ใช้รหัสใช่ไหม?');
+      if (!confirmed) return;
+
+      if (button) button.disabled = true;
+
+      try {
+        const response = await fetch('/coopgame/game/api/admin/start', {
+          method: 'POST'
+        });
+
+        if (response.status === 401) {
+          window.location.href = '/coopgame/admin/login';
+          return;
+        }
+
+        const result = await response.json();
+
+        if (result.success && result.data?.attemptId) {
+          window.location.href = `/coopgame/game/play?attemptId=${result.data.attemptId}`;
+          return;
+        }
+
+        alert('❌ ' + (result.message || 'ไม่สามารถเริ่มเกมได้'));
+      } catch (error) {
+        console.error('Error starting admin game:', error);
+        alert('เกิดข้อผิดพลาด กรุณาลองใหม่');
+      } finally {
+        if (button) button.disabled = false;
       }
     }
 

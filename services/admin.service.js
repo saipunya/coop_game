@@ -14,7 +14,8 @@ const QUESTION_TIME_LIMITS = {
 };
 
 const DEFAULT_GAME_SETTINGS = {
-  totalQuestions: 9
+  totalQuestions: 9,
+  timeLimits: QUESTION_TIME_LIMITS
 };
 
 class AdminService {
@@ -713,10 +714,11 @@ class AdminService {
         await connection.beginTransaction();
 
         const questionIds = [];
+        const gameSettings = await this.getGameSettings();
         for (const question of parsed.questions) {
           const questionId = await questionModel.createWithConnection(connection, {
             ...question,
-            timeLimit: this.resolveQuestionTimeLimit(question.difficulty)
+            timeLimit: gameSettings.settings.timeLimits[question.difficulty]
           });
           questionIds.push(questionId);
         }
@@ -752,13 +754,19 @@ class AdminService {
         'totalQuestions',
         DEFAULT_GAME_SETTINGS.totalQuestions
       );
+      const savedTimeLimits = await gameSettingModel.getValue(
+        'questionTimeLimits',
+        DEFAULT_GAME_SETTINGS.timeLimits
+      );
+      const timeLimits = this.normalizeQuestionTimeLimits(savedTimeLimits);
 
       return {
         success: true,
         settings: {
           totalQuestions: Number.isFinite(Number(totalQuestions))
             ? parseInt(totalQuestions, 10)
-            : DEFAULT_GAME_SETTINGS.totalQuestions
+            : DEFAULT_GAME_SETTINGS.totalQuestions,
+          timeLimits
         }
       };
     } catch (error) {
@@ -767,9 +775,28 @@ class AdminService {
     }
   }
 
+  normalizeQuestionTimeLimits(rawTimeLimits = {}) {
+    const timeLimits = {};
+
+    for (const difficulty of ['easy', 'medium', 'hard']) {
+      const parsed = parseInt(rawTimeLimits?.[difficulty], 10);
+      timeLimits[difficulty] = Number.isInteger(parsed) && parsed >= 5 && parsed <= 300
+        ? parsed
+        : DEFAULT_GAME_SETTINGS.timeLimits[difficulty];
+    }
+
+    return timeLimits;
+  }
+
   async updateGameSettings(settingsData) {
     try {
       const totalQuestions = parseInt(settingsData.totalQuestions, 10);
+      const rawTimeLimits = settingsData.timeLimits || {};
+      const timeLimits = {
+        easy: parseInt(rawTimeLimits.easy, 10),
+        medium: parseInt(rawTimeLimits.medium, 10),
+        hard: parseInt(rawTimeLimits.hard, 10)
+      };
 
       if (!Number.isInteger(totalQuestions) || totalQuestions < 1 || totalQuestions > 100) {
         return {
@@ -778,14 +805,39 @@ class AdminService {
         };
       }
 
-      await gameSettingModel.set('totalQuestions', totalQuestions);
+      for (const [difficulty, timeLimit] of Object.entries(timeLimits)) {
+        if (!Number.isInteger(timeLimit) || timeLimit < 5 || timeLimit > 300) {
+          return {
+            success: false,
+            message: `${difficulty} question time limit must be between 5 and 300 seconds`
+          };
+        }
+      }
 
-      logger.info(`Updated game settings: totalQuestions=${totalQuestions}`);
+      await gameSettingModel.set('totalQuestions', totalQuestions);
+      await gameSettingModel.set('questionTimeLimits', timeLimits);
+
+      await pool.query(
+        `UPDATE questions
+         SET time_limit = CASE difficulty
+           WHEN 'easy' THEN ?
+           WHEN 'medium' THEN ?
+           WHEN 'hard' THEN ?
+           ELSE time_limit
+         END`,
+        [timeLimits.easy, timeLimits.medium, timeLimits.hard]
+      );
+
+      logger.info(
+        `Updated game settings: totalQuestions=${totalQuestions}, ` +
+        `timeLimits=${JSON.stringify(timeLimits)}`
+      );
 
       return {
         success: true,
         settings: {
-          totalQuestions
+          totalQuestions,
+          timeLimits
         }
       };
     } catch (error) {

@@ -19,6 +19,18 @@ class AttemptModel {
     return rows[0] || null;
   }
 
+  // Find attempt with its game code
+  async findByIdWithCode(id) {
+    const [rows] = await pool.query(
+      `SELECT ga.*, gc.code as game_code
+       FROM game_attempts ga
+       JOIN game_codes gc ON gc.id = ga.game_code_id
+       WHERE ga.id = ?`,
+      [id]
+    );
+    return rows[0] || null;
+  }
+
   // Update score
   async updateScore(id, score) {
     const [result] = await pool.query(
@@ -59,10 +71,12 @@ class AttemptModel {
   // Get completed attempts for leaderboard
   async getCompletedAttempts(limit = 50, offset = 0) {
     const [rows] = await pool.query(
-      `SELECT id, player_name, score, total_time, finished_at, started_at 
-       FROM game_attempts 
-       WHERE status = ? AND player_name IS NOT NULL 
-       ORDER BY score DESC, total_time ASC, finished_at ASC 
+      `SELECT ga.id, ga.player_name, ga.score, ga.total_time, ga.finished_at, ga.started_at
+       FROM game_attempts ga
+       JOIN game_codes gc ON gc.id = ga.game_code_id
+       WHERE ga.status = ? AND ga.player_name IS NOT NULL
+       AND gc.code NOT LIKE 'ADM%'
+       ORDER BY ga.score DESC, ga.total_time ASC, ga.finished_at ASC
        LIMIT ? OFFSET ?`,
       ['completed', limit, offset]
     );
@@ -72,7 +86,11 @@ class AttemptModel {
   // Count completed attempts
   async countCompleted() {
     const [rows] = await pool.query(
-      'SELECT COUNT(*) as count FROM game_attempts WHERE status = ? AND player_name IS NOT NULL',
+      `SELECT COUNT(*) as count
+       FROM game_attempts ga
+       JOIN game_codes gc ON gc.id = ga.game_code_id
+       WHERE ga.status = ? AND ga.player_name IS NOT NULL
+       AND gc.code NOT LIKE 'ADM%'`,
       ['completed']
     );
     return rows[0].count;
@@ -81,18 +99,31 @@ class AttemptModel {
   // Get statistics
   async getStats() {
     const [totalPlayers] = await pool.query(
-      'SELECT COUNT(*) as count FROM game_attempts WHERE player_name IS NOT NULL'
+      `SELECT COUNT(*) as count
+       FROM game_attempts ga
+       JOIN game_codes gc ON gc.id = ga.game_code_id
+       WHERE ga.player_name IS NOT NULL
+       AND gc.code NOT LIKE 'ADM%'`
     );
     const [completedGames] = await pool.query(
-      'SELECT COUNT(*) as count FROM game_attempts WHERE status = ?',
+      `SELECT COUNT(*) as count
+       FROM game_attempts ga
+       JOIN game_codes gc ON gc.id = ga.game_code_id
+       WHERE ga.status = ? AND gc.code NOT LIKE 'ADM%'`,
       ['completed']
     );
     const [avgScore] = await pool.query(
-      'SELECT AVG(score) as avg FROM game_attempts WHERE status = ?',
+      `SELECT AVG(ga.score) as avg
+       FROM game_attempts ga
+       JOIN game_codes gc ON gc.id = ga.game_code_id
+       WHERE ga.status = ? AND gc.code NOT LIKE 'ADM%'`,
       ['completed']
     );
     const [avgTime] = await pool.query(
-      'SELECT AVG(total_time) as avg FROM game_attempts WHERE status = ?',
+      `SELECT AVG(ga.total_time) as avg
+       FROM game_attempts ga
+       JOIN game_codes gc ON gc.id = ga.game_code_id
+       WHERE ga.status = ? AND gc.code NOT LIKE 'ADM%'`,
       ['completed']
     );
 

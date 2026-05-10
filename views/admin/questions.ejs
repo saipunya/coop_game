@@ -422,7 +422,7 @@
     </header>
 
     <section class="panel fade-in">
-      <h3><i class="bi bi-sliders me-2" style="color:#43a047;"></i>ตั้งค่าจำนวนข้อสอบต่อเกม</h3>
+      <h3><i class="bi bi-sliders me-2" style="color:#43a047;"></i>ตั้งค่าเกมและเวลาในการตอบ</h3>
       <form id="gameSettingsForm">
         <div class="settings-grid">
           <div class="form-group">
@@ -432,6 +432,24 @@
           <div class="form-group">
             <label><i class="bi bi-diagram-3 me-1"></i>สัดส่วนการสุ่มคำถาม</label>
             <div id="distributionPreview" class="distribution-preview"></div>
+          </div>
+        </div>
+        <div class="settings-grid">
+          <div class="form-group">
+            <label for="easyTimeLimit"><i class="bi bi-emoji-smile me-1"></i>เวลาตอบคำถามง่าย (วินาที)</label>
+            <input type="number" id="easyTimeLimit" class="form-control difficulty-time-input" min="5" max="300" step="1" data-difficulty="easy" required>
+          </div>
+          <div class="form-group">
+            <label for="mediumTimeLimit"><i class="bi bi-emoji-neutral me-1"></i>เวลาตอบคำถามปานกลาง (วินาที)</label>
+            <input type="number" id="mediumTimeLimit" class="form-control difficulty-time-input" min="5" max="300" step="1" data-difficulty="medium" required>
+          </div>
+          <div class="form-group">
+            <label for="hardTimeLimit"><i class="bi bi-emoji-frown me-1"></i>เวลาตอบคำถามยาก (วินาที)</label>
+            <input type="number" id="hardTimeLimit" class="form-control difficulty-time-input" min="5" max="300" step="1" data-difficulty="hard" required>
+          </div>
+          <div class="form-group">
+            <label><i class="bi bi-stopwatch me-1"></i>เวลาที่จะใช้กับคำถามใหม่/เดิม</label>
+            <div id="timeSettingsPreview" class="distribution-preview"></div>
           </div>
         </div>
         <div class="btn-group">
@@ -553,9 +571,9 @@
             <label for="difficulty"><i class="bi bi-speedometer2 me-1"></i>ระดับความยาก</label>
             <select id="difficulty" name="difficulty" class="form-select" required>
               <option value="">-- เลือกระดับ --</option>
-              <option value="easy">ง่าย (15 วินาที)</option>
-              <option value="medium">ปานกลาง (20 วินาที)</option>
-              <option value="hard">ยาก (25 วินาที)</option>
+              <option value="easy">ง่าย</option>
+              <option value="medium">ปานกลาง</option>
+              <option value="hard">ยาก</option>
             </select>
           </div>
           <div class="form-group">
@@ -625,15 +643,24 @@
   <script>
     let questions = [];
     let editingId = null;
-    let gameSettings = { totalQuestions: 9 };
+    let gameSettings = {
+      totalQuestions: 9,
+      timeLimits: {
+        easy: 15,
+        medium: 20,
+        hard: 25
+      }
+    };
 
-    const DIFFICULTY_TIME_LIMITS = {
+    const DEFAULT_DIFFICULTY_TIME_LIMITS = {
       easy: 15,
       medium: 20,
       hard: 25
     };
 
     document.addEventListener('DOMContentLoaded', () => {
+      setTimeLimitInputs(gameSettings.timeLimits);
+      renderTimeSettingsPreview();
       loadQuestions();
       loadStats();
       loadGameSettings();
@@ -663,13 +690,20 @@
 
         if (result.success && result.data) {
           gameSettings.totalQuestions = parseInt(result.data.totalQuestions, 10) || 9;
+          gameSettings.timeLimits = normalizeTimeLimits(result.data.timeLimits);
           document.getElementById('gameTotalQuestions').value = gameSettings.totalQuestions;
+          setTimeLimitInputs(gameSettings.timeLimits);
           renderDistributionPreview(gameSettings.totalQuestions);
+          renderTimeSettingsPreview();
+          updateQuestionTimeLimit(document.getElementById('difficulty').value || 'easy');
+          renderQuestions();
         }
       } catch (error) {
         console.error('Error loading game settings:', error);
         document.getElementById('gameTotalQuestions').value = gameSettings.totalQuestions;
+        setTimeLimitInputs(gameSettings.timeLimits);
         renderDistributionPreview(gameSettings.totalQuestions);
+        renderTimeSettingsPreview();
       }
     }
 
@@ -741,7 +775,42 @@
     }
 
     function getTimeLimitByDifficulty(diff) {
-      return DIFFICULTY_TIME_LIMITS[diff] || DIFFICULTY_TIME_LIMITS.easy;
+      return gameSettings.timeLimits[diff] || DEFAULT_DIFFICULTY_TIME_LIMITS[diff] || DEFAULT_DIFFICULTY_TIME_LIMITS.easy;
+    }
+
+    function normalizeTimeLimits(timeLimits = {}) {
+      return ['easy', 'medium', 'hard'].reduce((normalized, difficulty) => {
+        const parsed = parseInt(timeLimits[difficulty], 10);
+        normalized[difficulty] = Number.isInteger(parsed) && parsed >= 5 && parsed <= 300
+          ? parsed
+          : DEFAULT_DIFFICULTY_TIME_LIMITS[difficulty];
+        return normalized;
+      }, {});
+    }
+
+    function setTimeLimitInputs(timeLimits) {
+      document.getElementById('easyTimeLimit').value = timeLimits.easy;
+      document.getElementById('mediumTimeLimit').value = timeLimits.medium;
+      document.getElementById('hardTimeLimit').value = timeLimits.hard;
+    }
+
+    function getTimeLimitsFromInputs() {
+      return {
+        easy: parseInt(document.getElementById('easyTimeLimit').value, 10),
+        medium: parseInt(document.getElementById('mediumTimeLimit').value, 10),
+        hard: parseInt(document.getElementById('hardTimeLimit').value, 10)
+      };
+    }
+
+    function renderTimeSettingsPreview() {
+      const preview = document.getElementById('timeSettingsPreview');
+      if (!preview) return;
+
+      preview.innerHTML = `
+        <div class="distribution-item"><span>ง่าย</span><span>${getTimeLimitByDifficulty('easy')} วินาที</span></div>
+        <div class="distribution-item"><span>ปานกลาง</span><span>${getTimeLimitByDifficulty('medium')} วินาที</span></div>
+        <div class="distribution-item"><span>ยาก</span><span>${getTimeLimitByDifficulty('hard')} วินาที</span></div>
+      `;
     }
 
     function updateQuestionTimeLimit(difficulty) {
@@ -819,8 +888,13 @@
       e.preventDefault();
 
       const totalQuestions = parseInt(document.getElementById('gameTotalQuestions').value, 10);
+      const timeLimits = getTimeLimitsFromInputs();
       if (!Number.isInteger(totalQuestions) || totalQuestions < 1 || totalQuestions > 100) {
         alert('กรุณากรอกจำนวนข้อสอบระหว่าง 1 ถึง 100');
+        return;
+      }
+      if (Object.values(timeLimits).some(value => !Number.isInteger(value) || value < 5 || value > 300)) {
+        alert('กรุณากรอกเวลาตอบระหว่าง 5 ถึง 300 วินาที');
         return;
       }
 
@@ -828,13 +902,18 @@
         const response = await fetch('/coopgame/admin/api/game-settings', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ totalQuestions })
+          body: JSON.stringify({ totalQuestions, timeLimits })
         });
         const result = await response.json();
 
         if (result.success) {
           gameSettings.totalQuestions = totalQuestions;
+          gameSettings.timeLimits = normalizeTimeLimits(result.data?.timeLimits || timeLimits);
+          setTimeLimitInputs(gameSettings.timeLimits);
           renderDistributionPreview(totalQuestions);
+          renderTimeSettingsPreview();
+          updateQuestionTimeLimit(document.getElementById('difficulty').value || 'easy');
+          loadQuestions();
           alert('บันทึกการตั้งค่าสำเร็จ');
         } else {
           alert('❌ ' + result.message);
@@ -957,6 +1036,17 @@
     document.getElementById('gameTotalQuestions').addEventListener('input', (e) => {
       const value = parseInt(e.target.value, 10);
       renderDistributionPreview(Number.isInteger(value) && value > 0 ? value : 0);
+    });
+    document.querySelectorAll('.difficulty-time-input').forEach(input => {
+      input.addEventListener('input', () => {
+        const draftTimeLimits = getTimeLimitsFromInputs();
+        if (Object.values(draftTimeLimits).every(value => Number.isInteger(value) && value >= 5 && value <= 300)) {
+          gameSettings.timeLimits = draftTimeLimits;
+          renderTimeSettingsPreview();
+          updateQuestionTimeLimit(document.getElementById('difficulty').value || 'easy');
+          renderQuestions();
+        }
+      });
     });
 
     function setImportStatus(message, isError = false) {

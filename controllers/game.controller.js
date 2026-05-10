@@ -50,24 +50,56 @@ class GameController {
     }
   }
 
+  // Start game directly for admin users
+  async startAdminGame(req, res) {
+    try {
+      const result = await gameService.startAdminGame();
+
+      if (!result.success) {
+        return error(res, result.message || 'ไม่สามารถเริ่มเกมได้', 400);
+      }
+
+      success(
+        res,
+        { attemptId: result.attemptId, totalQuestions: result.totalQuestions },
+        'เริ่มเกมสำหรับผู้ดูแลสำเร็จ'
+      );
+    } catch (err) {
+      logger.error('Error starting admin game:', err);
+      error(res, 'เกิดข้อผิดพลาด');
+    }
+  }
+
   // Render play page
   async renderPlay(req, res) {
-    const { attemptId } = req.query;
+    try {
+      const { attemptId } = req.query;
 
-    if (!attemptId || isNaN(attemptId)) {
+      if (!attemptId || isNaN(attemptId)) {
+        return res.redirect('/coopgame/game/start');
+      }
+
+      const attempt = await gameService.getAttemptWithCode(parseInt(attemptId));
+
+      if (!attempt || attempt.status !== 'in_progress') {
+        return res.redirect('/coopgame/game/start');
+      }
+
+      const isAdminPlay = Boolean(
+        typeof attempt.game_code === 'string' && attempt.game_code.startsWith('ADM')
+      );
+
+      res.render('game/play', {
+        title: 'เล่นเกม',
+        attemptId: attemptId,
+        playerName: attempt.player_name || '',
+        phoneNumber: attempt.phone_number || '',
+        isAdminPlay
+      });
+    } catch (err) {
+      logger.error('Error rendering play:', err);
       return res.redirect('/coopgame/game/start');
     }
-
-    const attempt = await gameService.getAttempt(parseInt(attemptId));
-
-    if (!attempt || attempt.status !== 'in_progress') {
-      return res.redirect('/coopgame/game/start');
-    }
-
-    res.render('game/play', { 
-      title: 'เล่นเกม',
-      attemptId: attemptId
-    });
   }
 
   // Get current question (API)
@@ -85,9 +117,38 @@ class GameController {
         return error(res, 'No question available', 400);
       }
 
+      if (question.playerInfoRequired) {
+        return error(res, 'กรุณากรอกชื่อและเบอร์โทรศัพท์ก่อนเริ่มเกม', 400, 'PLAYER_INFO_REQUIRED');
+      }
+
       success(res, { question }, 'Question retrieved');
     } catch (error) {
       logger.error('Error getting question:', error);
+      error(res, 'เกิดข้อผิดพลาด');
+    }
+  }
+
+  async savePlayerInfo(req, res) {
+    try {
+      const { attemptId, playerName, phoneNumber } = req.body;
+
+      if (!attemptId) {
+        return validationError(res, [{ msg: 'Missing attemptId' }]);
+      }
+
+      const result = await gameService.savePlayerInfo(
+        parseInt(attemptId, 10),
+        playerName,
+        phoneNumber
+      );
+
+      if (!result.success) {
+        return validationError(res, [{ msg: result.message }]);
+      }
+
+      success(res, result.player, 'Player info saved');
+    } catch (error) {
+      logger.error('Error saving player info:', error);
       error(res, 'เกิดข้อผิดพลาด');
     }
   }
@@ -134,12 +195,23 @@ class GameController {
       const attemptQuestionModel = require('../models/attemptQuestion.model');
       const totalQuestions = await attemptQuestionModel.countByAttemptId(parseInt(attemptId));
 
+      const attemptWithCode = await gameService.getAttemptWithCode(parseInt(attemptId));
+      const isAdminPlay = Boolean(
+        attemptWithCode && typeof attemptWithCode.game_code === 'string' && attemptWithCode.game_code.startsWith('ADM')
+      );
+
       res.render('game/finish', { 
         title: 'สรุปผล',
         attemptId: attemptId,
         score: attempt.score,
         totalQuestions: totalQuestions,
-        totalTime: attempt.total_time
+        totalTime: attempt.total_time,
+        playerName: attempt.player_name || '',
+        phoneNumber: attempt.phone_number || '',
+        isAdminPlay,
+        rank: !isAdminPlay && attempt.player_name && attempt.finished_at
+          ? await gameService.calculateRank(attempt.score, attempt.total_time, attempt.finished_at)
+          : null
       });
     } catch (error) {
       console.error('[ERROR] Error rendering finish:', error);
@@ -197,4 +269,3 @@ class GameController {
 }
 
 module.exports = new GameController();
-

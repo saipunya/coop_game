@@ -5,173 +5,179 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><%= title %> - เกมตอบคำถามสหกรณ์</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
   <link rel="stylesheet" href="/coopgame/css/styles.css">
   <link rel="stylesheet" href="/coopgame/css/start.css">
 </head>
 <body>
-  <div class="start-page">
-    <div class="start-orb start-orb-1"></div>
-    <div class="start-orb start-orb-2"></div>
+  <div class="start-shell">
+    <a href="/coopgame/admin/login" class="admin-float-link" aria-label="เข้าสู่ระบบผู้ดูแล">
+      <i data-lucide="shield-check"></i>
+      <span>Admin</span>
+    </a>
 
-    <main class="start-main container-fluid px-3 px-lg-4 py-4 py-lg-5">
-      <div class="start-layout">
-        <section class="hero-panel">
+    <main class="game-lobby">
+      <section class="hero-card">
+        <div class="hero-copy">
           <div class="hero-badge">
-            <i class="bi bi-stars"></i>
-            <span>เกมตอบคำถามสหกรณ์</span>
+            <i data-lucide="sparkles"></i>
+            <span>Coop Quiz Challenge</span>
           </div>
+          <h2 class="my-2 fw-bold">ตอบไว ไต่แรง ขึ้นอันดับสหกรณ์</h2>
+          <p>กรอกรหัสเกมแล้วเข้าสู่สนามตอบคำถาม แข่งกับเวลา เก็บคะแนน และดูอันดับของคุณแบบเรียลไทม์</p>
 
-          <h1 class="hero-title">
-            <span class="hero-title-line">พร้อมเริ่มแล้ว</span>
-          </h1>
+          <div class="hero-actions">
+            <a href="#startCard" class="hero-link primary">
+              <i data-lucide="play"></i>
+              <span>เริ่มเลย</span>
+            </a>
+            <a href="/coopgame/game/leaderboard" class="hero-link">
+              <i data-lucide="trophy"></i>
+              <span>ดูอันดับ</span>
+            </a>
+          </div>
+        </div>
 
-          <p class="hero-description">
-            ใส่รหัสเกมเพื่อเข้าร่วมการแข่งขัน ตอบให้ไว เก็บคะแนนให้สูง และพาอันดับของคุณพุ่งขึ้นไปบนกระดานผู้นำ
-          </p>
+        <div class="hero-visual" aria-hidden="true">
+          <img src="/coopgame/assets/illustrations/business-analytics-cuate.svg" alt="">
+          <div class="score-chip chip-one"><i data-lucide="zap"></i> Bonus</div>
+          <div class="score-chip chip-two"><i data-lucide="badge-check"></i> Rank up</div>
+        </div>
+      </section>
 
-          <div class="hero-stats">
-            <div class="hero-stat">
-              <i class="bi bi-trophy-fill"></i>
+      <section class="lobby-grid">
+        <div class="main-stack">
+          <article id="startCard" class="game-card start-card" aria-labelledby="startTitle">
+            <div class="card-heading">
+              <span class="card-icon"><i data-lucide="key-round"></i></span>
               <div>
-                <strong>แข่งขันจริง</strong>
-                <span>ลุ้นคะแนนสูงสุด</span>
+                <h2 id="startTitle">ใส่รหัสเพื่อเข้าเกม</h2>
+                <p>รหัส 6 ตัวอักษร/ตัวเลขจากผู้ดูแลระบบ</p>
               </div>
             </div>
-            <div class="hero-stat">
-              <i class="bi bi-stopwatch-fill"></i>
-              <div>
-                <strong>จับเวลา</strong>
-                <span>ทุกข้อมีเวลาจำกัด</span>
-              </div>
-            </div>
-            <div class="hero-stat">
-              <i class="bi bi-collection-play-fill"></i>
-              <div>
-                <strong>4 ตัวเลือก</strong>
-                <span>ก ข ค ง ให้เลือกตอบ</span>
-              </div>
-            </div>
-          </div>
 
-          <div class="hero-features">
-            <div class="feature-chip"><i class="bi bi-lightning-charge-fill"></i> เล่นไว</div>
-            <div class="feature-chip"><i class="bi bi-award-fill"></i> ได้คะแนน</div>
-            <div class="feature-chip"><i class="bi bi-people-fill"></i> แข่งกับเพื่อน</div>
-            <div class="feature-chip"><i class="bi bi-graph-up-arrow"></i> ดูอันดับได้</div>
-          </div>
+            <% if (typeof query !== 'undefined' && query.system) { %>
+              <div class="system-banner">
+                <i data-lucide="message-circle"></i>
+                <span>เริ่มจากระบบ: <strong><%= query.system %></strong></span>
+              </div>
+            <% } %>
 
-          <div class="rules-grid">
-            <article class="rule-card">
-              <div class="rule-icon"><i class="bi bi-key-fill"></i></div>
-              <h3>กรอกรหัสเกม</h3>
-              <p>ใช้รหัส 6 ตัวอักษรที่ได้รับจากผู้ดูแลระบบ</p>
+            <form id="codeForm" class="code-form" aria-describedby="codeHelp">
+              <label for="code" class="field-label">รหัสเกม</label>
+              <div class="code-field">
+                <span class="code-prefix"><i data-lucide="shield-check"></i></span>
+                <input
+                  type="text"
+                  id="code"
+                  name="code"
+                  class="form-control code-input"
+                  maxlength="6"
+                  placeholder="ABC123"
+                  inputmode="search"
+                  autocomplete="off"
+                  aria-labelledby="codeHelp"
+                  required
+                />
+              </div>
+              <div id="codeHelp" class="field-help">
+                พิมพ์เล็กหรือใหญ่ได้ ระบบจะปรับให้อัตโนมัติ
+              </div>
+
+              <button type="submit" class="start-btn">
+                <i data-lucide="play"></i>
+                <span>เริ่มเล่นเกม</span>
+              </button>
+            </form>
+
+            <div id="message" class="message-slot" aria-live="polite"></div>
+          </article>
+
+          <section class="mission-grid" aria-label="ภาพรวมเกม">
+            <article class="mission-card">
+              <i data-lucide="users"></i>
+              <span>ผู้เล่นล่าสุด</span>
+              <strong id="statPlayers">-</strong>
             </article>
-            <article class="rule-card">
-              <div class="rule-icon"><i class="bi bi-brightness-high-fill"></i></div>
-              <h3>ตอบให้ทันเวลา</h3>
-              <p>แต่ละระดับมีเวลาต่างกัน ตอบเร็วช่วยรักษาคะแนน</p>
+            <article class="mission-card">
+              <i data-lucide="clipboard-list"></i>
+              <span>สถานะคำถาม</span>
+              <strong id="statQuestions">-</strong>
             </article>
-            <article class="rule-card">
-              <div class="rule-icon"><i class="bi bi-emoji-sunglasses-fill"></i></div>
-              <h3>สนุกและท้าทาย</h3>
-              <p>คำถามเรียงจากง่ายไปยาก ให้เล่นลื่นและค่อย ๆ ไต่ระดับ</p>
+            <article class="mission-card">
+              <i data-lucide="badge-check"></i>
+              <span>รอบสำเร็จ</span>
+              <strong id="statCompleted">-</strong>
             </article>
-          </div>
+          </section>
+        </div>
 
-          <div class="leader-preview">
-            <div class="leader-preview-head">
+        <aside class="side-stack">
+          <article class="game-card rules-card">
+            <div class="card-heading compact">
+              <span class="card-icon soft"><i data-lucide="gamepad-2"></i></span>
               <div>
-                <h3><i class="bi bi-trophy-fill"></i> กระดานผู้นำล่าสุด</h3>
-                <p>ดู 3 อันดับแรกก่อนเริ่มเล่น</p>
-              </div>
-              <a href="/coopgame/game/leaderboard" class="leader-preview-link">
-                ดูทั้งหมด <i class="bi bi-arrow-right"></i>
-              </a>
-            </div>
-            <div id="leaderboardPreview" class="leader-preview-list">
-              <div class="leader-preview-loading">
-                <i class="bi bi-arrow-repeat spin-icon"></i>
-                <span>กำลังโหลดข้อมูลอันดับ...</span>
+                <h2>กติกาเร็ว ๆ</h2>
+                <p>เตรียมตัวก่อนเริ่มรอบ</p>
               </div>
             </div>
-          </div>
-
-          <footer class="start-footer">
-            <span><i class="bi bi-c-circle"></i> 2026 naimet</span>
-          </footer>
-        </section>
-
-        <section class="start-card" aria-labelledby="startTitle">
-          <div class="start-card-header">
-            <div class="start-card-icon">
-              <i class="bi bi-controller"></i>
+            <div class="rules-list">
+              <div><i data-lucide="shield-check"></i><span>ใช้รหัสที่ยังไม่ถูกใช้งาน</span></div>
+              <div><i data-lucide="timer"></i><span>แต่ละข้อมีเวลาจำกัด</span></div>
+              <div><i data-lucide="message-circle"></i><span>กรอกชื่อและเบอร์ก่อนตอบ</span></div>
             </div>
-            <div>
-              <h2 id="startTitle">เริ่มเกม</h2>
-              <p>กรอกรหัสเพื่อเข้าสู่รอบแข่งขัน</p>
+          </article>
+
+          <article class="game-card scoreboard-card">
+            <div class="recent-head">
+              <div>
+                <h2>Scoreboard ล่าสุด</h2>
+                <p>อันดับผู้เล่นที่บันทึกผลแล้ว</p>
+              </div>
+              <a href="/coopgame/game/leaderboard">ทั้งหมด</a>
             </div>
-          </div>
-
-          <% if (typeof query !== 'undefined' && query.system) { %>
-            <div class="system-banner">
-              <i class="bi bi-broadcast-pin"></i>
-              <span>คุณมาเริ่มจากระบบ: <strong><%= query.system %></strong></span>
+            <div id="leaderboardPreview" class="activity-list">
+              <div class="activity-loading">
+                <i data-lucide="loader-circle"></i>
+                <span>กำลังโหลดอันดับ...</span>
+              </div>
             </div>
-          <% } %>
+          </article>
+        </aside>
+      </section>
 
-          <form id="codeForm" class="code-form" aria-describedby="codeHelp">
-            <label for="code" class="form-label">
-              <i class="bi bi-key-fill"></i> รหัสเกม
-            </label>
-            <div class="code-field">
-              <span class="code-prefix"><i class="bi bi-shield-lock-fill"></i></span>
-              <input
-                type="text"
-                id="code"
-                name="code"
-                class="form-control code-input"
-                maxlength="6"
-                placeholder="ABC123"
-                inputmode="search"
-                autocomplete="off"
-                aria-labelledby="codeHelp"
-                required
-              />
-            </div>
-            <div id="codeHelp" class="form-text">
-              รหัสเป็นตัวอักษร/ตัวเลข 6 ตัว พิมพ์เล็กหรือใหญ่ได้ ระบบจะปรับให้อัตโนมัติ
-            </div>
-
-            <button type="submit" class="btn start-btn w-100">
-              <i class="bi bi-play-fill"></i> เริ่มเล่นเกม
-            </button>
-          </form>
-
-          <div id="message" class="message-slot" aria-live="polite"></div>
-
-          <div class="start-note">
-            <i class="bi bi-info-circle-fill"></i>
-            <span>ถ้ายังไม่มีรหัส กรุณาติดต่อผู้ดูแลระบบก่อนเริ่มเล่น</span>
-          </div>
-        </section>
-      </div>
+      <footer class="start-footer">
+        <span>Illustrations by Storyset by Freepik</span>
+        <span>© 2026 naimet</span>
+      </footer>
     </main>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
   <script>
     const codeForm = document.getElementById('codeForm');
     const codeInput = document.getElementById('code');
     const messageDiv = document.getElementById('message');
 
+    function renderIcons() {
+      if (window.lucide) {
+        window.lucide.createIcons({
+          attrs: {
+            'stroke-width': 2,
+            'aria-hidden': 'true'
+          }
+        });
+      }
+    }
+
     function showMessage(type, icon, text) {
       messageDiv.innerHTML = `
-        <div class="alert alert-${type} d-flex align-items-center start-alert" role="alert">
-          <i class="bi ${icon} me-2"></i>
-          <div>${text}</div>
+        <div class="start-alert ${type}" role="alert">
+          <i data-lucide="${icon}"></i>
+          <span>${text}</span>
         </div>
       `;
+      renderIcons();
     }
 
     codeForm.addEventListener('submit', async (e) => {
@@ -179,13 +185,13 @@
 
       const code = codeInput.value.trim().toUpperCase();
       if (!code) {
-        showMessage('danger', 'bi-exclamation-triangle-fill', 'กรุณากรอกรหัสเกม');
+        showMessage('error', 'circle-alert', 'กรุณากรอกรหัสเกม');
         return;
       }
 
       codeInput.value = code;
       codeForm.querySelector('button[type="submit"]').disabled = true;
-      showMessage('info', 'bi-arrow-repeat spin-icon', 'กำลังตรวจสอบรหัส...');
+      showMessage('info', 'loader-circle', 'กำลังตรวจสอบรหัส...');
 
       try {
         const response = await fetch('/coopgame/game/verify-code', {
@@ -197,16 +203,16 @@
         const result = await response.json();
 
         if (result.success) {
-          showMessage('success', 'bi-check-circle-fill', 'ตรวจสอบรหัสสำเร็จ กำลังพาเข้าสู่เกม...');
+          showMessage('success', 'circle-check', 'ตรวจสอบรหัสสำเร็จ กำลังพาเข้าสู่เกม...');
           setTimeout(() => {
             window.location.href = `/coopgame/game/play?attemptId=${result.data.attemptId}`;
           }, 650);
         } else {
-          showMessage('danger', 'bi-x-circle-fill', result.message || 'รหัสไม่ถูกต้อง');
+          showMessage('error', 'circle-x', result.message || 'รหัสไม่ถูกต้อง');
         }
       } catch (error) {
         console.error('Error verifying code:', error);
-        showMessage('danger', 'bi-exclamation-octagon-fill', 'เกิดข้อผิดพลาด กรุณาลองใหม่');
+        showMessage('error', 'triangle-alert', 'เกิดข้อผิดพลาด กรุณาลองใหม่');
       } finally {
         codeForm.querySelector('button[type="submit"]').disabled = false;
       }
@@ -216,43 +222,52 @@
       this.value = this.value.toUpperCase();
     });
 
-    codeInput.focus();
+    function updateStatsFromLeaderboard(entries) {
+      const visibleEntries = Array.isArray(entries) ? entries.length : 0;
+      document.getElementById('statPlayers').textContent = visibleEntries;
+      document.getElementById('statCompleted').textContent = visibleEntries;
+      document.getElementById('statQuestions').textContent = 'พร้อม';
+    }
 
     async function loadLeaderboardPreview() {
       const preview = document.getElementById('leaderboardPreview');
 
       try {
-        const response = await fetch('/coopgame/game/api/leaderboard?limit=3');
+        const response = await fetch('/coopgame/game/api/leaderboard?limit=4');
         const result = await response.json();
+        const entries = Array.isArray(result.data) ? result.data : [];
+        updateStatsFromLeaderboard(entries);
 
-        if (!result.success || !Array.isArray(result.data) || result.data.length === 0) {
+        if (!result.success || entries.length === 0) {
           preview.innerHTML = `
-            <div class="leader-preview-empty">
-              <i class="bi bi-emoji-smile"></i>
-              <span>ยังไม่มีข้อมูลอันดับ</span>
+            <div class="empty-state">
+              <img src="/coopgame/assets/illustrations/team-work-amico.svg" alt="">
+              <strong>ยังไม่มีอันดับ</strong>
+              <span>เริ่มรอบแรกเพื่อขึ้น Scoreboard</span>
             </div>
           `;
+          renderIcons();
           return;
         }
 
-        preview.innerHTML = result.data.map((entry) => `
-          <div class="leader-preview-item ${entry.rank <= 3 ? 'top-' + entry.rank : ''}">
-            <div class="leader-rank">${entry.rank}</div>
-            <div class="leader-meta">
-              <div class="leader-name">${escapeHtml(entry.playerName || 'ไม่ระบุชื่อ')}</div>
-              <div class="leader-sub">
-                <span><i class="bi bi-star-fill"></i> ${entry.score || 0} ข้อ</span>
-                <span><i class="bi bi-stopwatch"></i> ${entry.totalTime || 0} วินาที</span>
-              </div>
+        preview.innerHTML = entries.map((entry) => `
+          <div class="activity-item">
+            <div class="activity-rank">${entry.rank}</div>
+            <div class="activity-meta">
+              <strong>${escapeHtml(entry.playerName || 'ไม่ระบุชื่อ')}</strong>
+              <span>${entry.score || 0} ข้อ · ${entry.totalTime || 0} วินาที</span>
             </div>
+            <i data-lucide="trophy"></i>
           </div>
         `).join('');
+        renderIcons();
       } catch (error) {
         console.error('Error loading leaderboard preview:', error);
         preview.innerHTML = `
-          <div class="leader-preview-empty">
-            <i class="bi bi-exclamation-triangle-fill"></i>
-            <span>ไม่สามารถโหลดกระดานผู้นำได้</span>
+          <div class="empty-state">
+            <img src="/coopgame/assets/illustrations/team-work-amico.svg" alt="">
+            <strong>โหลดอันดับไม่ได้</strong>
+            <span>ลองรีเฟรชหน้าอีกครั้ง</span>
           </div>
         `;
       }
@@ -267,6 +282,9 @@
         .replace(/'/g, '&#39;');
     }
 
+    renderIcons();
+    codeInput.focus();
+    updateStatsFromLeaderboard([]);
     loadLeaderboardPreview();
   </script>
 </body>

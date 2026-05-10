@@ -212,6 +212,83 @@
       line-height: 1.7;
     }
 
+    .player-intro {
+      min-height: 500px;
+      display: grid;
+      place-items: center;
+    }
+
+    .player-card {
+      width: min(520px, 100%);
+      padding: 28px;
+      border-radius: 28px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(249, 252, 249, 0.98));
+      border: 1px solid rgba(95, 196, 118, 0.18);
+      box-shadow: 0 20px 44px rgba(8, 24, 14, 0.08);
+    }
+
+    .player-icon {
+      width: 76px;
+      height: 76px;
+      display: grid;
+      place-items: center;
+      margin: 0 0 18px;
+      border-radius: 24px;
+      background: linear-gradient(135deg, rgba(53, 181, 89, 0.16), rgba(127, 208, 141, 0.24));
+      color: var(--green-700);
+      font-size: 2rem;
+    }
+
+    .player-title {
+      margin: 0 0 8px;
+      color: var(--green-900);
+      font-size: 1.55rem;
+      font-weight: 800;
+    }
+
+    .player-text {
+      margin: 0 0 18px;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+
+    .player-form {
+      display: grid;
+      gap: 14px;
+    }
+
+    .player-field label {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--green-900);
+      font-weight: 800;
+    }
+
+    .player-field input {
+      width: 100%;
+      min-height: 52px;
+      border-radius: 16px;
+      border: 1px solid rgba(95, 196, 118, 0.22);
+      background: #fff;
+      padding: 12px 14px;
+      font-size: 1rem;
+      font-family: inherit;
+      transition: border-color 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .player-field input:focus {
+      outline: none;
+      border-color: rgba(53, 181, 89, 0.6);
+      box-shadow: 0 0 0 4px rgba(53, 181, 89, 0.1);
+    }
+
+    .player-message {
+      min-height: 24px;
+      color: #a41f2c;
+      font-weight: 700;
+      line-height: 1.5;
+    }
+
     .question-banner {
       display: flex;
       justify-content: space-between;
@@ -250,54 +327,160 @@
 
     .timer-wrap {
       margin-bottom: 18px;
-      padding: 16px 18px 18px;
-      border-radius: 22px;
-      background: linear-gradient(135deg, rgba(15, 78, 31, 0.98), rgba(29, 121, 50, 0.96));
+      padding: 18px;
+      border-radius: 26px;
+      background:
+        radial-gradient(circle at 12% 0%, rgba(255,255,255,0.24), transparent 30%),
+        linear-gradient(135deg, rgba(11, 64, 29, 0.98), rgba(22, 128, 54, 0.96) 62%, rgba(41, 164, 76, 0.96));
+      border: 1px solid rgba(255, 255, 255, 0.22);
       color: #fff;
-      box-shadow: 0 18px 40px rgba(8, 24, 14, 0.16);
+      box-shadow: 0 20px 44px rgba(8, 24, 14, 0.2);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .timer-wrap::before {
+      content: '';
+      position: absolute;
+      width: 140px;
+      height: 140px;
+      right: -44px;
+      top: -58px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.12);
+      pointer-events: none;
+    }
+
+    .timer-wrap::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(110deg, transparent 0%, rgba(255,255,255,0.1) 46%, transparent 72%);
+      opacity: 0.46;
+      pointer-events: none;
     }
 
     .timer-top {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap: 10px;
-      margin-bottom: 10px;
-      font-weight: 700;
+      gap: 12px;
+      margin-bottom: 14px;
+      font-weight: 800;
+      position: relative;
+      z-index: 1;
     }
 
     .timer-text {
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      font-size: 1.2rem;
+      color: #fff;
+      font-size: 1rem;
+      text-shadow: 0 1px 12px rgba(0, 0, 0, 0.18);
     }
 
     .timer-text i {
-      color: #d4ffd8;
+      color: #fff;
+    }
+
+    .timer-title {
+      padding: 9px 12px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.16);
+      border: 1px solid rgba(255,255,255,0.2);
+      backdrop-filter: blur(10px);
+    }
+
+    .timer-count {
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.22);
+      border: 1px solid rgba(255,255,255,0.26);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.22);
+      white-space: nowrap;
+    }
+
+    #timerText {
+      display: inline-grid;
+      place-items: center;
+      min-width: 34px;
+      color: #fff;
+      font-size: 1.35rem;
+      font-weight: 800;
+      line-height: 1;
     }
 
     .timer-bar-shell {
-      height: 14px;
+      height: 24px;
       border-radius: 999px;
+      padding: 4px;
       background: rgba(255,255,255,0.18);
+      border: 1px solid rgba(255,255,255,0.24);
+      box-shadow:
+        inset 0 2px 5px rgba(0, 0, 0, 0.18),
+        0 12px 26px rgba(5, 32, 13, 0.14);
       overflow: hidden;
+      position: relative;
+      z-index: 1;
     }
 
     .timer-bar {
       height: 100%;
       width: 100%;
       border-radius: inherit;
-      background: linear-gradient(90deg, #d4ffd8, #78e78a, #36c05b);
-      transition: width 1s linear;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.58), rgba(255,255,255,0) 46%),
+        repeating-linear-gradient(135deg, rgba(255,255,255,0.18) 0 8px, transparent 8px 16px),
+        linear-gradient(90deg, #d4ffd8 0%, #86ee95 45%, #43c45d 100%);
+      background-size: 200% 100%, 22px 22px, 100% 100%;
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.5),
+        0 0 20px rgba(102, 255, 137, 0.32);
+      transition: width 0.85s linear, background-color 0.25s ease, box-shadow 0.25s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .timer-bar::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(110deg, transparent 18%, rgba(255,255,255,0.55) 50%, transparent 82%);
+      transform: translateX(-55%);
+      animation: timerShine 2.8s linear infinite;
+      opacity: 0.45;
     }
 
     .timer-bar.timer-warning {
-      background: linear-gradient(90deg, #fff3b0, #ffd166);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.5), rgba(255,255,255,0) 46%),
+        repeating-linear-gradient(135deg, rgba(255,255,255,0.16) 0 8px, transparent 8px 16px),
+        linear-gradient(90deg, #fff4bc 0%, #ffd86b 50%, #ffbf3f 100%);
+      box-shadow: 0 0 18px rgba(255, 211, 84, 0.28);
     }
 
     .timer-bar.timer-critical {
-      background: linear-gradient(90deg, #ffb4b4, #ff4d6d);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.46), rgba(255,255,255,0) 46%),
+        repeating-linear-gradient(135deg, rgba(255,255,255,0.14) 0 8px, transparent 8px 16px),
+        linear-gradient(90deg, #ffc0c7 0%, #ff748e 48%, #ff4d6d 100%);
+      box-shadow: 0 0 18px rgba(255, 91, 118, 0.34);
+    }
+
+    .timer-wrap.timer-warning {
+      background:
+        radial-gradient(circle at 12% 0%, rgba(255,255,255,0.22), transparent 30%),
+        linear-gradient(135deg, rgba(99, 67, 7, 0.98), rgba(209, 141, 24, 0.96));
+      box-shadow: 0 20px 44px rgba(223, 150, 0, 0.18);
+    }
+
+    .timer-wrap.timer-critical {
+      background:
+        radial-gradient(circle at 12% 0%, rgba(255,255,255,0.2), transparent 30%),
+        linear-gradient(135deg, rgba(98, 21, 38, 0.98), rgba(214, 54, 84, 0.96));
+      box-shadow: 0 20px 44px rgba(224, 54, 83, 0.2);
     }
 
     .question-card {
@@ -554,6 +737,11 @@
       to { transform: rotate(360deg); }
     }
 
+    @keyframes timerShine {
+      from { transform: translateX(-60%); }
+      to { transform: translateX(160%); }
+    }
+
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(12px); }
       to { opacity: 1; transform: translateY(0); }
@@ -598,6 +786,11 @@
         align-items: flex-start;
       }
 
+      .timer-top {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
       .result-title {
         font-size: 1.6rem;
       }
@@ -630,7 +823,51 @@
 
       <div class="content-grid">
         <section class="panel fade-in">
-          <div id="loading" class="loading-panel panel-inner">
+          <div id="playerIntro" class="player-intro panel-inner hidden">
+            <div class="player-card">
+              <div class="player-icon">
+                <i class="bi bi-person-vcard-fill"></i>
+              </div>
+              <h2 class="player-title">ข้อมูลผู้เล่น</h2>
+              <p class="player-text">กรอกชื่อและเบอร์โทรศัพท์ก่อนเริ่มเกม ระบบจะใช้ข้อมูลนี้สำหรับบันทึกคะแนนและติดต่อผู้ชนะ</p>
+
+              <form id="playerInfoForm" class="player-form">
+                <div class="player-field">
+                  <label for="playerName">ชื่อผู้เล่น</label>
+                  <input
+                    type="text"
+                    id="playerName"
+                    name="playerName"
+                    placeholder="ใส่ชื่อของคุณ"
+                    autocomplete="name"
+                    required
+                  >
+                </div>
+
+                <div class="player-field">
+                  <label for="phoneNumber">เบอร์โทรศัพท์</label>
+                  <input
+                    type="tel"
+                    id="phoneNumber"
+                    name="phoneNumber"
+                    placeholder="08xxxxxxxx"
+                    inputmode="tel"
+                    autocomplete="tel"
+                    pattern="[0-9]{9,10}"
+                    required
+                  >
+                </div>
+
+                <button type="submit" class="btn btn-emerald">
+                  <i class="bi bi-play-fill"></i> บันทึกและเริ่มตอบคำถาม
+                </button>
+              </form>
+
+              <div id="playerInfoMessage" class="player-message" aria-live="polite"></div>
+            </div>
+          </div>
+
+          <div id="loading" class="loading-panel panel-inner hidden">
             <div>
               <div class="loading-visual">
                 <i class="bi bi-hourglass-split"></i>
@@ -654,8 +891,8 @@
 
             <div class="timer-wrap">
               <div class="timer-top">
-                <div class="timer-text"><i class="bi bi-stopwatch-fill"></i> เวลาที่เหลือ</div>
-                <div class="timer-text"><span id="timerText">10</span> วินาที</div>
+                <div class="timer-text timer-title"><i class="bi bi-stopwatch-fill"></i> เวลาที่เหลือ</div>
+                <div class="timer-text timer-count"><i class="bi bi-hourglass-split"></i><span id="timerText">10</span> วินาที</div>
               </div>
               <div class="timer-bar-shell">
                 <div id="timerBar" class="timer-bar"></div>
@@ -734,6 +971,10 @@
 
   <script>
     const attemptId = <%= attemptId %>;
+    const isAdminPlay = <%= isAdminPlay ? 'true' : 'false' %>;
+    const initialPlayerName = <%- JSON.stringify(playerName || '') %>;
+    const initialPhoneNumber = <%- JSON.stringify(phoneNumber || '') %>;
+    let hasPlayerInfo = isAdminPlay || Boolean(initialPlayerName && initialPhoneNumber);
     let currentQuestion = null;
     let score = 0;
     let questionStartTime = 0;
@@ -741,7 +982,94 @@
     let timeLeft = 0;
     let isAnswering = false;
 
-    loadQuestion();
+    const playerIntro = document.getElementById('playerIntro');
+    const loadingPanel = document.getElementById('loading');
+    const playerInfoForm = document.getElementById('playerInfoForm');
+    const playerInfoMessage = document.getElementById('playerInfoMessage');
+    const playerNameInput = document.getElementById('playerName');
+    const phoneNumberInput = document.getElementById('phoneNumber');
+
+    playerNameInput.value = initialPlayerName;
+    phoneNumberInput.value = initialPhoneNumber;
+
+    if (hasPlayerInfo) {
+      if (isAdminPlay) {
+        document.getElementById('gameArea').insertAdjacentHTML(
+          'beforebegin',
+          '<div class="panel-inner" style="padding-top:0"><div class="question-tag" style="margin-bottom:14px"><i class="bi bi-shield-check"></i> โหมดทดสอบผู้ดูแล: ไม่ต้องกรอกชื่อหรือเบอร์ และไม่ถูกนำไปจัดอันดับ</div></div>'
+        );
+      }
+      showLoadingPanel();
+      loadQuestion();
+    } else {
+      showPlayerIntro();
+    }
+
+    function showPlayerIntro(message = '') {
+      if (isAdminPlay) {
+        showLoadingPanel();
+        loadQuestion();
+        return;
+      }
+      playerIntro.classList.remove('hidden');
+      loadingPanel.classList.add('hidden');
+      document.getElementById('gameArea').classList.add('hidden');
+      playerInfoMessage.textContent = message;
+      setTimeout(() => playerNameInput.focus(), 50);
+    }
+
+    function showLoadingPanel() {
+      playerIntro.classList.add('hidden');
+      loadingPanel.classList.remove('hidden');
+    }
+
+    playerInfoForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const playerName = playerNameInput.value.trim();
+      const phoneNumber = phoneNumberInput.value.replace(/[^\d]/g, '');
+      const submitBtn = playerInfoForm.querySelector('button[type="submit"]');
+
+      if (!playerName) {
+        playerInfoMessage.textContent = 'กรุณากรอกชื่อผู้เล่น';
+        return;
+      }
+
+      if (!/^\d{9,10}$/.test(phoneNumber)) {
+        playerInfoMessage.textContent = 'กรุณากรอกเบอร์โทรศัพท์ 9-10 หลัก';
+        return;
+      }
+
+      phoneNumberInput.value = phoneNumber;
+      submitBtn.disabled = true;
+      playerInfoMessage.textContent = 'กำลังบันทึกข้อมูลผู้เล่น...';
+
+      try {
+        const response = await fetch('/coopgame/game/api/player-info', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ attemptId, playerName, phoneNumber })
+        });
+        const result = await response.json();
+
+        if (result.success) {
+          hasPlayerInfo = true;
+          playerInfoMessage.textContent = '';
+          showLoadingPanel();
+          loadQuestion();
+        } else {
+          const errorText = (result.errors && result.errors[0] && result.errors[0].msg)
+            || result.message
+            || 'ไม่สามารถบันทึกข้อมูลผู้เล่นได้';
+          playerInfoMessage.textContent = errorText;
+        }
+      } catch (error) {
+        console.error('Error saving player info:', error);
+        playerInfoMessage.textContent = 'เกิดข้อผิดพลาด กรุณาลองใหม่';
+      } finally {
+        submitBtn.disabled = false;
+      }
+    });
 
     async function loadQuestion() {
       try {
@@ -751,6 +1079,11 @@
         if (result.success && result.data && result.data.question) {
           displayQuestion(result.data.question);
         } else {
+          if (result.errorCode === 'PLAYER_INFO_REQUIRED') {
+            hasPlayerInfo = false;
+            showPlayerIntro(result.message || 'กรุณากรอกชื่อและเบอร์โทรศัพท์ก่อนเริ่มเกม');
+            return;
+          }
           window.location.href = `/coopgame/game/finish?attemptId=${attemptId}`;
         }
       } catch (error) {
@@ -760,11 +1093,9 @@
       }
     }
 
-    function getDifficultyFromTimeLimit(timeLimit) {
-      if (timeLimit === 15) return 'ง่าย';
-      if (timeLimit === 20) return 'ปานกลาง';
-      if (timeLimit === 25) return 'ยาก';
-      return 'ระดับคำถาม';
+    function getDifficultyText(difficulty) {
+      const texts = { easy: 'ง่าย', medium: 'ปานกลาง', hard: 'ยาก' };
+      return texts[difficulty] || 'ระดับคำถาม';
     }
 
     function updateSharedStats() {
@@ -799,7 +1130,7 @@
 
       const questionTag = document.getElementById('questionTag');
       if (questionTag) {
-        questionTag.innerHTML = `<i class="bi bi-lightning-charge-fill"></i><span>${getDifficultyFromTimeLimit(question.timeLimit)}</span>`;
+        questionTag.innerHTML = `<i class="bi bi-lightning-charge-fill"></i><span>${getDifficultyText(question.difficulty)}</span>`;
       }
 
       timeLeft = question.timeLimit;
@@ -807,6 +1138,10 @@
       document.getElementById('timerTextSide').textContent = timeLeft;
       document.getElementById('timerBar').style.width = '100%';
       document.getElementById('timerBar').className = 'timer-bar';
+      const timerWrap = document.querySelector('.timer-wrap');
+      if (timerWrap) {
+        timerWrap.classList.remove('timer-warning', 'timer-critical');
+      }
 
       startTimer(question.timeLimit);
 
@@ -830,6 +1165,11 @@
 
         const percentage = (timeLeft / seconds) * 100;
         document.getElementById('timerBar').style.width = percentage + '%';
+        const timerWrap = document.querySelector('.timer-wrap');
+        if (timerWrap) {
+          timerWrap.classList.toggle('timer-warning', timeLeft <= 5 && timeLeft > 3);
+          timerWrap.classList.toggle('timer-critical', timeLeft <= 3);
+        }
 
         if (timeLeft <= 3) {
           document.getElementById('timerBar').classList.add('timer-critical');

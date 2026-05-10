@@ -393,7 +393,7 @@
     <div class="finish-shell">
       <div class="top-note fade-in">
         <i class="bi bi-check2-circle"></i>
-        <span>คุณเล่นเกมจบแล้ว กรอกชื่อเพื่อบันทึกผลและดูอันดับ</span>
+        <span><%= playerName ? 'คุณเล่นเกมจบแล้ว คะแนนถูกบันทึกเรียบร้อย' : 'คุณเล่นเกมจบแล้ว กรอกชื่อเพื่อบันทึกผลและดูอันดับ' %></span>
       </div>
 
       <section class="result-panel fade-in">
@@ -402,7 +402,9 @@
             <div>
               <div class="hero-badge"><i class="bi bi-trophy-fill"></i> สรุปผลการแข่งขัน</div>
               <h1 class="hero-title">จบเกมอย่างสวยงาม</h1>
-              <p class="hero-subtitle">ตรวจสอบคะแนนของคุณ แล้วบันทึกชื่อเพื่อขึ้นอันดับบนกระดานผู้นำ</p>
+              <p class="hero-subtitle">
+                <%= playerName ? `ขอบคุณที่ร่วมสนุก ${playerName} ตรวจสอบคะแนนและอันดับของคุณได้เลย` : 'ตรวจสอบคะแนนของคุณ แล้วบันทึกชื่อเพื่อขึ้นอันดับบนกระดานผู้นำ' %>
+              </p>
             </div>
             <div class="d-none d-md-block">
               <a href="/coopgame/game/start" class="btn-ghost">
@@ -427,7 +429,7 @@
           </div>
 
           <div class="content-grid">
-            <div id="playerForm" class="form-card">
+            <div id="playerForm" class="form-card <%= playerName ? 'hidden' : '' %>">
               <h2 class="section-title"><i class="bi bi-person-badge-fill"></i> บันทึกข้อมูลผู้เล่น</h2>
               <form id="finishForm">
                 <div class="field">
@@ -437,8 +439,9 @@
                     id="playerName"
                     name="playerName"
                     placeholder="ใส่ชื่อของคุณ"
+                    required
                   >
-                  <small>ถ้าไม่ระบุชื่อ ระบบจะบันทึกเป็น “ไม่ประสงค์จะออกนาม”</small>
+                  <small>ใช้สำหรับบันทึกผลบนกระดานผู้นำ</small>
                 </div>
 
                 <div class="field">
@@ -449,8 +452,9 @@
                     name="phoneNumber"
                     placeholder="08xxxxxxxx"
                     pattern="[0-9]{9,10}"
+                    required
                   >
-                  <small>เว้นไว้ได้ หรือกรอกเบอร์ 9-10 หลักเพื่อใช้ติดต่อผู้ชนะ</small>
+                  <small>กรอกเบอร์ 9-10 หลักเพื่อใช้ติดต่อผู้ชนะ</small>
                 </div>
 
                 <button type="submit" class="btn-emerald">
@@ -461,12 +465,12 @@
               <div id="message" class="message"></div>
             </div>
 
-            <div id="rankResult" class="rank-card hidden">
+            <div id="rankResult" class="rank-card <%= playerName ? '' : 'hidden' %>">
               <div class="rank-visual">
                 <i class="bi bi-trophy-fill"></i>
               </div>
               <h2 class="section-title justify-content-center"><i class="bi bi-award-fill"></i> อันดับของคุณ</h2>
-              <div class="rank-number" id="rankNumber">-</div>
+              <div class="rank-number" id="rankNumber"><%= rank ? `#${rank}` : '-' %></div>
               <p class="rank-note">ขอบคุณที่ร่วมสนุก คะแนนของคุณถูกบันทึกเรียบร้อยแล้ว</p>
 
               <div class="rank-actions">

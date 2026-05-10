@@ -235,7 +235,7 @@ class AdminController {
         optionC,
         optionD,
         correctAnswer,
-        difficulty,
+        difficulty
       } = req.body;
 
       // Validation
@@ -256,7 +256,8 @@ class AdminController {
         return validationError(res, errors);
       }
 
-      const timeLimit = adminService.resolveQuestionTimeLimit(difficulty);
+      const gameSettings = await adminService.getGameSettings();
+      const timeLimit = gameSettings.settings.timeLimits[difficulty];
 
       const questionData = {
         questionText,
@@ -305,7 +306,7 @@ class AdminController {
 
       const questionData = {
         ...req.body,
-        timeLimit: adminService.resolveQuestionTimeLimit(req.body.difficulty)
+        timeLimit: (await adminService.getGameSettings()).settings.timeLimits[req.body.difficulty]
       };
 
       const result = await adminService.updateQuestion(parseInt(id), questionData);
