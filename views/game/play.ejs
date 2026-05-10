@@ -601,6 +601,75 @@
       box-shadow: 0 18px 40px rgba(8, 24, 14, 0.08);
     }
 
+    .prize-card {
+      padding: 18px 18px 20px;
+      background:
+        radial-gradient(circle at 20% 12%, rgba(255,255,255,0.72), transparent 26%),
+        linear-gradient(180deg, rgba(255, 253, 238, 0.98), rgba(235, 250, 237, 0.96));
+      overflow: hidden;
+    }
+
+    .prize-visual {
+      position: relative;
+      display: grid;
+      place-items: center;
+      min-height: 210px;
+      margin: -2px 0 8px;
+    }
+
+    .prize-visual::before {
+      content: '';
+      position: absolute;
+      width: min(230px, 82%);
+      aspect-ratio: 1;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255, 214, 92, 0.28), rgba(127, 208, 141, 0.18) 48%, transparent 70%);
+      filter: blur(2px);
+    }
+
+    .prize-visual img {
+      position: relative;
+      z-index: 1;
+      width: min(250px, 100%);
+      height: auto;
+      display: block;
+      filter: drop-shadow(0 18px 26px rgba(14, 48, 25, 0.2));
+    }
+
+    .prize-copy {
+      display: grid;
+      gap: 8px;
+      text-align: center;
+    }
+
+    .prize-kicker {
+      justify-self: center;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 7px 11px;
+      border-radius: 999px;
+      background: rgba(255, 193, 7, 0.18);
+      color: #8a5a00;
+      font-weight: 800;
+      font-size: 0.88rem;
+    }
+
+    .prize-copy h3 {
+      margin: 0;
+      color: var(--green-900);
+      font-size: 1.16rem;
+      font-weight: 800;
+      line-height: 1.35;
+    }
+
+    .prize-copy p {
+      margin: 0;
+      color: var(--muted);
+      font-weight: 700;
+      line-height: 1.55;
+    }
+
     .side-title {
       display: flex;
       align-items: center;
@@ -719,6 +788,146 @@
       display: none !important;
     }
 
+    .answer-feedback {
+      position: fixed;
+      inset: 0;
+      z-index: 30;
+      display: grid;
+      place-items: center;
+      padding: 18px;
+      background: rgba(4, 18, 10, 0.48);
+      backdrop-filter: blur(8px);
+    }
+
+    .answer-feedback-card {
+      position: relative;
+      width: min(420px, 100%);
+      padding: 30px 24px;
+      border-radius: 30px;
+      border: 1px solid rgba(255,255,255,0.52);
+      background:
+        radial-gradient(circle at top, rgba(255,255,255,0.76), transparent 42%),
+        linear-gradient(180deg, rgba(255,255,255,0.98), rgba(245, 252, 247, 0.98));
+      box-shadow: 0 30px 80px rgba(2, 13, 6, 0.34);
+      text-align: center;
+      animation: feedbackPop 0.28s ease-out;
+      overflow: hidden;
+    }
+
+    .answer-celebration {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0;
+    }
+
+    .answer-feedback.is-correct .answer-celebration {
+      opacity: 1;
+    }
+
+    .celebration-spark {
+      position: absolute;
+      display: grid;
+      place-items: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: rgba(255, 214, 92, 0.22);
+      color: #f59e0b;
+      font-size: 1.08rem;
+      animation: sparklePop 1.35s ease-in-out infinite;
+    }
+
+    .celebration-spark:nth-child(1) {
+      top: 22px;
+      left: 42px;
+    }
+
+    .celebration-spark:nth-child(2) {
+      top: 32px;
+      right: 44px;
+      animation-delay: 0.18s;
+    }
+
+    .celebration-spark:nth-child(3) {
+      right: 74px;
+      bottom: 30px;
+      animation-delay: 0.34s;
+    }
+
+    .celebration-spark:nth-child(4) {
+      left: 74px;
+      bottom: 34px;
+      animation-delay: 0.5s;
+    }
+
+    .answer-feedback-icon {
+      position: relative;
+      z-index: 1;
+      width: 88px;
+      height: 88px;
+      display: grid;
+      place-items: center;
+      margin: 0 auto 16px;
+      border-radius: 28px;
+      color: #fff;
+      font-size: 2.4rem;
+      box-shadow: 0 18px 36px rgba(8, 24, 14, 0.18);
+    }
+
+    .answer-feedback.is-correct .answer-feedback-icon {
+      background: linear-gradient(135deg, #15803d, #4ade80);
+    }
+
+    .answer-feedback.is-wrong .answer-feedback-icon {
+      background: linear-gradient(135deg, #be123c, #fb7185);
+    }
+
+    .answer-feedback.is-timeout .answer-feedback-icon {
+      background: linear-gradient(135deg, #b45309, #fbbf24);
+    }
+
+    .answer-feedback-title {
+      position: relative;
+      z-index: 1;
+      margin: 0 0 8px;
+      color: var(--green-900);
+      font-size: 1.75rem;
+      font-weight: 800;
+      line-height: 1.3;
+    }
+
+    .answer-feedback-message {
+      position: relative;
+      z-index: 1;
+      margin: 0;
+      color: var(--muted);
+      font-size: 1.05rem;
+      font-weight: 700;
+      line-height: 1.6;
+    }
+
+    .answer-feedback-button {
+      position: relative;
+      z-index: 1;
+      min-width: 130px;
+      margin-top: 18px;
+      border: none;
+      border-radius: 16px;
+      padding: 12px 22px;
+      background: linear-gradient(135deg, #166534 0%, #22a247 58%, #4ade80 100%);
+      color: #fff;
+      font-weight: 800;
+      box-shadow: 0 14px 28px rgba(29, 110, 52, 0.22);
+    }
+
+    .answer-feedback-button:focus {
+      outline: none;
+      box-shadow:
+        0 14px 28px rgba(29, 110, 52, 0.22),
+        0 0 0 4px rgba(53, 181, 89, 0.18);
+    }
+
     .fade-in {
       animation: fadeIn 0.45s ease-out;
     }
@@ -747,6 +956,16 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
+    @keyframes feedbackPop {
+      from { opacity: 0; transform: translateY(12px) scale(0.96); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    @keyframes sparklePop {
+      0%, 100% { transform: translateY(0) scale(0.86) rotate(0deg); opacity: 0.55; }
+      50% { transform: translateY(-8px) scale(1.12) rotate(12deg); opacity: 1; }
+    }
+
     @media (max-width: 992px) {
       .content-grid {
         grid-template-columns: 1fr;
@@ -759,6 +978,30 @@
 
       .top-stats {
         justify-content: flex-start;
+      }
+
+      .prize-card {
+        display: grid;
+        grid-template-columns: minmax(130px, 0.8fr) minmax(0, 1fr);
+        align-items: center;
+        gap: 12px;
+      }
+
+      .prize-visual {
+        min-height: 150px;
+        margin: 0;
+      }
+
+      .prize-visual img {
+        width: min(180px, 100%);
+      }
+
+      .prize-copy {
+        text-align: left;
+      }
+
+      .prize-kicker {
+        justify-self: start;
       }
     }
 
@@ -793,6 +1036,27 @@
 
       .result-title {
         font-size: 1.6rem;
+      }
+
+      .answer-feedback-card {
+        padding: 26px 20px;
+        border-radius: 26px;
+      }
+
+      .answer-feedback-title {
+        font-size: 1.45rem;
+      }
+
+      .prize-card {
+        grid-template-columns: 1fr;
+      }
+
+      .prize-copy {
+        text-align: center;
+      }
+
+      .prize-kicker {
+        justify-self: center;
       }
     }
   </style>
@@ -947,6 +1211,17 @@
         </section>
 
         <aside class="side-stack">
+          <div class="side-card prize-card fade-in">
+            <div class="prize-visual" aria-hidden="true">
+              <img src="/coopgame/assets/rewards/prize-pile.png" alt="" loading="eager">
+            </div>
+            <div class="prize-copy">
+              <div class="prize-kicker"><i class="bi bi-gift-fill"></i> ชิงรางวัล</div>
+              <h3>ตอบให้ครบ ลุ้นรับของรางวัล</h3>
+              <p>สะสมคะแนนให้ดีที่สุด แล้วไปดูผลท้ายเกม</p>
+            </div>
+          </div>
+
           <div class="side-card fade-in">
             <h3 class="side-title"><i class="bi bi-award-fill"></i> เคล็ดลับการเล่น</h3>
             <ul class="hint-list">
@@ -969,9 +1244,27 @@
     </div>
   </div>
 
+  <div id="answerFeedback" class="answer-feedback hidden" role="status" aria-live="polite">
+    <div class="answer-feedback-card">
+      <div class="answer-celebration" aria-hidden="true">
+        <span class="celebration-spark"><i class="bi bi-star-fill"></i></span>
+        <span class="celebration-spark"><i class="bi bi-stars"></i></span>
+        <span class="celebration-spark"><i class="bi bi-star-fill"></i></span>
+        <span class="celebration-spark"><i class="bi bi-stars"></i></span>
+      </div>
+      <div class="answer-feedback-icon">
+        <i id="answerFeedbackIcon" class="bi bi-check-lg"></i>
+      </div>
+      <h2 id="answerFeedbackTitle" class="answer-feedback-title"></h2>
+      <p id="answerFeedbackMessage" class="answer-feedback-message"></p>
+      <button id="answerFeedbackButton" class="answer-feedback-button hidden" type="button">OK</button>
+    </div>
+  </div>
+
   <script>
     const attemptId = <%= attemptId %>;
     const isAdminPlay = <%= isAdminPlay ? 'true' : 'false' %>;
+    const gameEndRedirectUrl = isAdminPlay ? '/coopgame/admin' : '/coopgame/game/start';
     const initialPlayerName = <%- JSON.stringify(playerName || '') %>;
     const initialPhoneNumber = <%- JSON.stringify(phoneNumber || '') %>;
     let hasPlayerInfo = isAdminPlay || Boolean(initialPlayerName && initialPhoneNumber);
@@ -981,6 +1274,56 @@
     let timerInterval = null;
     let timeLeft = 0;
     let isAnswering = false;
+
+    const correctFeedbackMessages = [
+      { title: 'เยี่ยมมาก', message: 'ตอบถูกต้อง ไปต่อข้อถัดไปกันเลย' },
+      { title: 'ถูกต้องครับ', message: 'จังหวะดีมาก รักษาฟอร์มนี้ไว้' },
+      { title: 'เก่งมาก', message: 'คะแนนขยับแล้ว ลุยต่ออีกนิด' },
+      { title: 'สุดยอด', message: 'คำตอบนี้ถูกต้องแบบไม่ต้องสงสัยเลย' },
+      { title: 'ดีมาก', message: 'ตอบถูกต้องแล้ว ไปต่อกันเลย' },
+      { title: 'เยี่ยม', message: 'คุณทำได้ดีมาก ยอดเยี่ยม!' },
+      { title: 'ถูกต้อง', message: 'คำตอบนี้ถูกต้องแล้ว ไปต่อกันเลย' },
+      { title: 'สุดยอด', message: 'คุณตอบถูกต้องได้อย่างยอดเยี่ยม!' },
+      { title: 'ดีมาก', message: 'คำตอบนี้ถูกต้องแล้ว ไปต่อกันเลย' },
+      { title: 'เยี่ยมมาก', message: 'คุณทำได้ดีมาก ยอดเยี่ยม!' },
+      { title: 'สุดยอด', message: 'คุณตอบถูกต้องได้อย่างยอดเยี่ยม!' },
+      { title: 'ดีมาก', message: 'คำตอบนี้ถูกต้องแล้ว ลุยต่อกันเลย' },
+      { title: 'เยี่ยม', message: 'ว้าว คุณทำได้ เก่งมาก!' },
+      { title: 'ถูกต้อง', message: 'คุณตอบถูกอีกแล้ว เจ๋งอ่ะ' },
+      { title: 'สุดยอด', message: 'แน่มาก ตอบถูกอีกแล้ว!' },
+      { title: 'สุดยอด', message: 'จะเก่งอะไรปานนี้' },
+      { title: 'ว้าว ว้าว', message: 'เก่งสุดๆ' },
+      { title: 'เยี่ยม', message: 'คุณคือคนคุณภาพ' }
+    ];
+    const wrongFeedbackMessages = [
+      { title: 'เสียใจด้วยครับ', message: 'รอบนี้ยังไม่ใช่คำตอบที่ถูก ลองทดสอบอีกครั้งนะ' },
+      { title: 'เอาใหม่นะ', message: 'คราวหน้ามีโอกาสทำได้ดีกว่านี้ สู้ ๆ' },
+      { title: 'เกือบแล้ว', message: 'อย่าเพิ่งท้อ กลับมาเล่นใหม่แล้วลุยอีกครั้ง' },
+      { title: 'ไม่ถูกต้อง', message: 'คำตอบนี้ไม่ถูกต้อง ลองทดสอบอีกครั้งนะ' },
+      { title: 'เสียใจด้วย', message: 'รอบนี้ยังไม่ใช่คำตอบที่ถูก ลองทดสอบอีกครั้งนะ' },
+      { title: 'เอาใหม่นะ', message: 'คราวหน้ามีโอกาสทำได้ดีกว่านี้ สู้ ๆ' },
+      { title: 'เกือบแล้ว', message: 'อย่าเพิ่งท้อ กลับมาเล่นใหม่แล้วลุยอีกครั้ง' },
+      { title: 'ไม่ถูกต้อง', message: 'คำตอบนี้ไม่ถูกต้อง ลองทดสอบอีกครั้งนะ' },
+      { title: 'เสียใจด้วย', message: 'รอบนี้ยังไม่ใช่คำตอบที่ถูก ลองทดสอบอีกครั้งนะ' },
+      { title: 'เอาใหม่นะ', message: 'คราวหน้ามีโอกาสทำได้ดีกว่านี้ สู้ ๆ' },
+      { title: 'เกือบแล้ว', message: 'อย่าเพิ่งท้อ กลับมาเล่นใหม่แล้วลุยอีกครั้ง' }
+    ];
+    const timeoutFeedbackMessages = [
+      { title: 'หมดเวลาแล้ว', message: 'ไม่เป็นไรนะ รอบหน้าลองตอบให้ไวขึ้นอีกนิด' },
+      { title: 'เวลาไม่พอครับ', message: 'พักหายใจนิดหนึ่ง แล้วกลับมาสู้ใหม่ได้เลย' },
+      { title: 'หมดเวลา', message: 'ไม่เป็นไรนะ รอบหน้าเอาใหม่' },
+      { title: 'เวลาไม่พอ', message: 'ว้า เสียดายจังเลยเนาะ' },
+      { title: 'หมดเวลาแล้ว', message: 'ไม่เป็นไรนะ รอบหน้าวางแผนให้ดีขึ้น' },
+      { title: 'เวลาไม่พอครับ', message: 'เสียดายสุดๆ ใกล้มากแล้ว' },
+      { title: 'หมดเวลา', message: 'ไม่เป็นไรนะ รอบหน้าเอาใหม่' },
+      { title : 'เวลาไม่พอ', message: 'ถึงเวลาหมดแล้ว แต่อย่าพึ่งท้อ ลองใหม่อีกครั้ง' },
+      { title: 'หมดเวลาแล้ว', message: 'เอาใหม่ ตอบให้ไวขึ้นอีกนิดนะ' },
+      { title: 'เวลาไม่พอครับ', message: 'เสียดายสุดๆ ช้าไปนิดเดียวเอง' },
+      
+   
+  
+      
+    ];
 
     const playerIntro = document.getElementById('playerIntro');
     const loadingPanel = document.getElementById('loading');
@@ -1112,6 +1455,64 @@
       if (timerTextSideEl) timerTextSideEl.textContent = timeLeft || 0;
     }
 
+    function getRandomItem(items) {
+      return items[Math.floor(Math.random() * items.length)];
+    }
+
+    function showAnswerFeedback(type, options = {}) {
+      const duration = options.duration || 2100;
+      const actionLabel = options.actionLabel || '';
+      const feedback = document.getElementById('answerFeedback');
+      const title = document.getElementById('answerFeedbackTitle');
+      const message = document.getElementById('answerFeedbackMessage');
+      const icon = document.getElementById('answerFeedbackIcon');
+      const button = document.getElementById('answerFeedbackButton');
+      const feedbackMap = {
+        correct: {
+          className: 'is-correct',
+          iconClass: 'bi bi-check-lg',
+          text: getRandomItem(correctFeedbackMessages)
+        },
+        wrong: {
+          className: 'is-wrong',
+          iconClass: 'bi bi-heartbreak-fill',
+          text: getRandomItem(wrongFeedbackMessages)
+        },
+        timeout: {
+          className: 'is-timeout',
+          iconClass: 'bi bi-hourglass-split',
+          text: getRandomItem(timeoutFeedbackMessages)
+        }
+      };
+      const config = feedbackMap[type] || feedbackMap.wrong;
+
+      feedback.className = `answer-feedback ${config.className}`;
+      icon.className = config.iconClass;
+      title.textContent = config.text.title;
+      message.textContent = config.text.message;
+      button.textContent = actionLabel || 'OK';
+      button.classList.toggle('hidden', !actionLabel);
+      button.onclick = null;
+
+      return new Promise(resolve => {
+        if (actionLabel) {
+          button.onclick = () => {
+            feedback.classList.add('hidden');
+            button.classList.add('hidden');
+            button.onclick = null;
+            resolve();
+          };
+          setTimeout(() => button.focus(), 50);
+          return;
+        }
+
+        window.setTimeout(() => {
+          feedback.classList.add('hidden');
+          resolve();
+        }, duration);
+      });
+    }
+
     function displayQuestion(question) {
       currentQuestion = question;
       isAnswering = false;
@@ -1220,22 +1621,43 @@
 
         const result = await response.json();
 
-        if (!result.success || (result.data && result.data.gameOver)) {
-          showGameOver(result.data ? result.data : { isCorrect: false });
+        if (!result.success) {
+          alert(result.errors?.[0]?.msg || result.message || 'เกิดข้อผิดพลาด กรุณาลองใหม่');
+          window.location.href = gameEndRedirectUrl;
+        } else if (result.data && result.data.gameOver) {
+          const resultData = result.data;
+          const feedbackType = resultData.reason === 'timeout'
+            ? 'timeout'
+            : resultData.isCorrect ? 'correct' : 'wrong';
+          if (isAdminPlay) {
+            await showAnswerFeedback(feedbackType, { actionLabel: 'OK' });
+            window.location.href = gameEndRedirectUrl;
+            return;
+          }
+
+          if (!resultData.isCorrect || resultData.reason === 'timeout') {
+            await showAnswerFeedback(feedbackType, { actionLabel: 'OK' });
+            window.location.href = gameEndRedirectUrl;
+            return;
+          }
+
+          await showAnswerFeedback(feedbackType);
+          showGameOver(resultData);
         } else if (result.success && result.data) {
           if (result.data.isCorrect) {
             score++;
             updateSharedStats();
+            await showAnswerFeedback('correct');
           }
-          setTimeout(() => loadQuestion(), 900);
+          loadQuestion();
         } else {
           alert(result.message);
-          window.location.href = '/coopgame/game/start';
+          window.location.href = gameEndRedirectUrl;
         }
       } catch (error) {
         console.error('Error submitting answer:', error);
         alert('เกิดข้อผิดพลาด กรุณาลองใหม่');
-        window.location.href = '/coopgame/game/start';
+        window.location.href = gameEndRedirectUrl;
       }
     }
 

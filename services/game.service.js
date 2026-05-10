@@ -463,7 +463,7 @@ class GameService {
       // Server-side timeout check (anti-cheat)
       const timeLimit = this.getQuestionTimeLimit(question);
 
-      if (responseTime > timeLimit) {
+      if (!answer || responseTime > timeLimit) {
         await connection.query(
           'UPDATE game_attempts SET status = ?, finished_at = NOW() WHERE id = ?',
           ['completed', attemptId]

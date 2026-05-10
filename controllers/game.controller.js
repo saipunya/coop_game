@@ -158,14 +158,18 @@ class GameController {
     try {
       const { attemptId, questionId, answer, responseTime } = req.body;
 
-      if (!attemptId || !questionId || !answer || responseTime === undefined) {
+      if (!attemptId || !questionId || responseTime === undefined) {
         return validationError(res, [{ msg: 'Missing required fields' }]);
+      }
+
+      if (answer && !['A', 'B', 'C', 'D'].includes(String(answer).toUpperCase())) {
+        return validationError(res, [{ msg: 'Invalid answer' }]);
       }
 
       const result = await gameService.submitAnswer(
         parseInt(attemptId),
         parseInt(questionId),
-        answer,
+        answer ? String(answer).toUpperCase() : null,
         parseInt(responseTime)
       );
 

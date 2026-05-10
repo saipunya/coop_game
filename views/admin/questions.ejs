@@ -286,6 +286,28 @@
       flex-wrap: wrap;
     }
 
+    .status-switch {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 86px;
+      margin: 0;
+      color: var(--green-700);
+      font-weight: 700;
+    }
+
+    .status-switch .form-check-input {
+      cursor: pointer;
+      margin-top: 0;
+      width: 42px;
+      height: 22px;
+    }
+
+    .status-switch .form-check-input:checked {
+      background-color: var(--green-500);
+      border-color: var(--green-500);
+    }
+
     .btn-sm {
       padding: 8px 12px;
       font-size: 13px;
@@ -865,7 +887,12 @@
           </td>
           <td><span class="difficulty-badge difficulty-${q.difficulty}">${getDifficultyText(q.difficulty)}</span></td>
           <td>${getTimeLimitByDifficulty(q.difficulty)} วินาที</td>
-          <td>${q.is_active ? '<span style="color:green;">เปิด</span>' : '<span style="color:red;">ปิด</span>'}</td>
+          <td>
+            <div class="form-check form-switch status-switch">
+              <input class="form-check-input" type="checkbox" role="switch" id="statusSwitch${q.id}" ${q.is_active ? 'checked' : ''} onchange="toggleQuestionStatus(${q.id}, this)">
+              <label class="form-check-label" for="statusSwitch${q.id}">${q.is_active ? 'เปิด' : 'ปิด'}</label>
+            </div>
+          </td>
           <td>
             <div class="action-btns">
               <button class="btn btn-sm btn-outline-primary" onclick="editQuestion(${q.id})">แก้ไข</button>
@@ -882,6 +909,20 @@
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;');
+    }
+
+    function buildQuestionPayload(question, overrides = {}) {
+      return {
+        questionText: question.question_text || '',
+        optionA: question.option_a || '',
+        optionB: question.option_b || '',
+        optionC: question.option_c || '',
+        optionD: question.option_d || '',
+        correctAnswer: question.correct_answer,
+        difficulty: question.difficulty,
+        timeLimit: parseInt(question.time_limit, 10),
+        ...overrides
+      };
     }
 
     document.getElementById('gameSettingsForm').addEventListener('submit', async (e) => {
@@ -992,6 +1033,40 @@
       updateQuestionTimeLimit(q.difficulty || 'easy');
 
       document.querySelector('.panel').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    async function toggleQuestionStatus(id, switchEl) {
+      const q = questions.find(item => item.id === id);
+      if (!q) return;
+
+      const nextIsActive = switchEl ? switchEl.checked : !q.is_active;
+      const actionText = nextIsActive ? 'เปิดใช้งาน' : 'ปิดใช้งาน';
+      if (switchEl) switchEl.disabled = true;
+
+      try {
+        const response = await fetch(`/coopgame/admin/api/questions/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(buildQuestionPayload(q, { isActive: nextIsActive }))
+        });
+
+        const result = await response.json();
+        if (result.success) {
+          q.is_active = nextIsActive;
+          renderQuestions();
+          loadStats();
+          alert(`✅ ${actionText}คำถามสำเร็จ`);
+        } else {
+          if (switchEl) switchEl.checked = !nextIsActive;
+          alert('❌ ' + result.message);
+        }
+      } catch (error) {
+        console.error('Error updating question status:', error);
+        if (switchEl) switchEl.checked = !nextIsActive;
+        alert('เกิดข้อผิดพลาด กรุณาลองใหม่');
+      } finally {
+        if (switchEl) switchEl.disabled = false;
+      }
     }
 
     async function deleteQuestion(id) {
