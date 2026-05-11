@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="/coopgame/css/start.css">
 </head>
 <body>
+  <% const isGameOpen = typeof gameEnabled === 'undefined' || gameEnabled !== false; %>
   <div class="start-shell">
     <a href="/coopgame/admin/login" class="admin-float-link" aria-label="เข้าสู่ระบบผู้ดูแล">
       <i data-lucide="shield-check"></i>
@@ -19,15 +20,15 @@
       <section class="hero-card">
         <div class="hero-copy">
           <div class="hero-badge">
-            <i data-lucide="sparkles"></i>
-            <span>Coop Quiz Challenge</span>
+            <span class="coop-mark">สหกรณ์เข้มแข็ง</span>
+            <span>ตอบไว ได้คะแนน</span>
           </div>
-          <h2 class="my-2 fw-bold">ตอบไว ไต่แรง ขึ้นอันดับสหกรณ์</h2>
-          <p>กรอกรหัสเกมแล้วเข้าสู่สนามตอบคำถาม แข่งกับเวลา เก็บคะแนน และดูอันดับของคุณแบบเรียลไทม์</p>
+          <h1>เกมตอบไว<br><span>ไต่แรงขึ้นอันดับสหกรณ์</span></h1>
+          <p>สนุกกับการตอบคำถาม สะสมคะแนน แข่งกับเวลา และลุ้นขึ้นตารางอันดับไปด้วยกัน</p>
 
           <div class="hero-actions">
             <a href="#startCard" class="hero-link primary">
-              <i data-lucide="play"></i>
+              <i data-lucide="zap"></i>
               <span>เริ่มเลย</span>
             </a>
             <a href="/coopgame/game/leaderboard" class="hero-link">
@@ -35,12 +36,53 @@
               <span>ดูอันดับ</span>
             </a>
           </div>
+
+          <div class="feature-rail" aria-label="จุดเด่นเกม">
+            <div class="feature-pill blue">
+              <i data-lucide="timer"></i>
+              <strong>ตอบเร็ว</strong>
+              <span>ลุ้นทุกข้อ</span>
+            </div>
+            <div class="feature-pill green">
+              <i data-lucide="trending-up"></i>
+              <strong>เก็บแต้ม</strong>
+              <span>ไต่อันดับ</span>
+            </div>
+            <div class="feature-pill violet">
+              <i data-lucide="book-open-check"></i>
+              <strong>ได้ความรู้</strong>
+              <span>เรื่องสหกรณ์</span>
+            </div>
+          </div>
         </div>
 
         <div class="hero-visual" aria-hidden="true">
-          <img src="/coopgame/assets/illustrations/business-analytics-cuate.svg" alt="">
-          <div class="score-chip chip-one"><i data-lucide="zap"></i> Bonus</div>
-          <div class="score-chip chip-two"><i data-lucide="badge-check"></i> Rank up</div>
+          <div class="lightning lightning-one"></div>
+          <div class="lightning lightning-two"></div>
+          <div class="phone-mock">
+            <div class="phone-top">
+              <span><i data-lucide="zap"></i> 12.58</span>
+              <strong>คะแนน 1,250</strong>
+            </div>
+            <div class="question-mini">
+              <small>คำถามข้อที่ 5/10</small>
+              <h2>สหกรณ์คืออะไร?</h2>
+              <div>A องค์กรธุรกิจ</div>
+              <div>B องค์กรของรัฐบาล</div>
+              <div class="correct">C องค์กรที่สมาชิกเป็นเจ้าของ <i data-lucide="check"></i></div>
+              <div>D บริษัทเอกชน</div>
+            </div>
+            <div class="phone-score">ตอบถูกต้อง! +100 คะแนน</div>
+          </div>
+          <div class="trophy-panel">
+            <div class="leader-title"><i data-lucide="trophy"></i> ตารางคะแนน</div>
+            <div class="leader-row"><span>1</span><strong>คุณดาวเด่น</strong><em>2,560</em></div>
+            <div class="leader-row"><span>2</span><strong>คุณกล้าเก่ง</strong><em>2,100</em></div>
+            <div class="leader-row active"><span>3</span><strong>คุณร่วมใจ</strong><em>1,250</em></div>
+            <img src="/coopgame/assets/rewards/prize-pile.png" alt="">
+          </div>
+          <div class="score-chip chip-one"><i data-lucide="sparkles"></i> Rank up</div>
+          <div class="score-chip chip-two"><i data-lucide="star"></i> Bonus</div>
         </div>
       </section>
 
@@ -62,6 +104,13 @@
               </div>
             <% } %>
 
+            <% if (!isGameOpen) { %>
+              <div class="system-banner closed">
+                <i data-lucide="power"></i>
+                <span>ระบบเกมปิดอยู่ชั่วคราว กรุณาติดต่อผู้ดูแลระบบ</span>
+              </div>
+            <% } %>
+
             <form id="codeForm" class="code-form" aria-describedby="codeHelp">
               <label for="code" class="field-label">รหัสเกม</label>
               <div class="code-field">
@@ -76,6 +125,7 @@
                   inputmode="search"
                   autocomplete="off"
                   aria-labelledby="codeHelp"
+                  <%= !isGameOpen ? 'disabled' : '' %>
                   required
                 />
               </div>
@@ -83,9 +133,9 @@
                 พิมพ์เล็กหรือใหญ่ได้ ระบบจะปรับให้อัตโนมัติ
               </div>
 
-              <button type="submit" class="start-btn">
+              <button type="submit" class="start-btn" <%= !isGameOpen ? 'disabled' : '' %>>
                 <i data-lucide="play"></i>
-                <span>เริ่มเล่นเกม</span>
+                <span><%= isGameOpen ? 'เริ่มเล่นเกม' : 'ระบบเกมปิดอยู่' %></span>
               </button>
             </form>
 
@@ -121,9 +171,9 @@
               </div>
             </div>
             <div class="rules-list">
-              <div><i data-lucide="shield-check"></i><span>ใช้รหัสที่ยังไม่ถูกใช้งาน</span></div>
+              <div><i data-lucide="qr-code"></i><span>สแกน QR หรือกรอกรหัสเกม</span></div>
               <div><i data-lucide="timer"></i><span>แต่ละข้อมีเวลาจำกัด</span></div>
-              <div><i data-lucide="message-circle"></i><span>กรอกชื่อและเบอร์ก่อนตอบ</span></div>
+              <div><i data-lucide="party-popper"></i><span>ตอบถูกลุ้นคะแนนและอันดับ</span></div>
             </div>
           </article>
 
@@ -158,6 +208,7 @@
     const codeForm = document.getElementById('codeForm');
     const codeInput = document.getElementById('code');
     const messageDiv = document.getElementById('message');
+    const gameEnabled = <%= isGameOpen ? 'true' : 'false' %>;
 
     function renderIcons() {
       if (window.lucide) {
@@ -182,6 +233,11 @@
 
     codeForm.addEventListener('submit', async (e) => {
       e.preventDefault();
+
+      if (!gameEnabled) {
+        showMessage('error', 'power', 'ระบบเกมปิดอยู่ชั่วคราว กรุณาติดต่อผู้ดูแลระบบ');
+        return;
+      }
 
       const code = codeInput.value.trim().toUpperCase();
       if (!code) {
@@ -283,7 +339,9 @@
     }
 
     renderIcons();
-    codeInput.focus();
+    if (gameEnabled) {
+      codeInput.focus();
+    }
     updateStatsFromLeaderboard([]);
     loadLeaderboardPreview();
   </script>

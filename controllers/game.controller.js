@@ -10,10 +10,15 @@ class GameController {
   async renderStart(req, res) {
     try{
       const query = req.query || {};
-      res.render('game/start', { title: 'เริ่มเกม', query });
+      const gameSettings = await gameService.getGameSettings();
+      res.render('game/start', {
+        title: 'เริ่มเกม',
+        query,
+        gameEnabled: gameSettings.gameEnabled !== false
+      });
     }catch(err){
       logger.error('Error rendering start:', err);
-      res.render('game/start', { title: 'เริ่มเกม' });
+      res.render('game/start', { title: 'เริ่มเกม', gameEnabled: true });
     }
   }
 
@@ -189,6 +194,10 @@ class GameController {
         answer ? String(answer).toUpperCase() : null,
         parseInt(responseTime)
       );
+
+      if (!result.success) {
+        return error(res, result.message || 'ไม่สามารถบันทึกคำตอบได้', 400);
+      }
 
       success(res, result, 'Answer submitted');
     } catch (error) {
