@@ -312,7 +312,8 @@
       align-items: center;
       gap: 12px;
       margin-bottom: 18px;
-      padding: 16px 18px;
+      min-height: 124px;
+      padding: 16px 150px 16px 18px;
       border-radius: 8px;
       background:
         linear-gradient(135deg, rgba(231, 246, 255, 0.98), rgba(255, 247, 196, 0.96));
@@ -344,161 +345,162 @@
     }
 
     .timer-wrap {
-      margin-bottom: 18px;
-      padding: 18px;
-      border-radius: 8px;
-      background:
-        radial-gradient(circle at 12% 0%, rgba(255,255,255,0.24), transparent 30%),
-        linear-gradient(135deg, rgba(3, 21, 66, 0.98), rgba(7, 91, 216, 0.96) 62%, rgba(15, 183, 255, 0.96));
-      border: 1px solid rgba(255, 255, 255, 0.22);
+      position: absolute;
+      top: 8px;
+      right: 34px;
+      z-index: 8;
+      width: 122px;
+      margin: 0;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      box-shadow: none;
       color: #fff;
-      box-shadow: 0 20px 44px rgba(2, 16, 58, 0.24), var(--glow);
+      overflow: visible;
+    }
+
+    .timer-wrap::before,
+    .timer-wrap::after {
+      display: none;
+    }
+
+    .robot-timer {
       position: relative;
+      z-index: 1;
+      display: grid;
+      justify-items: center;
+      gap: 14px;
+    }
+
+    .timer-robot {
+      position: relative;
+      width: 114px;
+      margin: 0 auto;
+      filter: drop-shadow(0 18px 22px rgba(2, 16, 58, 0.26));
+    }
+
+    .timer-robot img {
+      display: block;
+      width: 100%;
+      height: auto;
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+
+    .timer-display {
+      position: absolute;
+      left: 50%;
+      top: 56.5%;
+      width: 49%;
+      min-height: 42px;
+      display: grid;
+      place-items: center;
+      gap: 2px;
+      padding: 5px 6px;
+      border-radius: 8px;
+      transform: translate(-50%, -50%);
+      color: #062265;
+      text-align: center;
+      background: rgba(215, 255, 227, 0.94);
+      border: 0;
+      box-shadow: 0 10px 18px rgba(2, 16, 58, 0.12);
+      backdrop-filter: blur(6px);
       overflow: hidden;
     }
 
-    .timer-wrap::before {
-      content: '';
-      position: absolute;
-      width: 140px;
-      height: 140px;
-      right: -44px;
-      top: -58px;
-      border-radius: 50%;
-      background: rgba(255,255,255,0.12);
-      pointer-events: none;
+    .timer-display::before {
+      display: none;
     }
 
-    .timer-wrap::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background:
-        linear-gradient(110deg, transparent 0%, rgba(255,255,255,0.1) 46%, transparent 72%);
-      opacity: 0.46;
-      pointer-events: none;
-    }
-
-    .timer-top {
-      display: flex;
-      justify-content: space-between;
+    .timer-label {
+      display: none;
       align-items: center;
-      gap: 12px;
-      margin-bottom: 14px;
+      gap: 6px;
+      color: #176b4b;
+      font-size: 0.72rem;
       font-weight: 800;
-      position: relative;
-      z-index: 1;
+      line-height: 1;
+      white-space: nowrap;
     }
 
-    .timer-text {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      color: #fff;
-      font-size: 1rem;
-      text-shadow: 0 1px 12px rgba(0, 0, 0, 0.18);
-    }
-
-    .timer-text i {
-      color: #fff;
-    }
-
-    .timer-title {
-      padding: 9px 12px;
-      border-radius: 999px;
-      background: rgba(255,255,255,0.16);
-      border: 1px solid rgba(255,255,255,0.2);
-      backdrop-filter: blur(10px);
+    .timer-label i {
+      color: #176b4b;
     }
 
     .timer-count {
-      padding: 8px 12px;
-      border-radius: 999px;
-      background: rgba(255,255,255,0.22);
-      border: 1px solid rgba(255,255,255,0.26);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.22);
+      display: inline-flex;
+      align-items: baseline;
+      justify-content: center;
+      gap: 6px;
+      width: 100%;
+      color: #062265;
       white-space: nowrap;
     }
 
     #timerText {
       display: inline-grid;
       place-items: center;
-      min-width: 34px;
-      color: #fff;
-      font-size: 1.35rem;
-      font-weight: 800;
-      line-height: 1;
-    }
-
-    .timer-bar-shell {
-      height: 24px;
-      border-radius: 999px;
-      padding: 4px;
-      background: rgba(255,255,255,0.18);
-      border: 1px solid rgba(255,255,255,0.24);
-      box-shadow:
-        inset 0 2px 5px rgba(0, 0, 0, 0.18),
-        0 12px 26px rgba(5, 32, 13, 0.14);
-      overflow: hidden;
-      position: relative;
-      z-index: 1;
-    }
-
-    .timer-bar {
-      height: 100%;
+      min-width: 0;
       width: 100%;
-      border-radius: inherit;
-      background:
-        linear-gradient(180deg, rgba(255,255,255,0.58), rgba(255,255,255,0) 46%),
-        repeating-linear-gradient(135deg, rgba(255,255,255,0.18) 0 8px, transparent 8px 16px),
-        linear-gradient(90deg, #fff47a 0%, var(--gold-500) 45%, var(--gold-600) 100%);
-      background-size: 200% 100%, 22px 22px, 100% 100%;
+      color: #062265;
+      font-size: clamp(1.42rem, 2vw, 1.7rem);
+      font-weight: 800;
+      line-height: 0.95;
+      text-shadow: 0 2px 0 rgba(255,255,255,0.72);
+    }
+
+    .timer-unit {
+      display: none;
+      color: #176b4b;
+      font-size: 0.82rem;
+      font-weight: 800;
+    }
+
+    .timer-wrap.timer-warning .timer-robot {
+      filter:
+        drop-shadow(0 18px 22px rgba(2, 16, 58, 0.24))
+        saturate(1.08)
+        brightness(0.98);
+      animation: timerWarningZoom 0.9s ease-in-out infinite;
+      transform-origin: center;
+    }
+
+    .timer-wrap.timer-warning .timer-display {
+      background: rgba(255, 238, 170, 0.96);
       box-shadow:
-        inset 0 1px 0 rgba(255,255,255,0.5),
-        0 0 20px rgba(255, 210, 60, 0.36);
-      transition: width 0.85s linear, background-color 0.25s ease, box-shadow 0.25s ease;
-      position: relative;
-      overflow: hidden;
+        0 0 0 3px rgba(255, 184, 0, 0.16),
+        0 10px 18px rgba(138, 76, 0, 0.16);
     }
 
-    .timer-bar::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(110deg, transparent 18%, rgba(255,255,255,0.55) 50%, transparent 82%);
-      transform: translateX(-55%);
-      animation: timerShine 2.8s linear infinite;
-      opacity: 0.45;
+    .timer-wrap.timer-warning .timer-label,
+    .timer-wrap.timer-warning .timer-label i,
+    .timer-wrap.timer-warning #timerText,
+    .timer-wrap.timer-warning .timer-unit {
+      color: #8a4c00;
+      text-shadow: 0 2px 0 rgba(255,255,255,0.5);
     }
 
-    .timer-bar.timer-warning {
-      background:
-        linear-gradient(180deg, rgba(255,255,255,0.5), rgba(255,255,255,0) 46%),
-        repeating-linear-gradient(135deg, rgba(255,255,255,0.16) 0 8px, transparent 8px 16px),
-        linear-gradient(90deg, #fff4bc 0%, #ffd86b 50%, #ffbf3f 100%);
-      box-shadow: 0 0 18px rgba(255, 211, 84, 0.28);
+    .timer-wrap.timer-critical .timer-robot {
+      filter:
+        drop-shadow(0 18px 22px rgba(98, 21, 38, 0.28))
+        saturate(1.1)
+        brightness(0.96);
+      animation: timerPulse 0.85s ease-in-out infinite;
     }
 
-    .timer-bar.timer-critical {
-      background:
-        linear-gradient(180deg, rgba(255,255,255,0.46), rgba(255,255,255,0) 46%),
-        repeating-linear-gradient(135deg, rgba(255,255,255,0.14) 0 8px, transparent 8px 16px),
-        linear-gradient(90deg, #ffc0c7 0%, #ff748e 48%, #ff4d6d 100%);
-      box-shadow: 0 0 18px rgba(255, 91, 118, 0.34);
+    .timer-wrap.timer-critical .timer-display {
+      background: rgba(255, 199, 206, 0.98);
+      box-shadow:
+        0 0 0 3px rgba(255, 87, 112, 0.18),
+        0 10px 18px rgba(98, 21, 38, 0.18);
     }
 
-    .timer-wrap.timer-warning {
-      background:
-        radial-gradient(circle at 12% 0%, rgba(255,255,255,0.22), transparent 30%),
-        linear-gradient(135deg, rgba(99, 67, 7, 0.98), rgba(209, 141, 24, 0.96));
-      box-shadow: 0 20px 44px rgba(223, 150, 0, 0.18);
-    }
-
-    .timer-wrap.timer-critical {
-      background:
-        radial-gradient(circle at 12% 0%, rgba(255,255,255,0.2), transparent 30%),
-        linear-gradient(135deg, rgba(98, 21, 38, 0.98), rgba(214, 54, 84, 0.96));
-      box-shadow: 0 20px 44px rgba(224, 54, 83, 0.2);
+    .timer-wrap.timer-critical .timer-label,
+    .timer-wrap.timer-critical .timer-label i,
+    .timer-wrap.timer-critical #timerText,
+    .timer-wrap.timer-critical .timer-unit {
+      color: #8f1530;
+      text-shadow: 0 2px 0 rgba(255,255,255,0.6);
     }
 
     .question-card {
@@ -508,6 +510,10 @@
       border: 2px solid rgba(255, 210, 60, 0.42);
       box-shadow: 0 16px 34px rgba(2, 16, 58, 0.08);
       margin-bottom: 18px;
+    }
+
+    #gameArea {
+      position: relative;
     }
 
     .question-label {
@@ -1044,9 +1050,14 @@
       to { transform: rotate(360deg); }
     }
 
-    @keyframes timerShine {
-      from { transform: translateX(-60%); }
-      to { transform: translateX(160%); }
+    @keyframes timerPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.025); }
+    }
+
+    @keyframes timerWarningZoom {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.12); }
     }
 
     @keyframes fadeIn {
@@ -1112,8 +1123,7 @@
       .result-area,
       .side-card,
       .result-card,
-      .question-card,
-      .timer-wrap {
+      .question-card {
         padding-left: 18px;
         padding-right: 18px;
       }
@@ -1127,9 +1137,12 @@
         align-items: flex-start;
       }
 
-      .timer-top {
-        flex-direction: column;
-        align-items: flex-start;
+      .timer-display {
+        min-height: 48px;
+      }
+
+      .timer-robot {
+        width: min(100%, 220px);
       }
 
       .result-title {
@@ -1160,6 +1173,209 @@
 
       .prize-kicker {
         justify-self: center;
+      }
+    }
+
+    @media (max-width: 640px) {
+      body {
+        background:
+          radial-gradient(circle at 50% 0%, rgba(15, 183, 255, 0.3), transparent 36%),
+          linear-gradient(135deg, var(--bg-1) 0%, var(--bg-2) 58%, var(--bg-3) 100%);
+      }
+
+      .play-page {
+        padding: 8px;
+      }
+
+      .play-page::before,
+      .orb,
+      .side-stack,
+      .brand-subtitle {
+        display: none;
+      }
+
+      .game-shell,
+      .content-grid {
+        gap: 10px;
+      }
+
+      .topbar {
+        flex-direction: row;
+        align-items: center;
+        padding: 10px;
+        gap: 10px;
+        border-radius: 8px;
+      }
+
+      .brand {
+        gap: 10px;
+      }
+
+      .brand-mark {
+        width: 42px;
+        height: 42px;
+        font-size: 1.12rem;
+      }
+
+      .brand-title {
+        font-size: 1.02rem;
+      }
+
+      .top-stats {
+        width: auto;
+        display: grid;
+        grid-template-columns: repeat(2, auto);
+        gap: 8px;
+        margin-left: auto;
+      }
+
+      .stat-pill {
+        justify-content: center;
+        min-height: 38px;
+        padding: 7px 9px;
+        font-size: 0.88rem;
+        white-space: nowrap;
+      }
+
+      .panel {
+        border-radius: 8px;
+      }
+
+      .panel-inner {
+        padding: 10px;
+      }
+
+      .question-banner {
+        flex-direction: row;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 8px;
+        min-height: 52px;
+        padding: 8px 10px;
+        padding-right: 112px;
+      }
+
+      .question-progress,
+      .question-tag {
+        font-size: 0.9rem;
+      }
+
+      .question-tag {
+        padding: 7px 9px;
+        white-space: nowrap;
+      }
+
+      .timer-wrap {
+        top: 4px;
+        right: 10px;
+        width: 104px;
+      }
+
+      .timer-display {
+        min-height: 30px;
+        padding: 3px 4px;
+        border-radius: 6px;
+      }
+
+      .timer-robot {
+        width: 96px;
+      }
+
+      .timer-label {
+        display: none;
+      }
+
+      #timerText {
+        min-width: 24px;
+        font-size: 1.32rem;
+      }
+
+      .question-card {
+        margin-bottom: 8px;
+        padding: 10px 12px;
+        padding-right: 12px;
+        border-width: 2px;
+      }
+
+      .question-label {
+        margin-bottom: 6px;
+        padding: 6px 9px;
+        font-size: 0.84rem;
+      }
+
+      .question-text {
+        font-size: 1.14rem;
+        line-height: 1.5;
+      }
+
+      .options-grid {
+        gap: 6px;
+      }
+
+      .option-btn {
+        min-height: 58px;
+        gap: 9px;
+        padding: 8px 10px;
+        border-width: 2px;
+      }
+
+      .option-label {
+        width: 36px;
+        height: 36px;
+        font-size: 0.94rem;
+      }
+
+      .option-text {
+        font-size: 0.94rem;
+        line-height: 1.36;
+      }
+
+      .player-intro,
+      .loading-panel {
+        min-height: calc(100dvh - 120px);
+      }
+
+      .player-card {
+        padding: 18px;
+      }
+
+      .player-icon {
+        width: 58px;
+        height: 58px;
+        margin-bottom: 12px;
+        font-size: 1.55rem;
+      }
+    }
+
+    @media (max-width: 380px) {
+      .brand-title {
+        display: none;
+      }
+
+      .topbar {
+        padding: 8px;
+      }
+
+      .timer-display {
+        min-height: 28px;
+        gap: 2px;
+      }
+
+      .timer-robot {
+        width: 84px;
+      }
+
+      #timerText {
+        min-width: 22px;
+        font-size: 1.16rem;
+      }
+
+      .question-text {
+        font-size: 1.06rem;
+      }
+
+      .option-btn {
+        min-height: 54px;
       }
     }
   </style>
@@ -1248,21 +1464,19 @@
             <div class="question-banner">
               <div class="question-progress">
                 <i class="bi bi-flag-fill"></i>
-                <span>คำถาม <span id="progressCurrent">1</span> จาก <span id="progressTotal">-</span></span>
-              </div>
-              <div class="question-tag" id="questionTag">
-                <i class="bi bi-lightning-charge-fill"></i>
-                <span>เตรียมพร้อม</span>
+                <span>คำถาม <span id="progressCurrent">1</span></span>
               </div>
             </div>
 
-            <div class="timer-wrap">
-              <div class="timer-top">
-                <div class="timer-text timer-title"><i class="bi bi-stopwatch-fill"></i> เวลาที่เหลือ</div>
-                <div class="timer-text timer-count"><i class="bi bi-hourglass-split"></i><span id="timerText">10</span> วินาที</div>
-              </div>
-              <div class="timer-bar-shell">
-                <div id="timerBar" class="timer-bar"></div>
+            <div class="timer-wrap" aria-label="เวลาที่เหลือ">
+              <div class="robot-timer">
+                <div class="timer-robot" aria-hidden="true">
+                  <img src="/coopgame/assets/illustrations/robot-timer.png" alt="">
+                  <div class="timer-display">
+                    <div class="timer-label"><i class="bi bi-stopwatch-fill"></i> เวลาที่เหลือ</div>
+                    <div class="timer-count"><span id="timerText">10</span><span class="timer-unit">วินาที</span></div>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -1575,11 +1789,6 @@
       }
     }
 
-    function getDifficultyText(difficulty) {
-      const texts = { easy: 'ง่าย', medium: 'ปานกลาง', hard: 'ยาก' };
-      return texts[difficulty] || 'ระดับคำถาม';
-    }
-
     function updateSharedStats() {
       const scoreEl = document.getElementById('score');
       const scoreSideEl = document.getElementById('scoreSide');
@@ -1692,18 +1901,10 @@
       document.getElementById('textC').textContent = question.options.C;
       document.getElementById('textD').textContent = question.options.D;
       document.getElementById('progressCurrent').textContent = question.questionNumber;
-      document.getElementById('progressTotal').textContent = question.totalQuestions || '-';
-
-      const questionTag = document.getElementById('questionTag');
-      if (questionTag) {
-        questionTag.innerHTML = `<i class="bi bi-lightning-charge-fill"></i><span>${getDifficultyText(question.difficulty)}</span>`;
-      }
 
       timeLeft = question.timeLimit;
       document.getElementById('timerText').textContent = timeLeft;
       document.getElementById('timerTextSide').textContent = timeLeft;
-      document.getElementById('timerBar').style.width = '100%';
-      document.getElementById('timerBar').className = 'timer-bar';
       const timerWrap = document.querySelector('.timer-wrap');
       if (timerWrap) {
         timerWrap.classList.remove('timer-warning', 'timer-critical');
@@ -1729,18 +1930,10 @@
         document.getElementById('timerText').textContent = timeLeft;
         document.getElementById('timerTextSide').textContent = timeLeft;
 
-        const percentage = (timeLeft / seconds) * 100;
-        document.getElementById('timerBar').style.width = percentage + '%';
         const timerWrap = document.querySelector('.timer-wrap');
         if (timerWrap) {
           timerWrap.classList.toggle('timer-warning', timeLeft <= 5 && timeLeft > 3);
           timerWrap.classList.toggle('timer-critical', timeLeft <= 3);
-        }
-
-        if (timeLeft <= 3) {
-          document.getElementById('timerBar').classList.add('timer-critical');
-        } else if (timeLeft <= 5) {
-          document.getElementById('timerBar').classList.add('timer-warning');
         }
 
         if (timeLeft <= 0) {
