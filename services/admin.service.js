@@ -16,6 +16,8 @@ const QUESTION_TIME_LIMITS = {
 const DEFAULT_GAME_SETTINGS = {
   gameEnabled: true,
   totalQuestions: 9,
+  randomQuestionOrderEnabled: true,
+  randomAnswerOrderEnabled: true,
   timeLimits: QUESTION_TIME_LIMITS,
   questionDistribution: {
     easy: 30,
@@ -229,6 +231,20 @@ class AdminService {
     }
   }
 
+  async addQuestionByCreator(questionData, creator) {
+    try {
+      const questionId = await questionModel.create({
+        ...questionData,
+        createdBy: creator
+      });
+      logger.info(`Added question ${questionId} by ${creator}`);
+      return { success: true, questionId };
+    } catch (error) {
+      logger.error('Error adding creator question:', error);
+      throw error;
+    }
+  }
+
   /**
    * Update question
    */
@@ -242,6 +258,20 @@ class AdminService {
       return { success: true };
     } catch (error) {
       logger.error('Error updating question:', error);
+      throw error;
+    }
+  }
+
+  async updateQuestionByCreator(id, questionData, creator) {
+    try {
+      const success = await questionModel.updateByCreator(id, creator, questionData);
+      if (!success) {
+        return { success: false, message: 'Question not found or access denied' };
+      }
+      logger.info(`Updated question ${id} by ${creator}`);
+      return { success: true };
+    } catch (error) {
+      logger.error('Error updating creator question:', error);
       throw error;
     }
   }
@@ -271,6 +301,28 @@ class AdminService {
     }
   }
 
+  async deleteQuestionByCreator(id, creator) {
+    try {
+      const result = await questionModel.deletePermanentlyByCreator(id, creator);
+      if (!result.deleted) {
+        return { success: false, message: 'Question not found or access denied' };
+      }
+
+      logger.info(
+        `Permanently deleted question ${id} by ${creator}, ` +
+        `${result.deletedAnswers} answers, ${result.deletedAttemptQuestions} attempt questions`
+      );
+      return {
+        success: true,
+        deletedAnswers: result.deletedAnswers,
+        deletedAttemptQuestions: result.deletedAttemptQuestions
+      };
+    } catch (error) {
+      logger.error('Error deleting creator question:', error);
+      throw error;
+    }
+  }
+
   /**
    * Get all questions
    */
@@ -286,6 +338,21 @@ class AdminService {
       return { success: true, questions };
     } catch (error) {
       logger.error('Error getting questions:', error);
+      throw error;
+    }
+  }
+
+  async getQuestionsByCreator(creator, difficulty = null) {
+    try {
+      let questions;
+      if (difficulty) {
+        questions = (await questionModel.getByCreator(creator)).filter(q => q.difficulty === difficulty);
+      } else {
+        questions = await questionModel.getByCreator(creator);
+      }
+      return { success: true, questions };
+    } catch (error) {
+      logger.error('Error getting creator questions:', error);
       throw error;
     }
   }
@@ -802,6 +869,14 @@ class AdminService {
         'questionDistribution',
         DEFAULT_GAME_SETTINGS.questionDistribution
       );
+      const randomQuestionOrderEnabled = await gameSettingModel.getValue(
+        'randomQuestionOrderEnabled',
+        DEFAULT_GAME_SETTINGS.randomQuestionOrderEnabled
+      );
+      const randomAnswerOrderEnabled = await gameSettingModel.getValue(
+        'randomAnswerOrderEnabled',
+        DEFAULT_GAME_SETTINGS.randomAnswerOrderEnabled
+      );
       const timeLimits = this.normalizeQuestionTimeLimits(savedTimeLimits);
       const questionDistribution = this.normalizeQuestionDistribution(savedQuestionDistribution);
 
@@ -812,6 +887,8 @@ class AdminService {
             ? parseInt(totalQuestions, 10)
             : DEFAULT_GAME_SETTINGS.totalQuestions,
           gameEnabled: gameEnabled !== false,
+          randomQuestionOrderEnabled: randomQuestionOrderEnabled !== false,
+          randomAnswerOrderEnabled: randomAnswerOrderEnabled !== false,
           timeLimits,
           questionDistribution
         }
@@ -857,6 +934,8 @@ class AdminService {
     try {
       const totalQuestions = parseInt(settingsData.totalQuestions, 10);
       const gameEnabled = settingsData.gameEnabled !== false;
+      const randomQuestionOrderEnabled = settingsData.randomQuestionOrderEnabled !== false;
+      const randomAnswerOrderEnabled = settingsData.randomAnswerOrderEnabled !== false;
       const rawTimeLimits = settingsData.timeLimits || {};
       const rawQuestionDistribution = settingsData.questionDistribution || {};
       const timeLimits = {
@@ -905,6 +984,8 @@ class AdminService {
 
       await gameSettingModel.set('gameEnabled', gameEnabled);
       await gameSettingModel.set('totalQuestions', totalQuestions);
+      await gameSettingModel.set('randomQuestionOrderEnabled', randomQuestionOrderEnabled);
+      await gameSettingModel.set('randomAnswerOrderEnabled', randomAnswerOrderEnabled);
       await gameSettingModel.set('questionTimeLimits', timeLimits);
       await gameSettingModel.set('questionDistribution', questionDistribution);
 
@@ -922,6 +1003,8 @@ class AdminService {
       logger.info(
         `Updated game settings: totalQuestions=${totalQuestions}, ` +
         `gameEnabled=${gameEnabled}, ` +
+        `randomQuestionOrderEnabled=${randomQuestionOrderEnabled}, ` +
+        `randomAnswerOrderEnabled=${randomAnswerOrderEnabled}, ` +
         `timeLimits=${JSON.stringify(timeLimits)}, ` +
         `questionDistribution=${JSON.stringify(questionDistribution)}`
       );
@@ -931,6 +1014,8 @@ class AdminService {
         settings: {
           totalQuestions,
           gameEnabled,
+          randomQuestionOrderEnabled,
+          randomAnswerOrderEnabled,
           timeLimits,
           questionDistribution
         }

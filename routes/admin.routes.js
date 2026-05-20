@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const adminController = require('../controllers/admin.controller');
-const { adminAuthMiddleware } = require('../utils/adminAuth');
+const { adminAuthMiddleware, adminRoleMiddleware } = require('../utils/adminAuth');
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -21,8 +21,19 @@ router.use(adminAuthMiddleware);
 
 // Page routes (render views)
 router.get('/questions', (req, res) => {
-  res.render('admin/questions', { title: 'จัดการคำถาม', adminUser: res.locals.adminUser });
+  const isAssistant = res.locals.adminUser?.role === 'assistant';
+  const viewName = isAssistant ? 'admin/questions-assistant' : 'admin/questions';
+  res.render(viewName, { title: 'จัดการคำถาม', adminUser: res.locals.adminUser });
 });
+
+// Question assistant role can only add questions
+router.post('/api/questions', adminController.addQuestion);
+router.get('/api/questions', adminController.getQuestions);
+router.put('/api/questions/:id', adminController.updateQuestion);
+router.delete('/api/questions/:id', adminController.deleteQuestion);
+
+// The following routes are for full admin only
+router.use(adminRoleMiddleware(['admin']));
 
 router.get('/codes', (req, res) => {
   res.render('admin/codes', { title: 'จัดการรหัส', adminUser: res.locals.adminUser });
@@ -48,12 +59,8 @@ router.post('/api/history/clear', adminController.clearPlayerHistory);
 router.delete('/api/codes/:id', adminController.deleteCode);
 
 // Question management
-router.post('/api/questions', adminController.addQuestion);
 router.post('/api/questions/import-docx', upload.single('file'), adminController.importQuestionsFromDocx);
 router.post('/api/questions/import-text', adminController.importQuestionsFromText);
-router.get('/api/questions', adminController.getQuestions);
-router.put('/api/questions/:id', adminController.updateQuestion);
-router.delete('/api/questions/:id', adminController.deleteQuestion);
 router.get('/api/questions/stats', adminController.getQuestionStats);
 router.get('/api/game-settings', adminController.getGameSettings);
 router.put('/api/game-settings', adminController.updateGameSettings);

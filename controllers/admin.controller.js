@@ -2,6 +2,7 @@ const adminService = require('../services/admin.service');
 const { success, error, validationError, notFound } = require('../utils/response');
 const {
   clearAdminAuthCookie,
+  getAdminSession,
   isAdminAuthenticated,
   setAdminAuthCookie,
   verifyAdminCredentials
@@ -12,7 +13,8 @@ class AdminController {
   // Show login page
   async showLogin(req, res) {
     if (isAdminAuthenticated(req)) {
-      return res.redirect('/coopgame/admin');
+      const session = getAdminSession(req);
+      return res.redirect(session?.role === 'assistant' ? '/coopgame/admin/questions' : '/coopgame/admin');
     }
 
     return res.render('admin/login', {
@@ -36,7 +38,9 @@ class AdminController {
         });
       }
 
-      if (!verifyAdminCredentials(username, password)) {
+      const user = verifyAdminCredentials(username, password);
+
+      if (!user) {
         return res.status(401).render('admin/login', {
           title: 'Admin Login',
           error: 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง',
@@ -44,8 +48,8 @@ class AdminController {
         });
       }
 
-      setAdminAuthCookie(res, username, req);
-      return res.redirect('/coopgame/admin');
+      setAdminAuthCookie(res, user, req);
+      return res.redirect(user.role === 'assistant' ? '/coopgame/admin/questions' : '/coopgame/admin');
     } catch (err) {
       logger.error('Error logging in admin:', err);
       return res.status(500).render('admin/login', {
@@ -290,8 +294,17 @@ class AdminController {
         return validationError(res, errors);
       }
 
-      const gameSettings = await adminService.getGameSettings();
-      const timeLimit = gameSettings.settings.timeLimits[difficulty];
+      let timeLimit = adminService.resolveQuestionTimeLimit(difficulty);
+
+      try {
+        const gameSettings = await adminService.getGameSettings();
+        const configuredTimeLimit = parseInt(gameSettings?.settings?.timeLimits?.[difficulty], 10);
+        if (Number.isInteger(configuredTimeLimit) && configuredTimeLimit >= 5 && configuredTimeLimit <= 300) {
+          timeLimit = configuredTimeLimit;
+        }
+      } catch (settingsError) {
+        logger.warn('Unable to load game settings while adding question, using default time limit:', settingsError);
+      }
 
       const questionData = {
         questionText,
@@ -304,10 +317,22 @@ class AdminController {
         timeLimit
       };
 
-      const result = await adminService.addQuestion(questionData);
+      const isAssistant = res.locals.adminUser?.role === 'assistant';
+      const result = isAssistant
+        ? await adminService.addQuestionByCreator(questionData, res.locals.adminUser.username)
+        : await adminService.addQuestion(questionData);
       success(res, { questionId: result.questionId }, 'Question added successfully');
     } catch (err) {
       logger.error('Error adding question:', err);
+
+      if (err && err.code === 'NO_ROOMS_AVAILABLE') {
+        return error(res, 'ยังไม่มีห้องในระบบ กรุณาตั้งค่าห้องก่อนเพิ่มคำถาม');
+      }
+
+      if (err && err.code === 'ER_NO_REFERENCED_ROW_2') {
+        return error(res, 'ไม่พบห้องที่อ้างอิงอยู่ในระบบ กรุณาตรวจสอบข้อมูลห้อง');
+      }
+
       error(res, 'Failed to add question');
     }
   }
@@ -316,7 +341,10 @@ class AdminController {
   async getQuestions(req, res) {
     try {
       const { difficulty } = req.query;
-      const result = await adminService.getQuestions(difficulty || null);
+      const isAssistant = res.locals.adminUser?.role === 'assistant';
+      const result = isAssistant
+        ? await adminService.getQuestionsByCreator(res.locals.adminUser.username, difficulty || null)
+        : await adminService.getQuestions(difficulty || null);
       success(res, result.questions, 'Questions retrieved successfully');
     } catch (err) {
       logger.error('Error getting questions:', err);
@@ -343,7 +371,10 @@ class AdminController {
         timeLimit: (await adminService.getGameSettings()).settings.timeLimits[req.body.difficulty]
       };
 
-      const result = await adminService.updateQuestion(parseInt(id), questionData);
+      const isAssistant = res.locals.adminUser?.role === 'assistant';
+      const result = isAssistant
+        ? await adminService.updateQuestionByCreator(parseInt(id), questionData, res.locals.adminUser.username)
+        : await adminService.updateQuestion(parseInt(id), questionData);
       
       if (!result.success) {
         return notFound(res, 'Question not found');
@@ -360,7 +391,10 @@ class AdminController {
   async deleteQuestion(req, res) {
     try {
       const { id } = req.params;
-      const result = await adminService.deleteQuestion(parseInt(id));
+      const isAssistant = res.locals.adminUser?.role === 'assistant';
+      const result = isAssistant
+        ? await adminService.deleteQuestionByCreator(parseInt(id), res.locals.adminUser.username)
+        : await adminService.deleteQuestion(parseInt(id));
 
       if (!result.success) {
         return notFound(res, 'Question not found');

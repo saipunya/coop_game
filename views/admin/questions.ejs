@@ -461,6 +461,22 @@
         </div>
         <div class="settings-grid">
           <div class="form-group">
+            <label for="randomQuestionOrderSwitch"><i class="bi bi-shuffle me-1"></i>สุ่มสลับลำดับข้อ</label>
+            <div class="form-check form-switch status-switch" style="min-height:46px;">
+              <input class="form-check-input" type="checkbox" role="switch" id="randomQuestionOrderSwitch" checked>
+              <label class="form-check-label" for="randomQuestionOrderSwitch" id="randomQuestionOrderLabel">เปิดการสุ่มข้อ</label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="randomAnswerOrderSwitch"><i class="bi bi-arrow-left-right me-1"></i>สุ่มสลับตัวเลือกคำตอบ</label>
+            <div class="form-check form-switch status-switch" style="min-height:46px;">
+              <input class="form-check-input" type="checkbox" role="switch" id="randomAnswerOrderSwitch" checked>
+              <label class="form-check-label" for="randomAnswerOrderSwitch" id="randomAnswerOrderLabel">เปิดการสุ่มคำตอบ</label>
+            </div>
+          </div>
+        </div>
+        <div class="settings-grid">
+          <div class="form-group">
             <label><i class="bi bi-diagram-3 me-1"></i>ตัวอย่างจำนวนข้อจากสัดส่วน</label>
             <div id="distributionPreview" class="distribution-preview"></div>
           </div>
@@ -708,15 +724,95 @@
         </table>
       </div>
     </section>
+
+    <div class="modal fade" id="editQuestionModal" tabindex="-1" aria-labelledby="editQuestionModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content" style="border-radius: 18px; border: 1px solid #dcedc8;">
+          <div class="modal-header" style="background: #f5fbf4; border-bottom: 1px solid #dcedc8;">
+            <h5 class="modal-title" id="editQuestionModalLabel" style="font-weight:800; color:#1b5e20;">
+              <i class="bi bi-pencil-square me-2" style="color:#43a047;"></i>แก้ไขคำถาม
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <form id="editQuestionForm">
+            <div class="modal-body">
+              <input type="hidden" id="editQuestionId" value="">
+
+              <div class="form-group">
+                <label for="editQuestionText"><i class="bi bi-question-circle me-1"></i>คำถาม</label>
+                <textarea id="editQuestionText" class="form-control" placeholder="พิมพ์คำถามที่นี่..." required></textarea>
+              </div>
+
+              <div class="option-grid">
+                <div class="form-group">
+                  <label>ตัวเลือก ก</label>
+                  <div class="option-input">
+                    <input type="radio" name="editCorrectAnswer" value="A" id="editAnswerA" required>
+                    <input type="text" id="editOptionA" class="form-control" placeholder="ตัวเลือก ก" required>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label>ตัวเลือก ข</label>
+                  <div class="option-input">
+                    <input type="radio" name="editCorrectAnswer" value="B" id="editAnswerB">
+                    <input type="text" id="editOptionB" class="form-control" placeholder="ตัวเลือก ข" required>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label>ตัวเลือก ค</label>
+                  <div class="option-input">
+                    <input type="radio" name="editCorrectAnswer" value="C" id="editAnswerC">
+                    <input type="text" id="editOptionC" class="form-control" placeholder="ตัวเลือก ค" required>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label>ตัวเลือก ง</label>
+                  <div class="option-input">
+                    <input type="radio" name="editCorrectAnswer" value="D" id="editAnswerD">
+                    <input type="text" id="editOptionD" class="form-control" placeholder="ตัวเลือก ง" required>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="editDifficulty"><i class="bi bi-speedometer2 me-1"></i>ระดับความยาก</label>
+                  <select id="editDifficulty" class="form-select" required>
+                    <option value="">-- เลือกระดับ --</option>
+                    <option value="easy">ง่าย</option>
+                    <option value="medium">ปานกลาง</option>
+                    <option value="hard">ยาก</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label><i class="bi bi-stopwatch me-1"></i>เวลาตอบตามระดับ</label>
+                  <div id="editTimeLimitDisplay" class="time-limit-display">15 วินาที</div>
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer" style="border-top: 1px solid #dcedc8;">
+              <button type="button" class="btn btn-outline-success" data-bs-dismiss="modal">
+                <i class="bi bi-x-circle"></i> ยกเลิก
+              </button>
+              <button type="submit" class="btn" style="background: linear-gradient(135deg, #43a047 0%, #66bb6a 100%); color: white; border: none;">
+                <i class="bi bi-save"></i> บันทึกการแก้ไข
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script>
     let questions = [];
-    let editingId = null;
+    let editQuestionModal = null;
     let gameSettings = {
       gameEnabled: true,
       totalQuestions: 9,
+      randomQuestionOrderEnabled: true,
+      randomAnswerOrderEnabled: true,
       timeLimits: {
         easy: 15,
         medium: 20,
@@ -742,7 +838,14 @@
     };
 
     document.addEventListener('DOMContentLoaded', () => {
+      const modalElement = document.getElementById('editQuestionModal');
+      if (modalElement) {
+        editQuestionModal = new bootstrap.Modal(modalElement);
+      }
+
       setGameEnabledSwitch(gameSettings.gameEnabled);
+      setRandomQuestionOrderSwitch(gameSettings.randomQuestionOrderEnabled);
+      setRandomAnswerOrderSwitch(gameSettings.randomAnswerOrderEnabled);
       setTimeLimitInputs(gameSettings.timeLimits);
       setDistributionInputs(gameSettings.questionDistribution);
       renderTimeSettingsPreview();
@@ -750,6 +853,27 @@
       loadStats();
       loadGameSettings();
       updateQuestionTimeLimit(document.getElementById('difficulty').value || 'easy');
+
+      const randomQuestionOrderSwitch = document.getElementById('randomQuestionOrderSwitch');
+      if (randomQuestionOrderSwitch) {
+        randomQuestionOrderSwitch.addEventListener('change', () => {
+          setRandomQuestionOrderSwitch(randomQuestionOrderSwitch.checked);
+        });
+      }
+
+      const randomAnswerOrderSwitch = document.getElementById('randomAnswerOrderSwitch');
+      if (randomAnswerOrderSwitch) {
+        randomAnswerOrderSwitch.addEventListener('change', () => {
+          setRandomAnswerOrderSwitch(randomAnswerOrderSwitch.checked);
+        });
+      }
+
+      const editDifficulty = document.getElementById('editDifficulty');
+      if (editDifficulty) {
+        editDifficulty.addEventListener('change', (e) => {
+          updateEditQuestionTimeLimit(e.target.value || 'easy');
+        });
+      }
     });
 
     async function loadQuestions() {
@@ -776,10 +900,14 @@
         if (result.success && result.data) {
           gameSettings.gameEnabled = result.data.gameEnabled !== false;
           gameSettings.totalQuestions = parseInt(result.data.totalQuestions, 10) || 9;
+          gameSettings.randomQuestionOrderEnabled = result.data.randomQuestionOrderEnabled !== false;
+          gameSettings.randomAnswerOrderEnabled = result.data.randomAnswerOrderEnabled !== false;
           gameSettings.timeLimits = normalizeTimeLimits(result.data.timeLimits);
           gameSettings.questionDistribution = normalizeQuestionDistribution(result.data.questionDistribution);
           document.getElementById('gameTotalQuestions').value = gameSettings.totalQuestions;
           setGameEnabledSwitch(gameSettings.gameEnabled);
+          setRandomQuestionOrderSwitch(gameSettings.randomQuestionOrderEnabled);
+          setRandomAnswerOrderSwitch(gameSettings.randomAnswerOrderEnabled);
           setTimeLimitInputs(gameSettings.timeLimits);
           setDistributionInputs(gameSettings.questionDistribution);
           renderDistributionPreview(gameSettings.totalQuestions);
@@ -790,6 +918,8 @@
       } catch (error) {
         console.error('Error loading game settings:', error);
         setGameEnabledSwitch(gameSettings.gameEnabled);
+        setRandomQuestionOrderSwitch(gameSettings.randomQuestionOrderEnabled);
+        setRandomAnswerOrderSwitch(gameSettings.randomAnswerOrderEnabled);
         document.getElementById('gameTotalQuestions').value = gameSettings.totalQuestions;
         setTimeLimitInputs(gameSettings.timeLimits);
         setDistributionInputs(gameSettings.questionDistribution);
@@ -914,6 +1044,26 @@
       labelEl.style.color = switchEl.checked ? 'var(--green-700)' : '#b42318';
     }
 
+    function setRandomQuestionOrderSwitch(isEnabled) {
+      const switchEl = document.getElementById('randomQuestionOrderSwitch');
+      const labelEl = document.getElementById('randomQuestionOrderLabel');
+      if (!switchEl || !labelEl) return;
+
+      switchEl.checked = Boolean(isEnabled);
+      labelEl.textContent = switchEl.checked ? 'เปิดการสุ่มข้อ' : 'ปิดการสุ่มข้อ';
+      labelEl.style.color = switchEl.checked ? 'var(--green-700)' : '#b42318';
+    }
+
+    function setRandomAnswerOrderSwitch(isEnabled) {
+      const switchEl = document.getElementById('randomAnswerOrderSwitch');
+      const labelEl = document.getElementById('randomAnswerOrderLabel');
+      if (!switchEl || !labelEl) return;
+
+      switchEl.checked = Boolean(isEnabled);
+      labelEl.textContent = switchEl.checked ? 'เปิดการสุ่มคำตอบ' : 'ปิดการสุ่มคำตอบ';
+      labelEl.style.color = switchEl.checked ? 'var(--green-700)' : '#b42318';
+    }
+
     function normalizeQuestionDistribution(questionDistribution = {}) {
       const normalized = ['easy', 'medium', 'hard'].reduce((result, difficulty) => {
         const parsed = parseInt(questionDistribution[difficulty], 10);
@@ -973,6 +1123,13 @@
       }
     }
 
+    function updateEditQuestionTimeLimit(difficulty) {
+      const timeLimitDisplay = document.getElementById('editTimeLimitDisplay');
+      if (timeLimitDisplay) {
+        timeLimitDisplay.textContent = `${getTimeLimitByDifficulty(difficulty)} วินาที`;
+      }
+    }
+
     function getDifficultyText(diff) {
       const texts = { easy: 'ง่าย', medium: 'ปานกลาง', hard: 'ยาก' };
       return texts[diff] || diff;
@@ -988,6 +1145,7 @@
       const filterDiff = document.getElementById('filterDifficulty').value;
       const filterStat = document.getElementById('filterStatus').value;
       const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+      const difficultyOrder = { easy: 1, medium: 2, hard: 3 };
 
       const filtered = questions.filter(q => {
         if (filterDiff && q.difficulty !== filterDiff) return false;
@@ -995,6 +1153,10 @@
         if (filterStat === 'inactive' && q.is_active) return false;
         if (searchTerm && !String(q.question_text || '').toLowerCase().includes(searchTerm)) return false;
         return true;
+      }).sort((a, b) => {
+        const difficultyDiff = (difficultyOrder[a.difficulty] || 99) - (difficultyOrder[b.difficulty] || 99);
+        if (difficultyDiff !== 0) return difficultyDiff;
+        return (a.id || 0) - (b.id || 0);
       });
 
       if (filtered.length === 0) {
@@ -1054,6 +1216,8 @@
       e.preventDefault();
 
       const gameEnabled = document.getElementById('gameEnabledSwitch').checked;
+      const randomQuestionOrderEnabled = document.getElementById('randomQuestionOrderSwitch').checked;
+      const randomAnswerOrderEnabled = document.getElementById('randomAnswerOrderSwitch').checked;
       const totalQuestions = parseInt(document.getElementById('gameTotalQuestions').value, 10);
       const timeLimits = getTimeLimitsFromInputs();
       const questionDistribution = getDistributionFromInputs();
@@ -1078,16 +1242,27 @@
         const response = await fetch('/coopgame/admin/api/game-settings', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ gameEnabled, totalQuestions, timeLimits, questionDistribution })
+          body: JSON.stringify({
+            gameEnabled,
+            totalQuestions,
+            randomQuestionOrderEnabled,
+            randomAnswerOrderEnabled,
+            timeLimits,
+            questionDistribution
+          })
         });
         const result = await response.json();
 
         if (result.success) {
           gameSettings.gameEnabled = result.data?.gameEnabled !== false;
           gameSettings.totalQuestions = totalQuestions;
+          gameSettings.randomQuestionOrderEnabled = result.data?.randomQuestionOrderEnabled !== false;
+          gameSettings.randomAnswerOrderEnabled = result.data?.randomAnswerOrderEnabled !== false;
           gameSettings.timeLimits = normalizeTimeLimits(result.data?.timeLimits || timeLimits);
           gameSettings.questionDistribution = normalizeQuestionDistribution(result.data?.questionDistribution || questionDistribution);
           setGameEnabledSwitch(gameSettings.gameEnabled);
+          setRandomQuestionOrderSwitch(gameSettings.randomQuestionOrderEnabled);
+          setRandomAnswerOrderSwitch(gameSettings.randomAnswerOrderEnabled);
           setTimeLimitInputs(gameSettings.timeLimits);
           setDistributionInputs(gameSettings.questionDistribution);
           renderDistributionPreview(totalQuestions);
@@ -1124,13 +1299,8 @@
       }
 
       try {
-        const url = editingId
-          ? `/coopgame/admin/api/questions/${editingId}`
-          : '/coopgame/admin/api/questions';
-        const method = editingId ? 'PUT' : 'POST';
-
-        const response = await fetch(url, {
-          method,
+        const response = await fetch('/coopgame/admin/api/questions', {
+          method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(formData)
         });
@@ -1138,7 +1308,7 @@
         const result = await response.json();
 
         if (result.success) {
-          const successMessage = editingId ? '✅ แก้ไขคำถามสำเร็จ' : '✅ เพิ่มคำถามสำเร็จ';
+          const successMessage = '✅ เพิ่มคำถามสำเร็จ';
           resetForm();
           await loadQuestions();
           await loadStats();
@@ -1156,24 +1326,69 @@
       const q = questions.find(item => item.id === id);
       if (!q) return;
 
-      editingId = id;
-      document.getElementById('formTitle').innerHTML = '<i class="bi bi-pencil-square me-2" style="color:#43a047;"></i>แก้ไขคำถาม';
-      document.getElementById('submitBtn').innerHTML = '<i class="bi bi-save"></i> บันทึกการแก้ไข';
-      document.getElementById('cancelBtn').style.display = 'inline-block';
-
-      document.getElementById('questionId').value = id;
-      document.getElementById('questionText').value = q.question_text || '';
-      document.getElementById('optionA').value = q.option_a || '';
-      document.getElementById('optionB').value = q.option_b || '';
-      document.getElementById('optionC').value = q.option_c || '';
-      document.getElementById('optionD').value = q.option_d || '';
-      const answer = document.getElementById(`answer${q.correct_answer}`);
+      document.getElementById('editQuestionId').value = id;
+      document.getElementById('editQuestionText').value = q.question_text || '';
+      document.getElementById('editOptionA').value = q.option_a || '';
+      document.getElementById('editOptionB').value = q.option_b || '';
+      document.getElementById('editOptionC').value = q.option_c || '';
+      document.getElementById('editOptionD').value = q.option_d || '';
+      const answer = document.getElementById(`editAnswer${q.correct_answer}`);
       if (answer) answer.checked = true;
-      document.getElementById('difficulty').value = q.difficulty || '';
-      updateQuestionTimeLimit(q.difficulty || 'easy');
+      document.getElementById('editDifficulty').value = q.difficulty || '';
+      updateEditQuestionTimeLimit(q.difficulty || 'easy');
 
-      document.querySelector('.panel').scrollIntoView({ behavior: 'smooth' });
+      if (editQuestionModal) {
+        editQuestionModal.show();
+      }
     }
+
+    document.getElementById('editQuestionForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const id = parseInt(document.getElementById('editQuestionId').value, 10);
+      if (!id) {
+        alert('ไม่พบรหัสคำถามที่ต้องการแก้ไข');
+        return;
+      }
+
+      const formData = {
+        questionText: document.getElementById('editQuestionText').value,
+        optionA: document.getElementById('editOptionA').value,
+        optionB: document.getElementById('editOptionB').value,
+        optionC: document.getElementById('editOptionC').value,
+        optionD: document.getElementById('editOptionD').value,
+        correctAnswer: document.querySelector('input[name="editCorrectAnswer"]:checked')?.value,
+        difficulty: document.getElementById('editDifficulty').value
+      };
+
+      if (!formData.correctAnswer) {
+        alert('กรุณาเลือกคำตอบที่ถูกต้อง');
+        return;
+      }
+
+      try {
+        const response = await fetch(`/coopgame/admin/api/questions/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData)
+        });
+
+        const result = await response.json();
+        if (result.success) {
+          if (editQuestionModal) {
+            editQuestionModal.hide();
+          }
+          await loadQuestions();
+          await loadStats();
+          alert('✅ แก้ไขคำถามสำเร็จ');
+        } else {
+          alert('❌ ' + result.message);
+        }
+      } catch (error) {
+        console.error('Error updating question:', error);
+        alert('เกิดข้อผิดพลาด กรุณาลองใหม่');
+      }
+    });
 
     async function toggleQuestionStatus(id, switchEl) {
       const q = questions.find(item => item.id === id);
@@ -1232,7 +1447,6 @@
     }
 
     function resetForm() {
-      editingId = null;
       document.getElementById('formTitle').innerHTML = '<i class="bi bi-plus-circle me-2" style="color:#43a047;"></i>เพิ่มคำถามใหม่';
       document.getElementById('submitBtn').innerHTML = '<i class="bi bi-save"></i> บันทึกคำถาม';
       document.getElementById('cancelBtn').style.display = 'none';

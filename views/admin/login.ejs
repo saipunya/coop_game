@@ -93,7 +93,7 @@
                   name="username"
                   class="form-control"
                   value="<%= username || '' %>"
-                  placeholder="admin"
+                  placeholder="ชื่อผู้ใช้ของคุณ"
                   autocomplete="username"
                   required
                 >
@@ -108,7 +108,7 @@
                   id="password"
                   name="password"
                   class="form-control"
-                  placeholder="••••••••"
+                  placeholder="รหัสผ่านของคุณ"
                   autocomplete="current-password"
                   required
                 >
@@ -118,6 +118,12 @@
                 <button type="submit" class="btn btn-login text-white">
                   <i class="bi bi-box-arrow-in-right"></i> เข้าสู่ระบบ
                 </button>
+              </div>
+
+              <div class="d-grid">
+                <a href="/coopgame/game/start" class="btn btn-outline-success">
+                  <i class="bi bi-arrow-left-circle"></i> กลับหน้าหลักเล่นเกม
+                </a>
               </div>
             </form>
 
@@ -130,7 +136,7 @@
 
             <div class="text-center mt-3">
               <small class="text-muted">
-                <i class="bi bi-info-circle"></i> หากยังไม่ได้ตั้งค่า `ADMIN_USERNAME` และ `ADMIN_PASSWORD` จะใช้ค่าดีฟอลต์จากระบบ
+                <i class="bi bi-info-circle"></i> หากคุณลืมรหัสผ่าน กรุณาติดต่อผู้ดูแลระบบ
               </small>
             </div>
           </div>

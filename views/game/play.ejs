@@ -183,6 +183,43 @@
       align-items: start;
     }
 
+    .admin-preview-strip {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(236, 247, 255, 0.88));
+      border: 1px solid rgba(114, 233, 255, 0.36);
+      box-shadow: 0 14px 28px rgba(2, 16, 58, 0.14);
+    }
+
+    .admin-preview-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-weight: 800;
+      font-size: 0.9rem;
+      border: 1px solid transparent;
+      color: #0b2f6e;
+      background: rgba(255, 255, 255, 0.84);
+    }
+
+    .admin-preview-badge.is-on {
+      color: #0f5132;
+      border-color: rgba(32, 198, 107, 0.45);
+      background: rgba(223, 255, 238, 0.9);
+    }
+
+    .admin-preview-badge.is-off {
+      color: #7a2e0a;
+      border-color: rgba(255, 174, 22, 0.48);
+      background: rgba(255, 240, 215, 0.92);
+    }
+
     .panel {
       border-radius: 8px;
       background: var(--card);
@@ -1080,6 +1117,14 @@
         grid-template-columns: 1fr;
       }
 
+      .admin-preview-strip {
+        padding: 10px;
+      }
+
+      .admin-preview-badge {
+        font-size: 0.84rem;
+      }
+
       .topbar {
         flex-direction: column;
         align-items: flex-start;
@@ -1404,6 +1449,20 @@
         </div>
       </header>
 
+      <% if (isAdminPlay) { %>
+      <section class="admin-preview-strip fade-in" aria-label="Admin preview settings">
+        <div class="question-tag"><i class="bi bi-shield-check"></i> โหมดทดสอบผู้ดูแล</div>
+        <div class="admin-preview-badge <%= adminPreviewSettings?.randomQuestionOrderEnabled !== false ? 'is-on' : 'is-off' %>">
+          <i class="bi bi-shuffle"></i>
+          <span>สุ่มลำดับข้อ: <%= adminPreviewSettings?.randomQuestionOrderEnabled !== false ? 'เปิด' : 'ปิด' %></span>
+        </div>
+        <div class="admin-preview-badge <%= adminPreviewSettings?.randomAnswerOrderEnabled !== false ? 'is-on' : 'is-off' %>">
+          <i class="bi bi-arrow-left-right"></i>
+          <span>สุ่มคำตอบ: <%= adminPreviewSettings?.randomAnswerOrderEnabled !== false ? 'เปิด' : 'ปิด' %></span>
+        </div>
+      </section>
+      <% } %>
+
       <div class="content-grid">
         <section class="panel fade-in">
           <div id="playerIntro" class="player-intro panel-inner hidden">
@@ -1688,12 +1747,6 @@
     });
 
     if (hasPlayerInfo) {
-      if (isAdminPlay) {
-        document.getElementById('gameArea').insertAdjacentHTML(
-          'beforebegin',
-          '<div class="panel-inner" style="padding-top:0"><div class="question-tag" style="margin-bottom:14px"><i class="bi bi-shield-check"></i> โหมดทดสอบผู้ดูแล: ไม่ต้องกรอกชื่อหรือเบอร์ และไม่ถูกนำไปจัดอันดับ</div></div>'
-        );
-      }
       showLoadingPanel();
       loadQuestion();
     } else {

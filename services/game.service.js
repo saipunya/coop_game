@@ -13,6 +13,10 @@ const DEFAULT_QUESTION_DISTRIBUTION = {
   medium: 35,
   hard: 35
 };
+const DEFAULT_RANDOM_SETTINGS = {
+  randomQuestionOrderEnabled: true,
+  randomAnswerOrderEnabled: true
+};
 
 class GameService {
   /**
@@ -76,7 +80,11 @@ class GameService {
         connection,
         gameCode.id,
         gameSettings.totalQuestions,
-        gameSettings.questionDistribution
+        gameSettings.questionDistribution,
+        {
+          randomQuestionOrderEnabled: gameSettings.randomQuestionOrderEnabled,
+          randomAnswerOrderEnabled: gameSettings.randomAnswerOrderEnabled
+        }
       );
 
       if (!result.success) {
@@ -101,8 +109,15 @@ class GameService {
     }
   }
 
-  async createGameAttempt(connection, gameCodeId, totalQuestions, questionDistribution = DEFAULT_QUESTION_DISTRIBUTION) {
+  async createGameAttempt(
+    connection,
+    gameCodeId,
+    totalQuestions,
+    questionDistribution = DEFAULT_QUESTION_DISTRIBUTION,
+    randomSettings = DEFAULT_RANDOM_SETTINGS
+  ) {
     const query = connection || pool;
+    const normalizedRandomSettings = this.normalizeRandomSettings(randomSettings);
 
     await query.query(
       'UPDATE game_codes SET status = ?, used_at = NOW() WHERE id = ?',
@@ -117,14 +132,21 @@ class GameService {
     const attemptId = attemptResult.insertId;
     logger.info(`Created attempt ${attemptId} for game code ${gameCodeId}`);
 
-    const questions = await this.selectRandomQuestions(connection, totalQuestions, questionDistribution);
+    const questions = await this.selectRandomQuestions(
+      connection,
+      totalQuestions,
+      questionDistribution,
+      normalizedRandomSettings.randomQuestionOrderEnabled
+    );
 
     if (questions.length === 0) {
       return { success: false, message: 'No questions available in the system' };
     }
 
     for (let i = 0; i < questions.length; i += 1) {
-      const optionOrder = this.shuffleOptionOrder();
+      const optionOrder = normalizedRandomSettings.randomAnswerOrderEnabled
+        ? this.shuffleOptionOrder()
+        : ['A', 'B', 'C', 'D'];
       await query.query(
         'INSERT INTO attempt_questions (attempt_id, question_id, question_order, option_order) VALUES (?, ?, ?, ?)',
         [attemptId, questions[i].id, i + 1, JSON.stringify(optionOrder)]
@@ -140,6 +162,13 @@ class GameService {
 
   shuffleOptionOrder() {
     return shuffleArray(['A', 'B', 'C', 'D']);
+  }
+
+  normalizeRandomSettings(rawSettings = {}) {
+    return {
+      randomQuestionOrderEnabled: rawSettings?.randomQuestionOrderEnabled !== false,
+      randomAnswerOrderEnabled: rawSettings?.randomAnswerOrderEnabled !== false
+    };
   }
 
   parseOptionOrder(optionOrder) {
@@ -188,11 +217,17 @@ class GameService {
    * Select random questions from each difficulty level
    * Returns questions in easy -> medium -> hard order
    */
-  async selectRandomQuestions(connection, totalQuestions, questionDistribution = DEFAULT_QUESTION_DISTRIBUTION) {
+  async selectRandomQuestions(
+    connection,
+    totalQuestions,
+    questionDistribution = DEFAULT_QUESTION_DISTRIBUTION,
+    randomQuestionOrderEnabled = true
+  ) {
     const query = connection || pool;
     const distribution = this.buildQuestionDistribution(totalQuestions, questionDistribution);
     const selectedIds = new Set();
     const selectedQuestions = [];
+    const shouldRandomize = randomQuestionOrderEnabled !== false;
 
     const selectQuestionsByDifficulty = async (difficulty, limit) => {
       if (limit <= 0) {
@@ -200,7 +235,10 @@ class GameService {
       }
 
       const [rows] = await query.query(
-        'SELECT * FROM questions WHERE difficulty = ? AND is_active = ? ORDER BY RAND() LIMIT ?',
+        `SELECT * FROM questions
+         WHERE difficulty = ? AND is_active = ?
+         ORDER BY ${shouldRandomize ? 'RAND()' : 'id ASC'}
+         LIMIT ?`,
         [difficulty, true, limit]
       );
 
@@ -222,7 +260,7 @@ class GameService {
       const [fallbackRows] = await query.query(
         `SELECT * FROM questions
          WHERE is_active = ? ${exclusionClause}
-         ORDER BY FIELD(difficulty, 'easy', 'medium', 'hard'), RAND()
+         ORDER BY FIELD(difficulty, 'easy', 'medium', 'hard'), ${shouldRandomize ? 'RAND()' : 'id ASC'}
          LIMIT ?`,
         selectedIdList.length > 0
           ? [true, ...selectedIdList, remaining]
@@ -233,7 +271,8 @@ class GameService {
       selectedQuestions.push(...fallbackRows);
     }
 
-    return selectedQuestions.slice(0, totalQuestions);
+    const finalQuestions = selectedQuestions.slice(0, totalQuestions);
+    return shouldRandomize ? shuffleArray(finalQuestions) : finalQuestions;
   }
 
   normalizeQuestionDistribution(rawDistribution = {}) {
@@ -303,6 +342,14 @@ class GameService {
       'questionDistribution',
       DEFAULT_QUESTION_DISTRIBUTION
     );
+    const randomQuestionOrderEnabled = await gameSettingModel.getValue(
+      'randomQuestionOrderEnabled',
+      DEFAULT_RANDOM_SETTINGS.randomQuestionOrderEnabled
+    );
+    const randomAnswerOrderEnabled = await gameSettingModel.getValue(
+      'randomAnswerOrderEnabled',
+      DEFAULT_RANDOM_SETTINGS.randomAnswerOrderEnabled
+    );
     const parsedTotalQuestions = parseInt(totalQuestions, 10);
 
     return {
@@ -310,7 +357,9 @@ class GameService {
       totalQuestions: Number.isInteger(parsedTotalQuestions) && parsedTotalQuestions > 0
         ? parsedTotalQuestions
         : 9,
-      questionDistribution: this.normalizeQuestionDistribution(questionDistribution)
+      questionDistribution: this.normalizeQuestionDistribution(questionDistribution),
+      randomQuestionOrderEnabled: randomQuestionOrderEnabled !== false,
+      randomAnswerOrderEnabled: randomAnswerOrderEnabled !== false
     };
   }
 
@@ -458,7 +507,11 @@ class GameService {
         connection,
         gameCodeId,
         gameSettings.totalQuestions,
-        gameSettings.questionDistribution
+        gameSettings.questionDistribution,
+        {
+          randomQuestionOrderEnabled: gameSettings.randomQuestionOrderEnabled,
+          randomAnswerOrderEnabled: gameSettings.randomAnswerOrderEnabled
+        }
       );
 
       if (!result.success) {

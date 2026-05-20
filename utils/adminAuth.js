@@ -3,12 +3,34 @@ const crypto = require('crypto');
 const COOKIE_NAME = 'coop_admin_auth';
 const SESSION_MAX_AGE_MS = 8 * 60 * 60 * 1000;
 
+function getConfiguredUsers(config = getAdminConfig()) {
+  const users = [
+    {
+      role: 'admin',
+      username: config.username,
+      password: config.password
+    }
+  ];
+
+  if (config.assistantUsername && config.assistantPassword) {
+    users.push({
+      role: 'assistant',
+      username: config.assistantUsername,
+      password: config.assistantPassword
+    });
+  }
+
+  return users;
+}
+
 function getAdminConfig() {
   const username = process.env.ADMIN_USERNAME || 'admin';
   const password = process.env.ADMIN_PASSWORD || 'sumet022';
+  const assistantUsername = process.env.ADMIN_ASSISTANT_USERNAME || 'assistant';
+  const assistantPassword = process.env.ADMIN_ASSISTANT_PASSWORD || 'assistant123';
   const secret = process.env.ADMIN_SESSION_SECRET || process.env.SESSION_SECRET || process.env.ADMIN_PASSWORD || 'coop-game-admin-secret';
 
-  return { username, password, secret };
+  return { username, password, assistantUsername, assistantPassword, secret };
 }
 
 function parseCookies(cookieHeader = '') {
@@ -24,8 +46,15 @@ function signPayload(payload, secret) {
   return crypto.createHmac('sha256', secret).update(payload).digest('hex');
 }
 
-function createAdminToken(username, secret, maxAgeMs = SESSION_MAX_AGE_MS) {
-  const payload = JSON.stringify({ username, exp: Date.now() + maxAgeMs });
+function createAdminToken(user, secret, maxAgeMs = SESSION_MAX_AGE_MS) {
+  const normalizedUser = typeof user === 'string'
+    ? { username: user, role: 'admin' }
+    : user;
+  const payload = JSON.stringify({
+    username: normalizedUser.username,
+    role: normalizedUser.role || 'admin',
+    exp: Date.now() + maxAgeMs
+  });
   const encodedPayload = Buffer.from(payload, 'utf8').toString('base64url');
   const signature = signPayload(encodedPayload, secret);
 
@@ -51,19 +80,26 @@ function verifyAdminToken(token, secret) {
     }
 
     const config = getAdminConfig();
-    if (payload.username !== config.username) {
+    const users = getConfiguredUsers(config);
+    const matchedUser = users.find(user => (
+      user.username === payload.username &&
+      user.role === (payload.role || 'admin')
+    ));
+
+    if (!matchedUser) {
       return null;
     }
 
-    return { username: payload.username };
+    return { username: matchedUser.username, role: matchedUser.role };
   } catch (error) {
     return null;
   }
 }
 
 function verifyAdminCredentials(username, password) {
-  const config = getAdminConfig();
-  return username === config.username && password === config.password;
+  const users = getConfiguredUsers();
+  const matchedUser = users.find(user => user.username === username && user.password === password);
+  return matchedUser ? { username: matchedUser.username, role: matchedUser.role } : null;
 }
 
 function getAdminSession(req) {
@@ -103,9 +139,9 @@ function buildClearAuthCookie() {
   ].join('; ');
 }
 
-function setAdminAuthCookie(res, username, req) {
+function setAdminAuthCookie(res, user, req) {
   const { secret } = getAdminConfig();
-  const token = createAdminToken(username, secret);
+  const token = createAdminToken(user, secret);
   res.setHeader('Set-Cookie', buildAuthCookie(token, req));
 }
 
@@ -127,8 +163,33 @@ function adminAuthMiddleware(req, res, next) {
   return res.redirect('/coopgame/admin/login');
 }
 
+function adminRoleMiddleware(allowedRoles = ['admin']) {
+  return (req, res, next) => {
+    const session = getAdminSession(req);
+    if (!session) {
+      if (req.path.startsWith('/api/')) {
+        return res.status(401).json({ success: false, message: 'Authentication required' });
+      }
+      return res.redirect('/coopgame/admin/login');
+    }
+
+    res.locals.adminUser = session;
+
+    if (allowedRoles.includes(session.role)) {
+      return next();
+    }
+
+    if (req.path.startsWith('/api/')) {
+      return res.status(403).json({ success: false, message: 'Forbidden' });
+    }
+
+    return res.redirect('/coopgame/admin/questions');
+  };
+}
+
 module.exports = {
   adminAuthMiddleware,
+  adminRoleMiddleware,
   buildAuthCookie,
   clearAdminAuthCookie,
   createAdminToken,

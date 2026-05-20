@@ -94,6 +94,23 @@ class GameController {
         typeof attempt.game_code === 'string' && attempt.game_code.startsWith('ADM')
       );
 
+      let adminPreviewSettings = {
+        randomQuestionOrderEnabled: true,
+        randomAnswerOrderEnabled: true
+      };
+
+      if (isAdminPlay) {
+        try {
+          const gameSettings = await gameService.getGameSettings();
+          adminPreviewSettings = {
+            randomQuestionOrderEnabled: gameSettings.randomQuestionOrderEnabled !== false,
+            randomAnswerOrderEnabled: gameSettings.randomAnswerOrderEnabled !== false
+          };
+        } catch (settingsError) {
+          logger.warn('Failed to load game settings for admin preview badges:', settingsError);
+        }
+      }
+
       if (attempt.status !== 'in_progress') {
         return res.redirect(isAdminPlay ? '/coopgame/admin' : '/coopgame/game/start');
       }
@@ -107,7 +124,8 @@ class GameController {
         attemptId: attemptId,
         playerName: attempt.player_name || '',
         phoneNumber: attempt.phone_number || '',
-        isAdminPlay
+        isAdminPlay,
+        adminPreviewSettings
       });
     } catch (err) {
       logger.error('Error rendering play:', err);

@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> - ผู้ช่วยแอดมิน</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700;800&display=swap');
+
+    body {
+      min-height: 100vh;
+      font-family: 'Sarabun', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(135deg, #eef8ec 0%, #d7ecd6 50%, #b8dfb9 100%);
+      color: #1b5e20;
+    }
+
+    .container-wrap {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 24px 16px;
+    }
+
+    .topbar,
+    .panel {
+      background: rgba(255, 255, 255, 0.95);
+      border: 1px solid rgba(129, 199, 132, 0.35);
+      border-radius: 20px;
+      box-shadow: 0 16px 45px rgba(46, 125, 50, 0.08);
+    }
+
+    .topbar {
+      padding: 18px 20px;
+      margin-bottom: 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .panel {
+      padding: 22px;
+    }
+
+    .panel + .panel {
+      margin-top: 16px;
+    }
+
+    .form-control,
+    .form-select {
+      border: 2px solid #a5d6a7;
+      border-radius: 12px;
+      padding: 10px 14px;
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+      border-color: #43a047;
+      box-shadow: 0 0 0 4px rgba(67, 160, 71, 0.1);
+    }
+
+    .option-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .option-input {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 2px solid #dcedc8;
+      background: #f5fbf4;
+    }
+
+    .option-input input[type='text'] {
+      border: none;
+      background: transparent;
+      width: 100%;
+      outline: none;
+    }
+
+    .table {
+      color: #2e7d32;
+    }
+
+    .table thead th {
+      background: #edf7ec;
+      color: #1b5e20;
+      font-weight: 800;
+      border-bottom: 2px solid #d8ead8;
+    }
+
+    .table tbody td {
+      vertical-align: middle;
+    }
+
+    .difficulty-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 700;
+    }
+
+    .difficulty-easy {
+      background: #e8f5e9;
+      color: #1b5e20;
+      border: 1px solid #a5d6a7;
+    }
+
+    .difficulty-medium {
+      background: #fff8e1;
+      color: #f57f17;
+      border: 1px solid #ffe082;
+    }
+
+    .difficulty-hard {
+      background: #ffebee;
+      color: #c62828;
+      border: 1px solid #ef9a9a;
+    }
+
+    .action-btns {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    @media (max-width: 768px) {
+      .option-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container-wrap">
+    <header class="topbar">
+      <div>
+        <h1 style="margin:0; font-weight:800; font-size:1.6rem;">เพิ่มคำถาม (ผู้ช่วยแอดมิน)</h1>
+        <p style="margin:6px 0 0; color:#2e7d32;">บัญชีนี้เพิ่มคำถามได้เท่านั้น</p>
+      </div>
+      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <span style="font-weight:700; color:#2e7d32;"><i class="bi bi-person-circle"></i> <%= adminUser.username %></span>
+        <a href="/coopgame/admin/logout" class="btn btn-outline-success">
+          <i class="bi bi-box-arrow-right"></i> ออกจากระบบ
+        </a>
+      </div>
+    </header>
+
+    <section class="panel">
+      <h2 style="font-size:1.3rem; font-weight:800; margin-bottom:16px;"><i class="bi bi-plus-circle me-2"></i>เพิ่มคำถามใหม่</h2>
+      <div id="formModeMessage" style="font-weight:700; margin-bottom:10px; color:#2e7d32;"></div>
+      <form id="questionForm">
+        <input type="hidden" id="editingQuestionId" value="">
+        <div class="mb-3">
+          <label for="questionText" class="form-label" style="font-weight:700;">คำถาม</label>
+          <textarea id="questionText" name="questionText" class="form-control" placeholder="พิมพ์คำถามที่นี่..." required></textarea>
+        </div>
+
+        <div class="option-grid">
+          <div class="mb-2">
+            <label class="form-label" style="font-weight:700;">ตัวเลือก ก</label>
+            <div class="option-input">
+              <input type="radio" name="correctAnswer" value="A" required>
+              <input type="text" id="optionA" name="optionA" placeholder="ตัวเลือก ก" required>
+            </div>
+          </div>
+          <div class="mb-2">
+            <label class="form-label" style="font-weight:700;">ตัวเลือก ข</label>
+            <div class="option-input">
+              <input type="radio" name="correctAnswer" value="B">
+              <input type="text" id="optionB" name="optionB" placeholder="ตัวเลือก ข" required>
+            </div>
+          </div>
+          <div class="mb-2">
+            <label class="form-label" style="font-weight:700;">ตัวเลือก ค</label>
+            <div class="option-input">
+              <input type="radio" name="correctAnswer" value="C">
+              <input type="text" id="optionC" name="optionC" placeholder="ตัวเลือก ค" required>
+            </div>
+          </div>
+          <div class="mb-2">
+            <label class="form-label" style="font-weight:700;">ตัวเลือก ง</label>
+            <div class="option-input">
+              <input type="radio" name="correctAnswer" value="D">
+              <input type="text" id="optionD" name="optionD" placeholder="ตัวเลือก ง" required>
+            </div>
+          </div>
+        </div>
+
+        <div class="row mt-2">
+          <div class="col-md-6">
+            <label for="difficulty" class="form-label" style="font-weight:700;">ระดับความยาก</label>
+            <select id="difficulty" name="difficulty" class="form-select" required>
+              <option value="">-- เลือกระดับ --</option>
+              <option value="easy">ง่าย</option>
+              <option value="medium">ปานกลาง</option>
+              <option value="hard">ยาก</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="mt-4 d-flex gap-2 flex-wrap">
+          <button type="submit" class="btn text-white" style="background: linear-gradient(135deg, #43a047 0%, #66bb6a 100%); border: none;">
+            <i class="bi bi-save"></i> <span id="submitBtnText">บันทึกคำถาม</span>
+          </button>
+          <button type="button" id="clearBtn" class="btn btn-outline-success">
+            <i class="bi bi-eraser"></i> ล้างฟอร์ม
+          </button>
+          <button type="button" id="cancelEditBtn" class="btn btn-outline-secondary" style="display:none;">
+            <i class="bi bi-x-circle"></i> ยกเลิกแก้ไข
+          </button>
+        </div>
+
+        <div id="statusMessage" class="mt-3" style="font-weight:700;"></div>
+      </form>
+    </section>
+
+    <section class="panel">
+      <h2 style="font-size:1.3rem; font-weight:800; margin-bottom:16px;"><i class="bi bi-list-ul me-2"></i>คำถามทั้งหมด</h2>
+      <div class="table-responsive">
+        <table class="table">
+          <thead>
+            <tr>
+              <th style="width: 60px;">#</th>
+              <th>คำถาม</th>
+              <th style="width: 120px;">ระดับ</th>
+              <th style="width: 120px;">สถานะ</th>
+              <th style="width: 170px;">จัดการ</th>
+            </tr>
+          </thead>
+          <tbody id="questionsList">
+            <tr>
+              <td colspan="5" style="text-align:center; padding:20px; color:#4f8d52; font-weight:700;">กำลังโหลด...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    let questions = [];
+    let editingQuestionId = null;
+
+    function getDifficultyText(diff) {
+      const texts = { easy: 'ง่าย', medium: 'ปานกลาง', hard: 'ยาก' };
+      return texts[diff] || diff;
+    }
+
+    function escapeHtml(text) {
+      if (!text) return '';
+      return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    }
+
+    function renderQuestions() {
+      const tbody = document.getElementById('questionsList');
+
+      if (!questions.length) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:#4f8d52; font-weight:700;">ยังไม่มีคำถามในระบบ</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = questions.map((q, index) => `
+        <tr>
+          <td>${index + 1}</td>
+          <td>
+            <strong>${escapeHtml((q.question_text || '').substring(0, 120))}${(q.question_text || '').length > 120 ? '...' : ''}</strong>
+            <br><small style="color:#666;">ก: ${escapeHtml(q.option_a)} | ข: ${escapeHtml(q.option_b)} | ค: ${escapeHtml(q.option_c)} | ง: ${escapeHtml(q.option_d)}</small>
+          </td>
+          <td><span class="difficulty-badge difficulty-${q.difficulty}">${getDifficultyText(q.difficulty)}</span></td>
+          <td>${q.is_active ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}</td>
+          <td>
+            <div class="action-btns">
+              <button class="btn btn-sm btn-outline-primary" onclick="startEditQuestion(${q.id})">แก้ไข</button>
+              <button class="btn btn-sm btn-outline-danger" onclick="deleteQuestion(${q.id})">ลบ</button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function startEditQuestion(id) {
+      const q = questions.find(item => item.id === id);
+      if (!q) return;
+
+      editingQuestionId = id;
+      document.getElementById('editingQuestionId').value = String(id);
+      document.getElementById('questionText').value = q.question_text || '';
+      document.getElementById('optionA').value = q.option_a || '';
+      document.getElementById('optionB').value = q.option_b || '';
+      document.getElementById('optionC').value = q.option_c || '';
+      document.getElementById('optionD').value = q.option_d || '';
+      const selected = document.querySelector(`input[name="correctAnswer"][value="${q.correct_answer}"]`);
+      if (selected) selected.checked = true;
+      document.getElementById('difficulty').value = q.difficulty || '';
+
+      document.getElementById('submitBtnText').textContent = 'บันทึกการแก้ไข';
+      document.getElementById('cancelEditBtn').style.display = 'inline-block';
+      document.getElementById('formModeMessage').textContent = `กำลังแก้ไขคำถาม #${id}`;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    async function deleteQuestion(id) {
+      if (!confirm('ยืนยันการลบคำถามนี้?')) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`/coopgame/admin/api/questions/${id}`, {
+          method: 'DELETE'
+        });
+        const result = await response.json();
+
+        if (result.success) {
+          setStatus('ลบคำถามสำเร็จ');
+          if (editingQuestionId === id) {
+            resetForm();
+          }
+          await loadQuestions();
+        } else {
+          setStatus(result.message || 'ไม่สามารถลบคำถามได้', true);
+        }
+      } catch (error) {
+        setStatus('เกิดข้อผิดพลาดในการลบคำถาม', true);
+      }
+    }
+
+    async function loadQuestions() {
+      try {
+        const response = await fetch('/coopgame/admin/api/questions');
+        const result = await response.json();
+
+        if (result.success) {
+          const difficultyOrder = { easy: 1, medium: 2, hard: 3 };
+          questions = (result.data || []).sort((a, b) => {
+            const difficultyDiff = (difficultyOrder[a.difficulty] || 99) - (difficultyOrder[b.difficulty] || 99);
+            if (difficultyDiff !== 0) return difficultyDiff;
+            return (a.id || 0) - (b.id || 0);
+          });
+        } else {
+          questions = [];
+          setStatus(result.message || 'ไม่สามารถโหลดรายการคำถามได้', true);
+        }
+      } catch (error) {
+        questions = [];
+        setStatus('ไม่สามารถโหลดรายการคำถามได้', true);
+      }
+
+      renderQuestions();
+    }
+
+    function setStatus(message, isError = false) {
+      const el = document.getElementById('statusMessage');
+      el.textContent = message || '';
+      el.style.color = isError ? '#c62828' : '#2e7d32';
+    }
+
+    function resetForm() {
+      document.getElementById('questionForm').reset();
+      editingQuestionId = null;
+      document.getElementById('editingQuestionId').value = '';
+      document.getElementById('submitBtnText').textContent = 'บันทึกคำถาม';
+      document.getElementById('cancelEditBtn').style.display = 'none';
+      document.getElementById('formModeMessage').textContent = '';
+      setStatus('');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      loadQuestions();
+    });
+
+    document.getElementById('clearBtn').addEventListener('click', resetForm);
+    document.getElementById('cancelEditBtn').addEventListener('click', resetForm);
+
+    document.getElementById('questionForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const formData = {
+        questionText: document.getElementById('questionText').value,
+        optionA: document.getElementById('optionA').value,
+        optionB: document.getElementById('optionB').value,
+        optionC: document.getElementById('optionC').value,
+        optionD: document.getElementById('optionD').value,
+        correctAnswer: document.querySelector('input[name="correctAnswer"]:checked')?.value,
+        difficulty: document.getElementById('difficulty').value
+      };
+
+      if (!formData.correctAnswer) {
+        setStatus('กรุณาเลือกคำตอบที่ถูกต้อง', true);
+        return;
+      }
+
+      try {
+        const requestUrl = editingQuestionId
+          ? `/coopgame/admin/api/questions/${editingQuestionId}`
+          : '/coopgame/admin/api/questions';
+        const requestMethod = editingQuestionId ? 'PUT' : 'POST';
+
+        const response = await fetch(requestUrl, {
+          method: requestMethod,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData)
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          setStatus(editingQuestionId ? 'แก้ไขคำถามสำเร็จ' : 'เพิ่มคำถามสำเร็จ');
+          resetForm();
+          loadQuestions();
+        } else {
+          setStatus(result.message || 'ไม่สามารถเพิ่มคำถามได้', true);
+        }
+      } catch (error) {
+        setStatus('เกิดข้อผิดพลาด กรุณาลองใหม่', true);
+      }
+    });
+  </script>
+</body>
+</html>
