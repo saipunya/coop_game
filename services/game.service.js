@@ -124,9 +124,18 @@ class GameService {
       ['in_progress', gameCodeId]
     );
 
+    const attemptColumns = ['game_code_id', 'status'];
+    const attemptValues = [gameCodeId, 'in_progress'];
+
+    if (await this.tableHasColumn(query, 'game_attempts', 'room_id')) {
+      const roomId = await this.resolveAttemptRoomId(query, gameCodeId);
+      attemptColumns.unshift('room_id');
+      attemptValues.unshift(roomId);
+    }
+
     const [attemptResult] = await query.query(
-      'INSERT INTO game_attempts (game_code_id, status) VALUES (?, ?)',
-      [gameCodeId, 'in_progress']
+      `INSERT INTO game_attempts (${attemptColumns.join(', ')}) VALUES (${attemptColumns.map(() => '?').join(', ')})`,
+      attemptValues
     );
 
     const attemptId = attemptResult.insertId;
@@ -169,6 +178,56 @@ class GameService {
       randomQuestionOrderEnabled: rawSettings?.randomQuestionOrderEnabled !== false,
       randomAnswerOrderEnabled: rawSettings?.randomAnswerOrderEnabled !== false
     };
+  }
+
+  async tableHasColumn(query, tableName, columnName) {
+    const [rows] = await query.query(
+      `SHOW COLUMNS FROM ${tableName} LIKE ?`,
+      [columnName]
+    );
+    return rows.length > 0;
+  }
+
+  async resolveAttemptRoomId(query, gameCodeId) {
+    const [rows] = await query.query(
+      'SELECT room_id FROM game_codes WHERE id = ?',
+      [gameCodeId]
+    );
+
+    const roomId = rows[0]?.room_id;
+    if (!roomId) {
+      const error = new Error('Game code does not have a valid room_id');
+      error.code = 'MISSING_GAME_CODE_ROOM';
+      throw error;
+    }
+
+    return roomId;
+  }
+
+  async insertGameCode(query, code, status, expiresAt) {
+    const requiredRelations = await gameCodeModel.resolveRequiredInsertRelations(query);
+    const columns = [];
+    const values = [];
+
+    if (requiredRelations.room_id !== undefined) {
+      columns.push('room_id');
+      values.push(requiredRelations.room_id);
+    }
+
+    columns.push('code', 'status', 'expires_at');
+    values.push(code, status, expiresAt);
+
+    if (requiredRelations.category_id !== undefined) {
+      columns.push('category_id');
+      values.push(requiredRelations.category_id);
+    }
+
+    const [result] = await query.query(
+      `INSERT INTO game_codes (${columns.join(', ')}) VALUES (${columns.map(() => '?').join(', ')})`,
+      values
+    );
+
+    return result.insertId;
   }
 
   parseOptionOrder(optionOrder) {
@@ -490,11 +549,7 @@ class GameService {
           continue;
         }
 
-        const [insertResult] = await connection.query(
-          'INSERT INTO game_codes (code, status, expires_at) VALUES (?, ?, ?)',
-          [adminCode, 'unused', expiresAt]
-        );
-        gameCodeId = insertResult.insertId;
+        gameCodeId = await this.insertGameCode(connection, adminCode, 'unused', expiresAt);
         break;
       }
 
