@@ -532,16 +532,19 @@
           body: JSON.stringify({ count, expiryHours: expiry })
         });
 
-        const result = await response.json();
+        const result = await response.json().catch(() => null);
 
-        if (result.success && result.data) {
+        if (response.ok && result && result.success && result.data) {
           generatedCodesList = result.data.codes || [];
           displayGeneratedCodes(generatedCodesList);
           alert(`✅ สร้างรหัส ${generatedCodesList.length} รหัสสำเร็จ!`);
           loadStats();
           loadCodes();
         } else {
-          alert('❌ ' + result.message);
+          const detailMessage = result && result.details ? `\nรายละเอียด: ${result.details}` : '';
+          const errorCode = result && result.errorCode ? ` (${result.errorCode})` : '';
+          const message = (result && result.message) || `HTTP ${response.status}`;
+          alert(`❌ ${message}${errorCode}${detailMessage}`);
         }
       } catch (error) {
         console.error('Error:', error);

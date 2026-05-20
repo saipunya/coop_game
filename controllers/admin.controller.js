@@ -90,7 +90,36 @@ class AdminController {
       success(res, result, 'Codes generated successfully');
     } catch (err) {
       logger.error('Error generating codes:', err);
-      error(res, 'Failed to generate codes');
+
+      if (err.code === 'NO_ROOMS_AVAILABLE') {
+        return error(
+          res,
+          'ไม่พบข้อมูลห้อง (rooms) ในระบบ กรุณาตั้งค่าห้องก่อนสร้างรหัส',
+          400,
+          err.code
+        );
+      }
+
+      if (err.code === 'NO_CATEGORIES_AVAILABLE') {
+        return error(
+          res,
+          'ไม่พบหมวดคำถาม (question_categories) ในระบบ กรุณาเพิ่มหมวดหมู่ก่อนสร้างรหัส',
+          400,
+          err.code
+        );
+      }
+
+      if (err.code === 'ER_NO_REFERENCED_ROW_2' || err.code === 'ER_NO_DEFAULT_FOR_FIELD') {
+        return error(
+          res,
+          'โครงสร้างฐานข้อมูลยังไม่พร้อมสำหรับการสร้างรหัส',
+          500,
+          err.code,
+          err.sqlMessage || err.message
+        );
+      }
+
+      error(res, 'Failed to generate codes', 500, err.code || null, err.sqlMessage || err.message);
     }
   }
 

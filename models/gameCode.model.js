@@ -1,6 +1,24 @@
 const pool = require('../config/database');
 
 class GameCodeModel {
+  async resolveRequiredInsertRelations(query = pool) {
+    const [columns] = await query.query('SHOW COLUMNS FROM game_codes');
+    const columnMap = new Map(columns.map(column => [column.Field, column]));
+    const resolved = {};
+
+    const roomColumn = columnMap.get('room_id');
+    if (roomColumn && roomColumn.Null === 'NO' && roomColumn.Default === null) {
+      resolved.room_id = await this.resolveRoomId(query);
+    }
+
+    const categoryColumn = columnMap.get('category_id');
+    if (categoryColumn && categoryColumn.Null === 'NO' && categoryColumn.Default === null) {
+      resolved.category_id = await this.resolveCategoryId(query);
+    }
+
+    return resolved;
+  }
+
   async resolveRoomId(query = pool) {
     const [rows] = await query.query(
       'SELECT id FROM rooms ORDER BY id ASC LIMIT 1'
@@ -9,6 +27,20 @@ class GameCodeModel {
     if (rows.length === 0) {
       const error = new Error('No rooms available');
       error.code = 'NO_ROOMS_AVAILABLE';
+      throw error;
+    }
+
+    return rows[0].id;
+  }
+
+  async resolveCategoryId(query = pool) {
+    const [rows] = await query.query(
+      'SELECT id FROM question_categories ORDER BY id ASC LIMIT 1'
+    );
+
+    if (rows.length === 0) {
+      const error = new Error('No question categories available');
+      error.code = 'NO_CATEGORIES_AVAILABLE';
       throw error;
     }
 
@@ -127,20 +159,63 @@ class GameCodeModel {
 
   // Create new code
   async create(code, expiresAt) {
-    const roomId = await this.resolveRoomId();
+    const requiredRelations = await this.resolveRequiredInsertRelations();
+    const columns = [];
+    const values = [];
+
+    if (requiredRelations.room_id !== undefined) {
+      columns.push('room_id');
+      values.push(requiredRelations.room_id);
+    }
+
+    columns.push('code', 'status', 'expires_at');
+    values.push(code, 'unused', expiresAt);
+
+    if (requiredRelations.category_id !== undefined) {
+      columns.push('category_id');
+      values.push(requiredRelations.category_id);
+    }
+
     const [result] = await pool.query(
-      'INSERT INTO game_codes (room_id, code, status, expires_at) VALUES (?, ?, ?, ?)',
-      [roomId, code, 'unused', expiresAt]
+      `INSERT INTO game_codes (${columns.join(', ')}) VALUES (${columns.map(() => '?').join(', ')})`,
+      values
     );
     return result.insertId;
   }
 
   // Batch create codes
   async createBatch(codes, expiresAt) {
-    const roomId = await this.resolveRoomId();
-    const values = codes.map(code => [roomId, code, 'unused', expiresAt]);
+    const requiredRelations = await this.resolveRequiredInsertRelations();
+    const columns = [];
+
+    if (requiredRelations.room_id !== undefined) {
+      columns.push('room_id');
+    }
+
+    columns.push('code', 'status', 'expires_at');
+
+    if (requiredRelations.category_id !== undefined) {
+      columns.push('category_id');
+    }
+
+    const values = codes.map(code => {
+      const row = [];
+
+      if (requiredRelations.room_id !== undefined) {
+        row.push(requiredRelations.room_id);
+      }
+
+      row.push(code, 'unused', expiresAt);
+
+      if (requiredRelations.category_id !== undefined) {
+        row.push(requiredRelations.category_id);
+      }
+
+      return row;
+    });
+
     const [result] = await pool.query(
-      'INSERT INTO game_codes (room_id, code, status, expires_at) VALUES ?',
+      `INSERT INTO game_codes (${columns.join(', ')}) VALUES ?`,
       [values]
     );
     return result.affectedRows;
