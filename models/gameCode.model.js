@@ -1,6 +1,20 @@
 const pool = require('../config/database');
 
 class GameCodeModel {
+  async resolveRoomId(query = pool) {
+    const [rows] = await query.query(
+      'SELECT id FROM rooms ORDER BY id ASC LIMIT 1'
+    );
+
+    if (rows.length === 0) {
+      const error = new Error('No rooms available');
+      error.code = 'NO_ROOMS_AVAILABLE';
+      throw error;
+    }
+
+    return rows[0].id;
+  }
+
   // Find code by value
   async findByCode(code) {
     const [rows] = await pool.query(
@@ -113,18 +127,20 @@ class GameCodeModel {
 
   // Create new code
   async create(code, expiresAt) {
+    const roomId = await this.resolveRoomId();
     const [result] = await pool.query(
-      'INSERT INTO game_codes (code, status, expires_at) VALUES (?, ?, ?)',
-      [code, 'unused', expiresAt]
+      'INSERT INTO game_codes (room_id, code, status, expires_at) VALUES (?, ?, ?, ?)',
+      [roomId, code, 'unused', expiresAt]
     );
     return result.insertId;
   }
 
   // Batch create codes
   async createBatch(codes, expiresAt) {
-    const values = codes.map(code => [code, 'unused', expiresAt]);
+    const roomId = await this.resolveRoomId();
+    const values = codes.map(code => [roomId, code, 'unused', expiresAt]);
     const [result] = await pool.query(
-      'INSERT INTO game_codes (code, status, expires_at) VALUES ?',
+      'INSERT INTO game_codes (room_id, code, status, expires_at) VALUES ?',
       [values]
     );
     return result.affectedRows;
