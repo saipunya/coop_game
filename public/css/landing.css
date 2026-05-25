@@ -762,6 +762,42 @@ a {
   text-align: center;
   color: var(--muted);
   font-size: 0.92rem;
+  display: grid;
+  justify-items: center;
+  gap: 0.85rem;
+}
+
+.system-credit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.7rem;
+  max-width: 820px;
+  padding: 0.8rem 1rem;
+  border: 1px solid #dbe3ee;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #64748b;
+  font-weight: 700;
+  line-height: 1.55;
+}
+
+.credit-label {
+  padding: 0.18rem 0.55rem;
+  border-radius: 999px;
+  background: #eaf1ff;
+  color: #2563eb;
+  font-size: 0.82rem;
+}
+
+.credit-name {
+  color: #0f172a;
+  font-weight: 800;
+}
+
+.credit-office {
+  color: #475569;
 }
 
 /* Buttons */

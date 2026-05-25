@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const adminUserModel = require('../models/adminUser.model');
 
 const COOKIE_NAME = 'coop_admin_auth';
 const SESSION_MAX_AGE_MS = 8 * 60 * 60 * 1000;
@@ -6,7 +7,7 @@ const SESSION_MAX_AGE_MS = 8 * 60 * 60 * 1000;
 function getConfiguredUsers(config = getAdminConfig()) {
   const users = [
     {
-      role: 'admin',
+      role: 'super_admin',
       username: config.username,
       password: config.password
     }
@@ -14,7 +15,7 @@ function getConfiguredUsers(config = getAdminConfig()) {
 
   if (config.assistantUsername && config.assistantPassword) {
     users.push({
-      role: 'assistant',
+      role: 'room_admin',
       username: config.assistantUsername,
       password: config.assistantPassword
     });
@@ -51,8 +52,9 @@ function createAdminToken(user, secret, maxAgeMs = SESSION_MAX_AGE_MS) {
     ? { username: user, role: 'admin' }
     : user;
   const payload = JSON.stringify({
+    id: normalizedUser.id || null,
     username: normalizedUser.username,
-    role: normalizedUser.role || 'admin',
+    role: normalizedUser.role || 'room_admin',
     exp: Date.now() + maxAgeMs
   });
   const encodedPayload = Buffer.from(payload, 'utf8').toString('base64url');
@@ -61,7 +63,7 @@ function createAdminToken(user, secret, maxAgeMs = SESSION_MAX_AGE_MS) {
   return `${encodedPayload}.${signature}`;
 }
 
-function verifyAdminToken(token, secret) {
+async function verifyAdminToken(token, secret) {
   if (!token || typeof token !== 'string') return null;
 
   const parts = token.split('.');
@@ -79,37 +81,71 @@ function verifyAdminToken(token, secret) {
       return null;
     }
 
-    const config = getAdminConfig();
-    const users = getConfiguredUsers(config);
-    const matchedUser = users.find(user => (
-      user.username === payload.username &&
-      user.role === (payload.role || 'admin')
-    ));
+    if (payload.id === 0) {
+      const users = getConfiguredUsers();
+      const envUser = users.find(user => (
+        user.username === payload.username &&
+        user.role === payload.role
+      ));
+      return envUser
+        ? { id: 0, username: envUser.username, role: envUser.role, roomId: null }
+        : null;
+    }
 
-    if (!matchedUser) {
+    const matchedUser = await adminUserModel.findByUsername(payload.username);
+
+    if (
+      !matchedUser ||
+      !matchedUser.is_active ||
+      matchedUser.role !== payload.role ||
+      String(matchedUser.id) !== String(payload.id)
+    ) {
       return null;
     }
 
-    return { username: matchedUser.username, role: matchedUser.role };
+    if (
+      matchedUser.role === 'room_admin' &&
+      (!matchedUser.room_id || matchedUser.room_status !== 'active')
+    ) {
+      return null;
+    }
+
+    return {
+      id: matchedUser.id,
+      username: matchedUser.username,
+      role: matchedUser.role,
+      roomId: matchedUser.room_id || null,
+      roomName: matchedUser.room_name || null,
+      roomSlug: matchedUser.room_slug || null
+    };
   } catch (error) {
     return null;
   }
 }
 
-function verifyAdminCredentials(username, password) {
+async function verifyAdminCredentials(username, password) {
+  try {
+    const dbUser = await adminUserModel.verifyCredentials(username, password);
+    if (dbUser) return dbUser;
+  } catch (error) {
+    // Fall back to env credentials only if the admin table is not usable yet.
+  }
+
   const users = getConfiguredUsers();
   const matchedUser = users.find(user => user.username === username && user.password === password);
-  return matchedUser ? { username: matchedUser.username, role: matchedUser.role } : null;
+  return matchedUser
+    ? { id: 0, username: matchedUser.username, role: matchedUser.role, roomId: null }
+    : null;
 }
 
-function getAdminSession(req) {
+async function getAdminSession(req) {
   const { secret } = getAdminConfig();
   const cookies = parseCookies(req.headers.cookie || '');
   return verifyAdminToken(cookies[COOKIE_NAME], secret);
 }
 
-function isAdminAuthenticated(req) {
-  return Boolean(getAdminSession(req));
+async function isAdminAuthenticated(req) {
+  return Boolean(await getAdminSession(req));
 }
 
 function buildAuthCookie(token, req) {
@@ -149,8 +185,8 @@ function clearAdminAuthCookie(res) {
   res.setHeader('Set-Cookie', buildClearAuthCookie());
 }
 
-function adminAuthMiddleware(req, res, next) {
-  const session = getAdminSession(req);
+async function adminAuthMiddleware(req, res, next) {
+  const session = await getAdminSession(req);
   if (session) {
     res.locals.adminUser = session;
     return next();
@@ -163,9 +199,9 @@ function adminAuthMiddleware(req, res, next) {
   return res.redirect('/coopgame/admin/login');
 }
 
-function adminRoleMiddleware(allowedRoles = ['admin']) {
-  return (req, res, next) => {
-    const session = getAdminSession(req);
+function adminRoleMiddleware(allowedRoles = ['super_admin']) {
+  return async (req, res, next) => {
+    const session = await getAdminSession(req);
     if (!session) {
       if (req.path.startsWith('/api/')) {
         return res.status(401).json({ success: false, message: 'Authentication required' });

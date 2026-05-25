@@ -7,24 +7,58 @@ COLLATE utf8mb4_unicode_ci;
 
 USE coopgame_db;
 
+-- Table: rooms
+-- Independent play/admin spaces. Each room has its own codes, questions, settings, attempts, and leaderboard.
+CREATE TABLE IF NOT EXISTS rooms (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(150) NOT NULL,
+  slug VARCHAR(120) UNIQUE NOT NULL,
+  status ENUM('active', 'inactive') DEFAULT 'active',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Table: admin_users
+-- Super admins can manage all rooms; room admins are scoped to one room.
+CREATE TABLE IF NOT EXISTS admin_users (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  username VARCHAR(100) UNIQUE NOT NULL,
+  password_hash VARCHAR(255) NOT NULL,
+  role ENUM('super_admin', 'room_admin') NOT NULL DEFAULT 'room_admin',
+  room_id INT NULL,
+  is_active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (room_id) REFERENCES rooms(id),
+  INDEX idx_role (role),
+  INDEX idx_room (room_id),
+  INDEX idx_active (is_active)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Table: game_codes
 -- Stores generated game codes with 24-hour expiry
 CREATE TABLE IF NOT EXISTS game_codes (
   id INT AUTO_INCREMENT PRIMARY KEY,
+  room_id INT NOT NULL DEFAULT 1,
   code VARCHAR(10) UNIQUE NOT NULL,
   status ENUM('unused', 'in_progress', 'used', 'expired') DEFAULT 'unused',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   expires_at TIMESTAMP NOT NULL,
   used_at TIMESTAMP NULL,
   INDEX idx_code (code),
+  INDEX idx_room (room_id),
   INDEX idx_status (status),
-  INDEX idx_expires (expires_at)
+  INDEX idx_expires (expires_at),
+  FOREIGN KEY (room_id) REFERENCES rooms(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Table: questions
 -- Question bank with difficulty levels
 CREATE TABLE IF NOT EXISTS questions (
   id INT AUTO_INCREMENT PRIMARY KEY,
+  room_id INT NOT NULL DEFAULT 1,
+  created_by VARCHAR(100) NULL,
   question_text TEXT NOT NULL,
   option_a VARCHAR(255) NOT NULL,
   option_b VARCHAR(255) NOT NULL,
@@ -35,22 +69,29 @@ CREATE TABLE IF NOT EXISTS questions (
   time_limit INT NOT NULL COMMENT 'seconds: 15, 20, or 25 based on difficulty',
   is_active BOOLEAN DEFAULT TRUE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_room (room_id),
+  INDEX idx_created_by (created_by),
   INDEX idx_difficulty (difficulty),
-  INDEX idx_active (is_active)
+  INDEX idx_active (is_active),
+  FOREIGN KEY (room_id) REFERENCES rooms(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Table: game_settings
 -- Stores game-level configuration such as total questions per attempt
 CREATE TABLE IF NOT EXISTS game_settings (
-  setting_key VARCHAR(100) PRIMARY KEY,
+  room_id INT NOT NULL DEFAULT 1,
+  setting_key VARCHAR(100) NOT NULL,
   setting_value TEXT NOT NULL,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (room_id, setting_key),
+  FOREIGN KEY (room_id) REFERENCES rooms(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Table: game_attempts
 -- Tracks each player's game session
 CREATE TABLE IF NOT EXISTS game_attempts (
   id INT AUTO_INCREMENT PRIMARY KEY,
+  room_id INT NOT NULL DEFAULT 1,
   game_code_id INT NOT NULL,
   player_name VARCHAR(100) NULL,
   phone_number VARCHAR(20) NULL,
@@ -60,6 +101,8 @@ CREATE TABLE IF NOT EXISTS game_attempts (
   started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   finished_at TIMESTAMP NULL,
   FOREIGN KEY (game_code_id) REFERENCES game_codes(id),
+  FOREIGN KEY (room_id) REFERENCES rooms(id),
+  INDEX idx_room (room_id),
   INDEX idx_status (status),
   INDEX idx_score (score DESC),
   INDEX idx_finished (finished_at)
@@ -93,6 +136,10 @@ CREATE TABLE IF NOT EXISTS attempt_answers (
   FOREIGN KEY (question_id) REFERENCES questions(id),
   INDEX idx_attempt (attempt_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT INTO rooms (id, name, slug, status) VALUES
+(1, 'Default Room', 'default-room', 'active')
+ON DUPLICATE KEY UPDATE name = VALUES(name), status = VALUES(status), updated_at = CURRENT_TIMESTAMP;
 
 -- Insert sample questions
 INSERT INTO questions (question_text, option_a, option_b, option_c, option_d, correct_answer, difficulty, time_limit) VALUES

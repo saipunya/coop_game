@@ -1,5 +1,6 @@
 
 const gameService = require('../services/game.service');
+const roomModel = require('../models/room.model');
 const { success, error, validationError, notFound } = require('../utils/response');
 const logger = require('../utils/logger');
 
@@ -9,6 +10,11 @@ class GameController {
   // Render start page
   async renderStart(req, res) {
     try{
+      const defaultRoom = await roomModel.findDefault();
+      if (defaultRoom) {
+        return res.redirect(`/coopgame/r/${defaultRoom.slug}`);
+      }
+
       const query = req.query || {};
       const gameSettings = await gameService.getGameSettings();
       res.render('game/start', {
@@ -19,6 +25,40 @@ class GameController {
     }catch(err){
       logger.error('Error rendering start:', err);
       res.render('game/start', { title: 'เริ่มเกม', gameEnabled: true });
+    }
+  }
+
+  async renderRoomStart(req, res) {
+    try {
+      const query = req.query || {};
+      const room = await roomModel.findBySlug(req.params.roomSlug);
+
+      if (!room || room.status !== 'active') {
+        return res.status(404).render('game/start', {
+          title: 'ไม่พบห้อง',
+          query,
+          gameEnabled: false,
+          room: room || null,
+          verifyUrl: '#',
+          leaderboardUrl: '/coopgame/game/leaderboard',
+          playBaseUrl: '/coopgame/game/play'
+        });
+      }
+
+      const gameSettings = await gameService.getGameSettings(room.id);
+      res.render('game/start', {
+        title: room.name,
+        query,
+        room,
+        gameEnabled: gameSettings.gameEnabled !== false,
+        verifyUrl: `/coopgame/r/${room.slug}/verify-code`,
+        leaderboardUrl: `/coopgame/r/${room.slug}/leaderboard`,
+        leaderboardApiUrl: `/coopgame/r/${room.slug}/api/leaderboard`,
+        playBaseUrl: `/coopgame/r/${room.slug}/play`
+      });
+    } catch (err) {
+      logger.error('Error rendering room start:', err);
+      res.redirect('/coopgame/game/start');
     }
   }
 
@@ -55,10 +95,39 @@ class GameController {
     }
   }
 
+  async verifyRoomCode(req, res) {
+    try {
+      const { code } = req.body;
+      const room = await roomModel.findBySlug(req.params.roomSlug);
+
+      if (!room || room.status !== 'active') {
+        return error(res, 'ไม่พบห้องหรือห้องถูกปิดใช้งาน', 404);
+      }
+
+      if (!code) {
+        return validationError(res, [{ msg: 'กรุณากรอกรหัส' }]);
+      }
+
+      const result = await gameService.verifyCode(code.trim().toUpperCase(), room.id);
+
+      if (result.success) {
+        success(res, { attemptId: result.attemptId, totalQuestions: result.totalQuestions }, 'เริ่มเกมสำเร็จ');
+      } else {
+        error(res, result.message, 400);
+      }
+    } catch (err) {
+      logger.error('Error verifying room code:', err);
+      error(res, 'เกิดข้อผิดพลาด');
+    }
+  }
+
   // Start game directly for admin users
   async startAdminGame(req, res) {
     try {
-      const result = await gameService.startAdminGame();
+      const roomId = res.locals.adminUser?.role === 'room_admin'
+        ? res.locals.adminUser.roomId
+        : (parseInt(req.body.roomId || req.query.roomId, 10) || null);
+      const result = await gameService.startAdminGame(roomId);
 
       if (!result.success) {
         return error(res, result.message || 'ไม่สามารถเริ่มเกมได้', 400);
@@ -88,6 +157,10 @@ class GameController {
 
       if (!attempt) {
         return res.redirect('/coopgame/game/start');
+      }
+
+      if (req.params.roomSlug && attempt.room_slug !== req.params.roomSlug) {
+        return res.redirect(`/coopgame/r/${req.params.roomSlug}`);
       }
 
       const isAdminPlay = Boolean(
@@ -131,6 +204,10 @@ class GameController {
       logger.error('Error rendering play:', err);
       return res.redirect('/coopgame/game/start');
     }
+  }
+
+  async renderRoomPlay(req, res) {
+    return this.renderPlay(req, res);
   }
 
   // Get current question (API)
@@ -258,7 +335,7 @@ class GameController {
         phoneNumber: attempt.phone_number || '',
         isAdminPlay,
         rank: !isAdminPlay && attempt.player_name && attempt.finished_at
-          ? await gameService.calculateRank(attempt.score, attempt.total_time, attempt.finished_at)
+          ? await gameService.calculateRank(attempt.score, attempt.total_time, attempt.finished_at, attempt.room_id)
           : null
       });
     } catch (error) {
@@ -300,6 +377,22 @@ class GameController {
     });
   }
 
+  async renderRoomLeaderboard(req, res) {
+    const mode = req.query.mode || 'mobile';
+    const room = await roomModel.findBySlug(req.params.roomSlug);
+
+    if (!room || room.status !== 'active') {
+      return res.redirect('/coopgame/game/start');
+    }
+
+    res.render('game/leaderboard', {
+      title: `Leaderboard - ${room.name}`,
+      mode,
+      room,
+      leaderboardApiUrl: `/coopgame/r/${room.slug}/api/leaderboard`
+    });
+  }
+
   // Get leaderboard (API)
   async getLeaderboard(req, res) {
     try {
@@ -311,6 +404,27 @@ class GameController {
       success(res, result.leaderboard, 'Leaderboard retrieved');
     } catch (error) {
       console.error('[ERROR] Error getting leaderboard:', error);
+      error(res, 'เกิดข้อผิดพลาด');
+    }
+  }
+
+  async getRoomLeaderboard(req, res) {
+    try {
+      const { limit, offset } = req.query;
+      const room = await roomModel.findBySlug(req.params.roomSlug);
+
+      if (!room || room.status !== 'active') {
+        return error(res, 'ไม่พบห้องหรือห้องถูกปิดใช้งาน', 404);
+      }
+
+      const result = await gameService.getLeaderboard(
+        parseInt(limit) || 50,
+        parseInt(offset) || 0,
+        room.id
+      );
+      success(res, result.leaderboard, 'Leaderboard retrieved');
+    } catch (err) {
+      logger.error('Error getting room leaderboard:', err);
       error(res, 'เกิดข้อผิดพลาด');
     }
   }

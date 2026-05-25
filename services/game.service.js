@@ -5,6 +5,7 @@ const attemptModel = require('../models/attempt.model');
 const attemptQuestionModel = require('../models/attemptQuestion.model');
 const attemptAnswerModel = require('../models/attemptAnswer.model');
 const gameSettingModel = require('../models/gameSetting.model');
+const roomModel = require('../models/room.model');
 const { generateGameCode, shuffleArray, calculateExpiry } = require('../utils/crypto');
 const logger = require('../utils/logger');
 const ANONYMOUS_PLAYER_NAME = 'Anonymous';
@@ -23,7 +24,7 @@ class GameService {
    * Verify game code and start game session
    * Uses transaction to ensure atomicity
    */
-  async verifyCode(code) {
+  async verifyCode(code, roomId = null) {
     await attemptQuestionModel.ensureOptionOrderColumn();
     await this.ensureAttemptAnswerNullableColumn();
     const connection = await pool.getConnection();
@@ -40,9 +41,12 @@ class GameService {
       const upperCode = code.toUpperCase();
 
       // Check code with lock (FOR UPDATE prevents race conditions)
+      const codeParams = [upperCode];
+      const roomClause = roomId ? ' AND room_id = ?' : '';
+      if (roomId) codeParams.push(roomId);
       const [codes] = await connection.query(
-        'SELECT * FROM game_codes WHERE code = ? FOR UPDATE',
-        [upperCode]
+        `SELECT * FROM game_codes WHERE code = ?${roomClause} FOR UPDATE`,
+        codeParams
       );
 
       if (codes.length === 0) {
@@ -70,7 +74,7 @@ class GameService {
 
       logger.info(`Code ${upperCode} locked for new game`);
 
-      const gameSettings = await this.getGameSettings();
+      const gameSettings = await this.getGameSettings(gameCode.room_id);
       if (!gameSettings.gameEnabled) {
         await connection.rollback();
         return { success: false, message: 'ระบบเกมปิดอยู่ชั่วคราว กรุณาติดต่อผู้ดูแลระบบ' };
@@ -84,7 +88,8 @@ class GameService {
         {
           randomQuestionOrderEnabled: gameSettings.randomQuestionOrderEnabled,
           randomAnswerOrderEnabled: gameSettings.randomAnswerOrderEnabled
-        }
+        },
+        gameCode.room_id
       );
 
       if (!result.success) {
@@ -114,7 +119,8 @@ class GameService {
     gameCodeId,
     totalQuestions,
     questionDistribution = DEFAULT_QUESTION_DISTRIBUTION,
-    randomSettings = DEFAULT_RANDOM_SETTINGS
+    randomSettings = DEFAULT_RANDOM_SETTINGS,
+    roomId = null
   ) {
     const query = connection || pool;
     const normalizedRandomSettings = this.normalizeRandomSettings(randomSettings);
@@ -128,9 +134,9 @@ class GameService {
     const attemptValues = [gameCodeId, 'in_progress'];
 
     if (await this.tableHasColumn(query, 'game_attempts', 'room_id')) {
-      const roomId = await this.resolveAttemptRoomId(query, gameCodeId);
+      const resolvedRoomId = roomId || await this.resolveAttemptRoomId(query, gameCodeId);
       attemptColumns.unshift('room_id');
-      attemptValues.unshift(roomId);
+      attemptValues.unshift(resolvedRoomId);
     }
 
     const [attemptResult] = await query.query(
@@ -145,7 +151,8 @@ class GameService {
       connection,
       totalQuestions,
       questionDistribution,
-      normalizedRandomSettings.randomQuestionOrderEnabled
+      normalizedRandomSettings.randomQuestionOrderEnabled,
+      roomId || await this.resolveAttemptRoomId(query, gameCodeId)
     );
 
     if (questions.length === 0) {
@@ -204,8 +211,8 @@ class GameService {
     return roomId;
   }
 
-  async insertGameCode(query, code, status, expiresAt) {
-    const requiredRelations = await gameCodeModel.resolveRequiredInsertRelations(query);
+  async insertGameCode(query, code, status, expiresAt, roomId = null) {
+    const requiredRelations = await gameCodeModel.resolveRequiredInsertRelations(query, roomId);
     const columns = [];
     const values = [];
 
@@ -280,7 +287,8 @@ class GameService {
     connection,
     totalQuestions,
     questionDistribution = DEFAULT_QUESTION_DISTRIBUTION,
-    randomQuestionOrderEnabled = true
+    randomQuestionOrderEnabled = true,
+    roomId = null
   ) {
     const query = connection || pool;
     const distribution = this.buildQuestionDistribution(totalQuestions, questionDistribution);
@@ -295,10 +303,10 @@ class GameService {
 
       const [rows] = await query.query(
         `SELECT * FROM questions
-         WHERE difficulty = ? AND is_active = ?
+         WHERE difficulty = ? AND is_active = ? ${roomId ? 'AND room_id = ?' : ''}
          ORDER BY ${shouldRandomize ? 'RAND()' : 'id ASC'}
          LIMIT ?`,
-        [difficulty, true, limit]
+        roomId ? [difficulty, true, roomId, limit] : [difficulty, true, limit]
       );
 
       rows.forEach(row => selectedIds.add(row.id));
@@ -318,12 +326,12 @@ class GameService {
 
       const [fallbackRows] = await query.query(
         `SELECT * FROM questions
-         WHERE is_active = ? ${exclusionClause}
+         WHERE is_active = ? ${roomId ? 'AND room_id = ?' : ''} ${exclusionClause}
          ORDER BY FIELD(difficulty, 'easy', 'medium', 'hard'), ${shouldRandomize ? 'RAND()' : 'id ASC'}
          LIMIT ?`,
         selectedIdList.length > 0
-          ? [true, ...selectedIdList, remaining]
-          : [true, remaining]
+          ? (roomId ? [true, roomId, ...selectedIdList, remaining] : [true, ...selectedIdList, remaining])
+          : (roomId ? [true, roomId, remaining] : [true, remaining])
       );
 
       fallbackRows.forEach(row => selectedIds.add(row.id));
@@ -394,20 +402,23 @@ class GameService {
     return Number.isInteger(parsedTimeLimit) && parsedTimeLimit > 0 ? parsedTimeLimit : 15;
   }
 
-  async getGameSettings() {
-    const gameEnabled = await gameSettingModel.getValue('gameEnabled', true);
-    const totalQuestions = await gameSettingModel.getValue('totalQuestions', 9);
+  async getGameSettings(roomId = 1) {
+    const gameEnabled = await gameSettingModel.getValue('gameEnabled', true, roomId);
+    const totalQuestions = await gameSettingModel.getValue('totalQuestions', 9, roomId);
     const questionDistribution = await gameSettingModel.getValue(
       'questionDistribution',
-      DEFAULT_QUESTION_DISTRIBUTION
+      DEFAULT_QUESTION_DISTRIBUTION,
+      roomId
     );
     const randomQuestionOrderEnabled = await gameSettingModel.getValue(
       'randomQuestionOrderEnabled',
-      DEFAULT_RANDOM_SETTINGS.randomQuestionOrderEnabled
+      DEFAULT_RANDOM_SETTINGS.randomQuestionOrderEnabled,
+      roomId
     );
     const randomAnswerOrderEnabled = await gameSettingModel.getValue(
       'randomAnswerOrderEnabled',
-      DEFAULT_RANDOM_SETTINGS.randomAnswerOrderEnabled
+      DEFAULT_RANDOM_SETTINGS.randomAnswerOrderEnabled,
+      roomId
     );
     const parsedTotalQuestions = parseInt(totalQuestions, 10);
 
@@ -437,7 +448,7 @@ class GameService {
       const isAdminAttempt = typeof attempt.game_code === 'string' && attempt.game_code.startsWith('ADM');
 
       if (!isAdminAttempt) {
-        const gameSettings = await this.getGameSettings();
+        const gameSettings = await this.getGameSettings(attempt.room_id);
         if (!gameSettings.gameEnabled) {
           return {
             gameDisabled: true,
@@ -525,7 +536,7 @@ class GameService {
     }
   }
 
-  async startAdminGame() {
+  async startAdminGame(roomId = null) {
     await attemptQuestionModel.ensureOptionOrderColumn();
     await this.ensureAttemptAnswerNullableColumn();
     const connection = await pool.getConnection();
@@ -533,7 +544,8 @@ class GameService {
     try {
       await connection.beginTransaction();
 
-      const gameSettings = await this.getGameSettings();
+      const resolvedRoomId = roomId || (await roomModel.findDefault())?.id;
+      const gameSettings = await this.getGameSettings(resolvedRoomId);
       const expiresAt = calculateExpiry(24);
       let gameCodeId = null;
 
@@ -549,7 +561,7 @@ class GameService {
           continue;
         }
 
-        gameCodeId = await this.insertGameCode(connection, adminCode, 'unused', expiresAt);
+        gameCodeId = await this.insertGameCode(connection, adminCode, 'unused', expiresAt, resolvedRoomId);
         break;
       }
 
@@ -566,7 +578,8 @@ class GameService {
         {
           randomQuestionOrderEnabled: gameSettings.randomQuestionOrderEnabled,
           randomAnswerOrderEnabled: gameSettings.randomAnswerOrderEnabled
-        }
+        },
+        resolvedRoomId
       );
 
       if (!result.success) {
@@ -628,7 +641,7 @@ class GameService {
       const isAdminAttempt = gameCode.startsWith('ADM');
 
       if (!isAdminAttempt) {
-        const gameSettings = await this.getGameSettings();
+        const gameSettings = await this.getGameSettings(attempt.room_id);
         if (!gameSettings.gameEnabled) {
           await connection.rollback();
           return { success: false, message: 'ระบบเกมปิดอยู่ชั่วคราว กรุณาติดต่อผู้ดูแลระบบ' };
@@ -706,7 +719,8 @@ class GameService {
           : await this.calculateRank(
             completedAttempt.score,
             completedAttempt.total_time,
-            completedAttempt.finished_at
+            completedAttempt.finished_at,
+            attempt.room_id
           );
 
         return {
@@ -779,7 +793,8 @@ class GameService {
             : await this.calculateRank(
               completedAttempt.score,
               completedAttempt.total_time,
-              completedAttempt.finished_at
+              completedAttempt.finished_at,
+              attempt.room_id
             );
 
           return {
@@ -823,7 +838,8 @@ class GameService {
           : await this.calculateRank(
             completedAttempt.score,
             completedAttempt.total_time,
-            completedAttempt.finished_at
+            completedAttempt.finished_at,
+            attempt.room_id
           );
 
         return {
@@ -875,7 +891,7 @@ class GameService {
       // Calculate rank only for regular players
       const rank = isAdminAttempt
         ? null
-        : await this.calculateRank(attempt.score, attempt.total_time, attempt.finished_at);
+        : await this.calculateRank(attempt.score, attempt.total_time, attempt.finished_at, attempt.room_id);
 
       return {
         success: true,
@@ -894,16 +910,21 @@ class GameService {
   /**
    * Calculate player rank
    */
-  async calculateRank(score, totalTime, finishedAt) {
+  async calculateRank(score, totalTime, finishedAt, roomId = null) {
     try {
+      const params = ['completed', score, score, totalTime, score, totalTime, finishedAt];
+      const roomClause = roomId ? ' AND ga.room_id = ?' : '';
+      if (roomId) params.push(roomId);
+
       const [result] = await pool.query(
         `SELECT COUNT(*) as rank
          FROM game_attempts ga
          JOIN game_codes gc ON gc.id = ga.game_code_id
          WHERE ga.status = ? AND ga.player_name IS NOT NULL
          AND gc.code NOT LIKE 'ADM%'
-         AND (ga.score > ? OR (ga.score = ? AND ga.total_time < ?) OR (ga.score = ? AND ga.total_time = ? AND ga.finished_at < ?))`,
-        ['completed', score, score, totalTime, score, totalTime, finishedAt]
+         AND (ga.score > ? OR (ga.score = ? AND ga.total_time < ?) OR (ga.score = ? AND ga.total_time = ? AND ga.finished_at < ?))
+         ${roomClause}`,
+        params
       );
 
       return result[0].rank + 1;
@@ -917,10 +938,10 @@ class GameService {
   /**
    * Get leaderboard
    */
-  async getLeaderboard(limit = 50, offset = 0) {
+  async getLeaderboard(limit = 50, offset = 0, roomId = null) {
     try {
-      const attempts = await attemptModel.getCompletedAttempts(limit, offset);
-      const total = await attemptModel.countCompleted();
+      const attempts = await attemptModel.getCompletedAttempts(limit, offset, roomId);
+      const total = await attemptModel.countCompleted(roomId);
 
       // Add rank to each entry
       const leaderboard = attempts.map((attempt, index) => ({
@@ -929,7 +950,10 @@ class GameService {
         score: attempt.score,
         totalTime: attempt.total_time,
         finishedAt: attempt.finished_at,
-        createdAt: attempt.started_at
+        createdAt: attempt.started_at,
+        roomId: attempt.room_id,
+        roomName: attempt.room_name,
+        roomSlug: attempt.room_slug
       }));
 
       return {

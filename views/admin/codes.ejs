@@ -295,6 +295,11 @@
         <a href="/coopgame/admin/questions" class="btn btn-outline-success">
           <i class="bi bi-card-checklist"></i> จัดการคำถาม
         </a>
+        <% if (adminUser.role === 'super_admin') { %>
+          <a href="/coopgame/admin/rooms" class="btn btn-outline-success">
+            <i class="bi bi-door-open"></i> จัดการห้อง/ผู้ใช้
+          </a>
+        <% } %>
         <a href="/coopgame/game/start" class="btn" style="background: linear-gradient(135deg, #43a047 0%, #66bb6a 100%); color: white; border: none;">
           <i class="bi bi-controller"></i> เล่นเกม
         </a>
@@ -335,6 +340,14 @@
     <div class="card fade-in">
       <h2><i class="bi bi-plus-circle me-2" style="color: #43a047;"></i>สร้างรหัสใหม่</h2>
       <form id="generateForm" class="generate-form">
+        <% if (adminUser.role === 'super_admin') { %>
+        <div class="form-group">
+          <label for="roomSelect" class="form-label">ห้อง *</label>
+          <select id="roomSelect" class="form-select" required>
+            <option value="">กำลังโหลดห้อง...</option>
+          </select>
+        </div>
+        <% } %>
         <div class="form-group">
           <label for="count" class="form-label">จำนวนรหัส *</label>
           <input type="number" id="count" name="count" class="form-control" min="1" max="1000" value="10" required>
@@ -423,17 +436,49 @@
   <script>
     let currentCodes = [];
     let generatedCodesList = [];
+    const adminRole = '<%= adminUser.role %>';
+    const fixedRoomId = <%= adminUser.roomId || 'null' %>;
 
     // Load codes on page load
     document.addEventListener('DOMContentLoaded', () => {
-      loadStats();
-      loadCodes();
+      loadRoomsIfNeeded().then(() => {
+        loadStats();
+        loadCodes();
+      });
     });
+
+    function getSelectedRoomId() {
+      if (adminRole !== 'super_admin') return fixedRoomId;
+      const roomSelect = document.getElementById('roomSelect');
+      return roomSelect && roomSelect.value ? parseInt(roomSelect.value, 10) : null;
+    }
+
+    function withRoomParam(url) {
+      const roomId = getSelectedRoomId();
+      if (!roomId) return url;
+      return `${url}${url.includes('?') ? '&' : '?'}roomId=${roomId}`;
+    }
+
+    async function loadRoomsIfNeeded() {
+      if (adminRole !== 'super_admin') return;
+      const roomSelect = document.getElementById('roomSelect');
+      const response = await fetch('/coopgame/admin/api/rooms');
+      const result = await response.json();
+      const rooms = result.success && Array.isArray(result.data) ? result.data.filter(room => room.status === 'active') : [];
+      roomSelect.innerHTML = rooms.map(room => `<option value="${room.id}">${room.name} (${room.slug})</option>`).join('');
+      if (!rooms.length) {
+        roomSelect.innerHTML = '<option value="">ยังไม่มีห้อง</option>';
+      }
+      roomSelect.addEventListener('change', () => {
+        loadStats();
+        loadCodes();
+      });
+    }
 
     // Load statistics
     async function loadStats() {
       try {
-        const response = await fetch('/coopgame/admin/api/codes/stats');
+        const response = await fetch(withRoomParam('/coopgame/admin/api/codes/stats'));
         const result = await response.json();
         
         if (result.success && result.data) {
@@ -457,7 +502,7 @@
       const tbody = document.getElementById('codesList');
       
       try {
-        const response = await fetch(`/coopgame/admin/api/codes?status=${status}&limit=${limit}`);
+        const response = await fetch(withRoomParam(`/coopgame/admin/api/codes?status=${status}&limit=${limit}`));
         const result = await response.json();
         
         if (result.success && result.data) {
@@ -519,9 +564,14 @@
 
       const count = parseInt(document.getElementById('count').value);
       const expiry = parseInt(document.getElementById('expiry').value);
+      const roomId = getSelectedRoomId();
 
       if (count < 1 || count > 1000) {
         alert('จำนวนรหัสต้องอยู่ระหว่าง 1-1000');
+        return;
+      }
+      if (!roomId) {
+        alert('กรุณาเลือกห้องก่อนสร้างรหัส');
         return;
       }
 
@@ -529,7 +579,7 @@
         const response = await fetch('/coopgame/admin/api/codes/generate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ count, expiryHours: expiry })
+          body: JSON.stringify({ count, expiryHours: expiry, roomId })
         });
 
         const result = await response.json().catch(() => null);
@@ -583,7 +633,7 @@
       if (!confirm('⚠️ คุณแน่ใจหรือไม่ที่จะทำเครื่องหมายรหัสที่หมดอายุ?')) return;
 
       try {
-        const response = await fetch('/coopgame/admin/api/codes/mark-expired', {
+        const response = await fetch(withRoomParam('/coopgame/admin/api/codes/mark-expired'), {
           method: 'POST'
         });
 
@@ -607,7 +657,7 @@
       if (!confirm('⚠️ ต้องการเคลียร์รหัสทั้งหมดออกจากระบบถาวรหรือไม่? ประวัติเกมทั้งหมดที่ผูกกับรหัสจะถูกลบตามไปด้วย')) return;
 
       try {
-        const response = await fetch('/coopgame/admin/api/codes/clear', {
+        const response = await fetch(withRoomParam('/coopgame/admin/api/codes/clear'), {
           method: 'POST'
         });
 
@@ -631,7 +681,7 @@
       if (!confirm(`⚠️ ต้องการลบรหัส ${code} ใช่หรือไม่?`)) return;
 
       try {
-        const response = await fetch(`/coopgame/admin/api/codes/${id}`, {
+        const response = await fetch(withRoomParam(`/coopgame/admin/api/codes/${id}`), {
           method: 'DELETE'
         });
 

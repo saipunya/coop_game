@@ -9,12 +9,27 @@ const {
 } = require('../utils/adminAuth');
 const logger = require('../utils/logger');
 
+function isSuperAdmin(user) {
+  return user?.role === 'super_admin';
+}
+
+function resolveAdminRoomId(req, res) {
+  const user = res.locals.adminUser;
+  if (user?.role === 'room_admin') {
+    return user.roomId;
+  }
+
+  const rawRoomId = req.body?.roomId || req.body?.room_id || req.query?.roomId || req.query?.room_id;
+  const parsed = parseInt(rawRoomId, 10);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+}
+
 class AdminController {
   // Show login page
   async showLogin(req, res) {
-    if (isAdminAuthenticated(req)) {
-      const session = getAdminSession(req);
-      return res.redirect(session?.role === 'assistant' ? '/coopgame/admin/questions' : '/coopgame/admin');
+    if (await isAdminAuthenticated(req)) {
+      const session = await getAdminSession(req);
+      return res.redirect(session?.role === 'room_admin' ? '/coopgame/admin/questions' : '/coopgame/admin');
     }
 
     return res.render('admin/login', {
@@ -38,7 +53,7 @@ class AdminController {
         });
       }
 
-      const user = verifyAdminCredentials(username, password);
+      const user = await verifyAdminCredentials(username, password);
 
       if (!user) {
         return res.status(401).render('admin/login', {
@@ -49,7 +64,7 @@ class AdminController {
       }
 
       setAdminAuthCookie(res, user, req);
-      return res.redirect(user.role === 'assistant' ? '/coopgame/admin/questions' : '/coopgame/admin');
+      return res.redirect(user.role === 'room_admin' ? '/coopgame/admin/questions' : '/coopgame/admin');
     } catch (err) {
       logger.error('Error logging in admin:', err);
       return res.status(500).render('admin/login', {
@@ -69,7 +84,7 @@ class AdminController {
   // Get dashboard statistics
   async getDashboard(req, res) {
     try {
-      const result = await adminService.getStats();
+      const result = await adminService.getStats(resolveAdminRoomId(req, res));
       success(res, result.stats, 'Dashboard data retrieved');
     } catch (err) {
       logger.error('Error getting dashboard:', err);
@@ -81,12 +96,17 @@ class AdminController {
   async generateCodes(req, res) {
     try {
       const { count, expiryHours } = req.body;
+      const roomId = resolveAdminRoomId(req, res);
 
       if (!count || count < 1 || count > 1000) {
         return validationError(res, [{ msg: 'Count must be between 1 and 1000' }]);
       }
 
-      const result = await adminService.generateCodes(count, expiryHours || 24);
+      if (!roomId) {
+        return validationError(res, [{ msg: 'roomId is required' }]);
+      }
+
+      const result = await adminService.generateCodes(count, expiryHours || 24, roomId);
       success(res, result, 'Codes generated successfully');
     } catch (err) {
       logger.error('Error generating codes:', err);
@@ -130,7 +150,8 @@ class AdminController {
       const result = await adminService.getCodes(
         status || null,
         parseInt(limit) || 50,
-        parseInt(offset) || 0
+        parseInt(offset) || 0,
+        resolveAdminRoomId(req, res)
       );
       success(res, result, 'Codes retrieved successfully');
     } catch (err) {
@@ -142,7 +163,7 @@ class AdminController {
   // Get code statistics
   async getCodeStats(req, res) {
     try {
-      const result = await adminService.getCodeStats();
+      const result = await adminService.getCodeStats(resolveAdminRoomId(req, res));
       success(res, result.stats, 'Code statistics retrieved');
     } catch (err) {
       logger.error('Error getting code stats:', err);
@@ -153,7 +174,7 @@ class AdminController {
   // Mark expired codes
   async markExpiredCodes(req, res) {
     try {
-      const result = await adminService.markExpiredCodes();
+      const result = await adminService.markExpiredCodes(resolveAdminRoomId(req, res));
       success(res, { count: result.count }, `Marked ${result.count} codes as expired`);
     } catch (err) {
       logger.error('Error marking expired codes:', err);
@@ -164,7 +185,7 @@ class AdminController {
   // Clear removable codes
   async clearCodes(req, res) {
     try {
-      const result = await adminService.clearCodes();
+      const result = await adminService.clearCodes(resolveAdminRoomId(req, res));
       success(
         res,
         { count: result.count, attempts: result.attempts },
@@ -179,7 +200,7 @@ class AdminController {
   // Clear player history and gameplay stats
   async clearPlayerHistory(req, res) {
     try {
-      const result = await adminService.clearPlayerHistory();
+      const result = await adminService.clearPlayerHistory(resolveAdminRoomId(req, res));
       success(res, { count: result.count }, `Cleared ${result.count} game attempts`);
     } catch (err) {
       logger.error('Error clearing player history:', err);
@@ -207,7 +228,7 @@ class AdminController {
         return validationError(res, [{ msg: 'รองรับเฉพาะไฟล์ .docx เท่านั้น' }]);
       }
 
-      const result = await adminService.importQuestionsFromDocx(req.file.buffer);
+      const result = await adminService.importQuestionsFromDocx(req.file.buffer, resolveAdminRoomId(req, res));
 
       if (!result.success) {
         return validationError(res, [
@@ -241,7 +262,7 @@ class AdminController {
         return validationError(res, [{ msg: 'กรุณาวางข้อความคำถามก่อนนำเข้า' }]);
       }
 
-      const result = await adminService.importQuestionsFromText(importText);
+      const result = await adminService.importQuestionsFromText(importText, resolveAdminRoomId(req, res));
 
       if (!result.success) {
         return validationError(res, [
@@ -275,7 +296,7 @@ class AdminController {
         return validationError(res, [{ msg: 'id is required' }]);
       }
 
-      const result = await adminService.deleteCode(id);
+      const result = await adminService.deleteCode(id, resolveAdminRoomId(req, res));
 
       if (!result.success) {
         const statusCode = result.message === 'Code not found' ? 404 : 400;
@@ -326,7 +347,7 @@ class AdminController {
       let timeLimit = adminService.resolveQuestionTimeLimit(difficulty);
 
       try {
-        const gameSettings = await adminService.getGameSettings();
+        const gameSettings = await adminService.getGameSettings(resolveAdminRoomId(req, res));
         const configuredTimeLimit = parseInt(gameSettings?.settings?.timeLimits?.[difficulty], 10);
         if (Number.isInteger(configuredTimeLimit) && configuredTimeLimit >= 5 && configuredTimeLimit <= 300) {
           timeLimit = configuredTimeLimit;
@@ -346,10 +367,14 @@ class AdminController {
         timeLimit
       };
 
-      const isAssistant = res.locals.adminUser?.role === 'assistant';
-      const result = isAssistant
-        ? await adminService.addQuestionByCreator(questionData, res.locals.adminUser.username)
-        : await adminService.addQuestion(questionData);
+      const roomId = resolveAdminRoomId(req, res);
+      if (!roomId) {
+        return validationError(res, [{ msg: 'roomId is required' }]);
+      }
+      const result = await adminService.addQuestion({
+        ...questionData,
+        createdBy: res.locals.adminUser?.username || null
+      }, roomId);
       success(res, { questionId: result.questionId }, 'Question added successfully');
     } catch (err) {
       logger.error('Error adding question:', err);
@@ -370,10 +395,8 @@ class AdminController {
   async getQuestions(req, res) {
     try {
       const { difficulty } = req.query;
-      const isAssistant = res.locals.adminUser?.role === 'assistant';
-      const result = isAssistant
-        ? await adminService.getQuestionsByCreator(res.locals.adminUser.username, difficulty || null)
-        : await adminService.getQuestions(difficulty || null);
+      const roomId = resolveAdminRoomId(req, res);
+      const result = await adminService.getQuestions(difficulty || null, roomId);
       success(res, result.questions, 'Questions retrieved successfully');
     } catch (err) {
       logger.error('Error getting questions:', err);
@@ -397,13 +420,10 @@ class AdminController {
 
       const questionData = {
         ...req.body,
-        timeLimit: (await adminService.getGameSettings()).settings.timeLimits[req.body.difficulty]
+        timeLimit: (await adminService.getGameSettings(resolveAdminRoomId(req, res))).settings.timeLimits[req.body.difficulty]
       };
 
-      const isAssistant = res.locals.adminUser?.role === 'assistant';
-      const result = isAssistant
-        ? await adminService.updateQuestionByCreator(parseInt(id), questionData, res.locals.adminUser.username)
-        : await adminService.updateQuestion(parseInt(id), questionData);
+      const result = await adminService.updateQuestion(parseInt(id), questionData, resolveAdminRoomId(req, res));
       
       if (!result.success) {
         return notFound(res, 'Question not found');
@@ -420,10 +440,7 @@ class AdminController {
   async deleteQuestion(req, res) {
     try {
       const { id } = req.params;
-      const isAssistant = res.locals.adminUser?.role === 'assistant';
-      const result = isAssistant
-        ? await adminService.deleteQuestionByCreator(parseInt(id), res.locals.adminUser.username)
-        : await adminService.deleteQuestion(parseInt(id));
+      const result = await adminService.deleteQuestion(parseInt(id), resolveAdminRoomId(req, res));
 
       if (!result.success) {
         return notFound(res, 'Question not found');
@@ -443,10 +460,49 @@ class AdminController {
     }
   }
 
+  async deleteQuestionsBulk(req, res) {
+    try {
+      const ids = Array.isArray(req.body.ids) ? req.body.ids : [];
+      const normalizedIds = ids
+        .map(id => parseInt(id, 10))
+        .filter(id => Number.isInteger(id) && id > 0);
+
+      if (normalizedIds.length === 0) {
+        return validationError(res, [{ msg: 'ids must contain at least one question id' }]);
+      }
+
+      if (normalizedIds.length > 200) {
+        return validationError(res, [{ msg: 'ลบได้ครั้งละไม่เกิน 200 คำถาม' }]);
+      }
+
+      const result = await adminService.deleteQuestionsBulk(
+        normalizedIds,
+        resolveAdminRoomId(req, res)
+      );
+
+      if (!result.success) {
+        return notFound(res, result.message || 'Questions not found');
+      }
+
+      success(
+        res,
+        {
+          deletedQuestions: result.deletedQuestions,
+          deletedAnswers: result.deletedAnswers,
+          deletedAttemptQuestions: result.deletedAttemptQuestions
+        },
+        'Questions permanently deleted successfully'
+      );
+    } catch (err) {
+      logger.error('Error bulk deleting questions:', err);
+      error(res, 'Failed to delete questions');
+    }
+  }
+
   // Get question statistics
   async getQuestionStats(req, res) {
     try {
-      const result = await adminService.getQuestionStats();
+      const result = await adminService.getQuestionStats(resolveAdminRoomId(req, res));
       success(res, result.stats, 'Question statistics retrieved');
     } catch (err) {
       logger.error('Error getting question stats:', err);
@@ -456,7 +512,7 @@ class AdminController {
 
   async getGameSettings(req, res) {
     try {
-      const result = await adminService.getGameSettings();
+      const result = await adminService.getGameSettings(resolveAdminRoomId(req, res));
       success(res, result.settings, 'Game settings retrieved successfully');
     } catch (err) {
       logger.error('Error getting game settings:', err);
@@ -466,7 +522,11 @@ class AdminController {
 
   async updateGameSettings(req, res) {
     try {
-      const result = await adminService.updateGameSettings(req.body);
+      const roomId = resolveAdminRoomId(req, res);
+      if (!roomId) {
+        return validationError(res, [{ msg: 'roomId is required' }]);
+      }
+      const result = await adminService.updateGameSettings(req.body, roomId);
 
       if (!result.success) {
         return validationError(res, [{ msg: result.message }]);
@@ -479,10 +539,82 @@ class AdminController {
     }
   }
 
+  async getRooms(req, res) {
+    try {
+      const result = await adminService.listRooms(true);
+      success(res, result.rooms, 'Rooms retrieved successfully');
+    } catch (err) {
+      logger.error('Error getting rooms:', err);
+      error(res, 'Failed to get rooms');
+    }
+  }
+
+  async createRoom(req, res) {
+    try {
+      const result = await adminService.createRoom(req.body);
+      if (!result.success) {
+        return validationError(res, [{ msg: result.message }]);
+      }
+      success(res, { roomId: result.roomId }, 'Room created successfully');
+    } catch (err) {
+      logger.error('Error creating room:', err);
+      error(res, 'Failed to create room', err.code === 'ER_DUP_ENTRY' ? 409 : 500);
+    }
+  }
+
+  async updateRoom(req, res) {
+    try {
+      const result = await adminService.updateRoom(parseInt(req.params.id, 10), req.body);
+      if (!result.success) {
+        return notFound(res, result.message || 'Room not found');
+      }
+      success(res, null, 'Room updated successfully');
+    } catch (err) {
+      logger.error('Error updating room:', err);
+      error(res, 'Failed to update room', err.code === 'ER_DUP_ENTRY' ? 409 : 500);
+    }
+  }
+
+  async getAdminUsers(req, res) {
+    try {
+      const result = await adminService.listAdminUsers();
+      success(res, result.users, 'Admin users retrieved successfully');
+    } catch (err) {
+      logger.error('Error getting admin users:', err);
+      error(res, 'Failed to get admin users');
+    }
+  }
+
+  async createAdminUser(req, res) {
+    try {
+      const result = await adminService.createAdminUser(req.body);
+      if (!result.success) {
+        return validationError(res, [{ msg: result.message }]);
+      }
+      success(res, { userId: result.userId }, 'Admin user created successfully');
+    } catch (err) {
+      logger.error('Error creating admin user:', err);
+      error(res, 'Failed to create admin user', err.code === 'ER_DUP_ENTRY' ? 409 : 500);
+    }
+  }
+
+  async updateAdminUser(req, res) {
+    try {
+      const result = await adminService.updateAdminUser(parseInt(req.params.id, 10), req.body);
+      if (!result.success) {
+        return notFound(res, result.message || 'Admin user not found');
+      }
+      success(res, null, 'Admin user updated successfully');
+    } catch (err) {
+      logger.error('Error updating admin user:', err);
+      error(res, 'Failed to update admin user', err.code === 'ER_DUP_ENTRY' ? 409 : 500);
+    }
+  }
+
   // Get overall statistics
   async getStats(req, res) {
     try {
-      const result = await adminService.getStats();
+      const result = await adminService.getStats(resolveAdminRoomId(req, res));
       success(res, result.stats, 'Statistics retrieved successfully');
     } catch (err) {
       logger.error('Error getting stats:', err);

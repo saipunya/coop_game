@@ -22,9 +22,10 @@ class AttemptModel {
   // Find attempt with its game code
   async findByIdWithCode(id) {
     const [rows] = await pool.query(
-      `SELECT ga.*, gc.code as game_code
+      `SELECT ga.*, gc.code as game_code, r.name AS room_name, r.slug AS room_slug
        FROM game_attempts ga
        JOIN game_codes gc ON gc.id = ga.game_code_id
+       LEFT JOIN rooms r ON r.id = ga.room_id
        WHERE ga.id = ?`,
       [id]
     );
@@ -69,62 +70,83 @@ class AttemptModel {
   }
 
   // Get completed attempts for leaderboard
-  async getCompletedAttempts(limit = 50, offset = 0) {
+  async getCompletedAttempts(limit = 50, offset = 0, roomId = null) {
+    const params = ['completed'];
+    const roomClause = roomId ? ' AND ga.room_id = ?' : '';
+    if (roomId) params.push(roomId);
+    params.push(limit, offset);
+
     const [rows] = await pool.query(
-      `SELECT ga.id, ga.player_name, ga.score, ga.total_time, ga.finished_at, ga.started_at
+      `SELECT ga.id, ga.player_name, ga.score, ga.total_time, ga.finished_at, ga.started_at,
+              ga.room_id, r.name AS room_name, r.slug AS room_slug
        FROM game_attempts ga
        JOIN game_codes gc ON gc.id = ga.game_code_id
+       LEFT JOIN rooms r ON r.id = ga.room_id
        WHERE ga.status = ? AND ga.player_name IS NOT NULL
        AND gc.code NOT LIKE 'ADM%'
+       ${roomClause}
        ORDER BY ga.score DESC, ga.total_time ASC, ga.finished_at ASC
        LIMIT ? OFFSET ?`,
-      ['completed', limit, offset]
+      params
     );
     return rows;
   }
 
   // Count completed attempts
-  async countCompleted() {
+  async countCompleted(roomId = null) {
+    const params = ['completed'];
+    const roomClause = roomId ? ' AND ga.room_id = ?' : '';
+    if (roomId) params.push(roomId);
+
     const [rows] = await pool.query(
       `SELECT COUNT(*) as count
        FROM game_attempts ga
        JOIN game_codes gc ON gc.id = ga.game_code_id
        WHERE ga.status = ? AND ga.player_name IS NOT NULL
-       AND gc.code NOT LIKE 'ADM%'`,
-      ['completed']
+       AND gc.code NOT LIKE 'ADM%'
+       ${roomClause}`,
+      params
     );
     return rows[0].count;
   }
 
   // Get statistics
-  async getStats() {
+  async getStats(roomId = null) {
+    const roomClause = roomId ? ' AND ga.room_id = ?' : '';
+    const roomParams = roomId ? [roomId] : [];
+
     const [totalPlayers] = await pool.query(
       `SELECT COUNT(*) as count
        FROM game_attempts ga
        JOIN game_codes gc ON gc.id = ga.game_code_id
        WHERE ga.player_name IS NOT NULL
-       AND gc.code NOT LIKE 'ADM%'`
+       AND gc.code NOT LIKE 'ADM%'
+       ${roomClause}`,
+      roomParams
     );
     const [completedGames] = await pool.query(
       `SELECT COUNT(*) as count
        FROM game_attempts ga
        JOIN game_codes gc ON gc.id = ga.game_code_id
-       WHERE ga.status = ? AND gc.code NOT LIKE 'ADM%'`,
-      ['completed']
+       WHERE ga.status = ? AND gc.code NOT LIKE 'ADM%'
+       ${roomClause}`,
+      ['completed', ...roomParams]
     );
     const [avgScore] = await pool.query(
       `SELECT AVG(ga.score) as avg
        FROM game_attempts ga
        JOIN game_codes gc ON gc.id = ga.game_code_id
-       WHERE ga.status = ? AND gc.code NOT LIKE 'ADM%'`,
-      ['completed']
+       WHERE ga.status = ? AND gc.code NOT LIKE 'ADM%'
+       ${roomClause}`,
+      ['completed', ...roomParams]
     );
     const [avgTime] = await pool.query(
       `SELECT AVG(ga.total_time) as avg
        FROM game_attempts ga
        JOIN game_codes gc ON gc.id = ga.game_code_id
-       WHERE ga.status = ? AND gc.code NOT LIKE 'ADM%'`,
-      ['completed']
+       WHERE ga.status = ? AND gc.code NOT LIKE 'ADM%'
+       ${roomClause}`,
+      ['completed', ...roomParams]
     );
 
     return {
@@ -136,8 +158,25 @@ class AttemptModel {
   }
 
   // Clear all player history and game attempts
-  async clearAllHistory(connection) {
+  async clearAllHistory(connection, roomId = null) {
     const query = connection || pool;
+
+    if (roomId) {
+      await query.query(
+        `DELETE aa FROM attempt_answers aa
+         JOIN game_attempts ga ON ga.id = aa.attempt_id
+         WHERE ga.room_id = ?`,
+        [roomId]
+      );
+      await query.query(
+        `DELETE aq FROM attempt_questions aq
+         JOIN game_attempts ga ON ga.id = aq.attempt_id
+         WHERE ga.room_id = ?`,
+        [roomId]
+      );
+      const [result] = await query.query('DELETE FROM game_attempts WHERE room_id = ?', [roomId]);
+      return result.affectedRows;
+    }
 
     await query.query('DELETE FROM attempt_answers');
     await query.query('DELETE FROM attempt_questions');

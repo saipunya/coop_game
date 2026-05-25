@@ -2,6 +2,8 @@ const gameCodeModel = require('../models/gameCode.model');
 const questionModel = require('../models/question.model');
 const attemptModel = require('../models/attempt.model');
 const gameSettingModel = require('../models/gameSetting.model');
+const roomModel = require('../models/room.model');
+const adminUserModel = require('../models/adminUser.model');
 const pool = require('../config/database');
 const { generateGameCodes, calculateExpiry } = require('../utils/crypto');
 const logger = require('../utils/logger');
@@ -27,17 +29,131 @@ const DEFAULT_GAME_SETTINGS = {
 };
 
 class AdminService {
+  normalizeRoomId(roomId) {
+    const parsed = parseInt(roomId, 10);
+    return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+  }
+
+  async listRooms(includeInactive = true) {
+    return {
+      success: true,
+      rooms: await roomModel.getAll(includeInactive)
+    };
+  }
+
+  async createRoom(roomData) {
+    const name = String(roomData.name || '').trim();
+    const slug = roomModel.normalizeSlug(roomData.slug || name);
+
+    if (!name || !slug) {
+      return { success: false, message: 'Room name and slug are required' };
+    }
+
+    const roomId = await roomModel.create({
+      name,
+      slug,
+      status: roomData.status
+    });
+
+    for (const [key, value] of Object.entries(DEFAULT_GAME_SETTINGS)) {
+      await gameSettingModel.set(
+        key === 'timeLimits' ? 'questionTimeLimits' : key,
+        value,
+        roomId
+      );
+    }
+
+    return { success: true, roomId };
+  }
+
+  async updateRoom(id, roomData) {
+    const name = String(roomData.name || '').trim();
+    const slug = roomModel.normalizeSlug(roomData.slug || name);
+
+    if (!name || !slug) {
+      return { success: false, message: 'Room name and slug are required' };
+    }
+
+    const updated = await roomModel.update(id, {
+      name,
+      slug,
+      status: roomData.status
+    });
+
+    return updated
+      ? { success: true }
+      : { success: false, message: 'Room not found' };
+  }
+
+  async listAdminUsers() {
+    return {
+      success: true,
+      users: await adminUserModel.getAll()
+    };
+  }
+
+  async createAdminUser(userData) {
+    const username = String(userData.username || '').trim();
+    const password = String(userData.password || '');
+    const role = userData.role === 'super_admin' ? 'super_admin' : 'room_admin';
+    const roomId = this.normalizeRoomId(userData.roomId || userData.room_id);
+
+    if (!username || !password) {
+      return { success: false, message: 'Username and password are required' };
+    }
+
+    if (role === 'room_admin' && !roomId) {
+      return { success: false, message: 'Room admin must be assigned to a room' };
+    }
+
+    const userId = await adminUserModel.create({
+      username,
+      password,
+      role,
+      roomId,
+      isActive: userData.isActive !== false
+    });
+
+    return { success: true, userId };
+  }
+
+  async updateAdminUser(id, userData) {
+    const username = String(userData.username || '').trim();
+    const role = userData.role === 'super_admin' ? 'super_admin' : 'room_admin';
+    const roomId = this.normalizeRoomId(userData.roomId || userData.room_id);
+
+    if (!username) {
+      return { success: false, message: 'Username is required' };
+    }
+
+    if (role === 'room_admin' && !roomId) {
+      return { success: false, message: 'Room admin must be assigned to a room' };
+    }
+
+    const updated = await adminUserModel.update(id, {
+      username,
+      password: userData.password || null,
+      role,
+      roomId,
+      isActive: userData.isActive !== false
+    });
+
+    return updated
+      ? { success: true }
+      : { success: false, message: 'Admin user not found' };
+  }
+
   /**
    * Generate batch of game codes
    */
-  async generateCodes(count, expiryHours = 24) {
+  async generateCodes(count, expiryHours = 24, roomId = null) {
     try {
       const codes = await this.generateUniqueCodes(count);
       const expiresAt = calculateExpiry(expiryHours);
 
       let createdCount;
       try {
-        createdCount = await gameCodeModel.createBatch(codes, expiresAt);
+        createdCount = await gameCodeModel.createBatch(codes, expiresAt, roomId);
       } catch (error) {
         if (error.code !== 'ER_DUP_ENTRY') {
           throw error;
@@ -46,7 +162,7 @@ class AdminService {
         // A rare race condition can still insert a duplicate between the
         // existence check and the batch insert. Retry once with a fresh batch.
         const retryCodes = await this.generateUniqueCodes(count);
-        createdCount = await gameCodeModel.createBatch(retryCodes, expiresAt);
+        createdCount = await gameCodeModel.createBatch(retryCodes, expiresAt, roomId);
         return {
           success: true,
           codes: retryCodes,
@@ -105,13 +221,13 @@ class AdminService {
   /**
    * Get all codes with optional status filter
    */
-  async getCodes(status = null, limit = 50, offset = 0) {
+  async getCodes(status = null, limit = 50, offset = 0, roomId = null) {
     try {
       let codes;
       if (status) {
-        codes = await gameCodeModel.getByStatus(status, limit, offset);
+        codes = await gameCodeModel.getByStatus(status, limit, offset, roomId);
       } else {
-        codes = await gameCodeModel.getAll(limit, offset);
+        codes = await gameCodeModel.getAll(limit, offset, roomId);
       }
 
       return {
@@ -128,12 +244,12 @@ class AdminService {
   /**
    * Get code statistics
    */
-  async getCodeStats() {
+  async getCodeStats(roomId = null) {
     try {
-      const unused = await gameCodeModel.countByStatus('unused');
-      const inProgress = await gameCodeModel.countByStatus('in_progress');
-      const used = await gameCodeModel.countByStatus('used');
-      const expired = await gameCodeModel.countByStatus('expired');
+      const unused = await gameCodeModel.countByStatus('unused', roomId);
+      const inProgress = await gameCodeModel.countByStatus('in_progress', roomId);
+      const used = await gameCodeModel.countByStatus('used', roomId);
+      const expired = await gameCodeModel.countByStatus('expired', roomId);
 
       return {
         success: true,
@@ -154,9 +270,9 @@ class AdminService {
   /**
    * Mark expired codes
    */
-  async markExpiredCodes() {
+  async markExpiredCodes(roomId = null) {
     try {
-      const count = await gameCodeModel.markExpired();
+      const count = await gameCodeModel.markExpired(roomId);
       logger.info(`Marked ${count} codes as expired`);
       return { success: true, count };
     } catch (error) {
@@ -168,9 +284,9 @@ class AdminService {
   /**
    * Clear all codes from the system, including game history tied to those codes.
    */
-  async clearCodes() {
+  async clearCodes(roomId = null) {
     try {
-      const result = await gameCodeModel.clearAllWithHistory();
+      const result = await gameCodeModel.clearAllWithHistory(roomId);
 
       logger.info(
         `Cleared ${result.deletedCodes} codes and ${result.deletedAttempts} game attempts`
@@ -189,11 +305,15 @@ class AdminService {
   /**
    * Delete a code when it is safe to remove it from the system
    */
-  async deleteCode(id) {
+  async deleteCode(id, roomId = null) {
     try {
       const code = await gameCodeModel.findById(id);
 
       if (!code) {
+        return { success: false, message: 'Code not found' };
+      }
+
+      if (roomId && code.room_id !== roomId) {
         return { success: false, message: 'Code not found' };
       }
 
@@ -220,9 +340,9 @@ class AdminService {
   /**
    * Add new question
    */
-  async addQuestion(questionData) {
+  async addQuestion(questionData, roomId = null) {
     try {
-      const questionId = await questionModel.create(questionData);
+      const questionId = await questionModel.create({ ...questionData, roomId });
       logger.info(`Added question ${questionId}`);
       return { success: true, questionId };
     } catch (error) {
@@ -231,10 +351,11 @@ class AdminService {
     }
   }
 
-  async addQuestionByCreator(questionData, creator) {
+  async addQuestionByCreator(questionData, creator, roomId = null) {
     try {
       const questionId = await questionModel.create({
         ...questionData,
+        roomId,
         createdBy: creator
       });
       logger.info(`Added question ${questionId} by ${creator}`);
@@ -248,9 +369,13 @@ class AdminService {
   /**
    * Update question
    */
-  async updateQuestion(id, questionData) {
+  async updateQuestion(id, questionData, roomId = null) {
     try {
-      const success = await questionModel.update(id, questionData);
+      const existing = roomId ? await questionModel.findById(id) : null;
+      if (roomId && (!existing || existing.room_id !== roomId)) {
+        return { success: false, message: 'Question not found' };
+      }
+      const success = await questionModel.update(id, { ...questionData, roomId });
       if (!success) {
         return { success: false, message: 'Question not found' };
       }
@@ -262,8 +387,12 @@ class AdminService {
     }
   }
 
-  async updateQuestionByCreator(id, questionData, creator) {
+  async updateQuestionByCreator(id, questionData, creator, roomId = null) {
     try {
+      const existing = roomId ? await questionModel.findById(id) : null;
+      if (roomId && (!existing || existing.room_id !== roomId)) {
+        return { success: false, message: 'Question not found or access denied' };
+      }
       const success = await questionModel.updateByCreator(id, creator, questionData);
       if (!success) {
         return { success: false, message: 'Question not found or access denied' };
@@ -279,9 +408,9 @@ class AdminService {
   /**
    * Permanently delete question and any game-history rows that reference it.
    */
-  async deleteQuestion(id) {
+  async deleteQuestion(id, roomId = null) {
     try {
-      const result = await questionModel.deletePermanently(id);
+      const result = await questionModel.deletePermanently(id, roomId);
       if (!result.deleted) {
         return { success: false, message: 'Question not found' };
       }
@@ -301,8 +430,36 @@ class AdminService {
     }
   }
 
-  async deleteQuestionByCreator(id, creator) {
+  async deleteQuestionsBulk(ids, roomId = null) {
     try {
+      const result = await questionModel.deletePermanentlyMany(ids, roomId);
+      if (!result.deleted) {
+        return { success: false, message: 'No matching questions found' };
+      }
+
+      logger.info(
+        `Permanently deleted ${result.deletedQuestions} questions, ` +
+        `${result.deletedAnswers} answers, ${result.deletedAttemptQuestions} attempt questions`
+      );
+
+      return {
+        success: true,
+        deletedQuestions: result.deletedQuestions,
+        deletedAnswers: result.deletedAnswers,
+        deletedAttemptQuestions: result.deletedAttemptQuestions
+      };
+    } catch (error) {
+      logger.error('Error bulk deleting questions:', error);
+      throw error;
+    }
+  }
+
+  async deleteQuestionByCreator(id, creator, roomId = null) {
+    try {
+      const existing = roomId ? await questionModel.findById(id) : null;
+      if (roomId && (!existing || existing.room_id !== roomId)) {
+        return { success: false, message: 'Question not found or access denied' };
+      }
       const result = await questionModel.deletePermanentlyByCreator(id, creator);
       if (!result.deleted) {
         return { success: false, message: 'Question not found or access denied' };
@@ -326,14 +483,14 @@ class AdminService {
   /**
    * Get all questions
    */
-  async getQuestions(difficulty = null) {
+  async getQuestions(difficulty = null, roomId = null) {
     try {
       let questions;
       if (difficulty) {
-        questions = await questionModel.getByDifficulty(difficulty, 100);
+        questions = await questionModel.getByDifficulty(difficulty, 100, roomId);
       } else {
         // Get all questions including inactive for admin
-        questions = await questionModel.getAll();
+        questions = await questionModel.getAll(roomId);
       }
       return { success: true, questions };
     } catch (error) {
@@ -342,13 +499,13 @@ class AdminService {
     }
   }
 
-  async getQuestionsByCreator(creator, difficulty = null) {
+  async getQuestionsByCreator(creator, difficulty = null, roomId = null) {
     try {
       let questions;
       if (difficulty) {
-        questions = (await questionModel.getByCreator(creator)).filter(q => q.difficulty === difficulty);
+        questions = (await questionModel.getByCreator(creator, roomId)).filter(q => q.difficulty === difficulty);
       } else {
-        questions = await questionModel.getByCreator(creator);
+        questions = await questionModel.getByCreator(creator, roomId);
       }
       return { success: true, questions };
     } catch (error) {
@@ -360,11 +517,11 @@ class AdminService {
   /**
    * Get question counts by difficulty
    */
-  async getQuestionStats() {
+  async getQuestionStats(roomId = null) {
     try {
-      const easy = await questionModel.countByDifficulty('easy');
-      const medium = await questionModel.countByDifficulty('medium');
-      const hard = await questionModel.countByDifficulty('hard');
+      const easy = await questionModel.countByDifficulty('easy', roomId);
+      const medium = await questionModel.countByDifficulty('medium', roomId);
+      const hard = await questionModel.countByDifficulty('hard', roomId);
 
       return {
         success: true,
@@ -384,12 +541,12 @@ class AdminService {
   /**
    * Get overall statistics
    */
-  async getStats() {
+  async getStats(roomId = null) {
     try {
-      const gameStats = await attemptModel.getStats();
-      const codeStats = await this.getCodeStats();
-      const questionStats = await this.getQuestionStats();
-      const gameSettings = await this.getGameSettings();
+      const gameStats = await attemptModel.getStats(roomId);
+      const codeStats = await this.getCodeStats(roomId);
+      const questionStats = await this.getQuestionStats(roomId);
+      const gameSettings = await this.getGameSettings(roomId);
 
       return {
         success: true,
@@ -446,13 +603,13 @@ class AdminService {
    * Clear player history and gameplay statistics.
    * This removes attempts, answers, and attempt-question mappings.
    */
-  async clearPlayerHistory() {
+  async clearPlayerHistory(roomId = null) {
     const connection = await pool.getConnection();
 
     try {
       await connection.beginTransaction();
 
-      const deletedAttempts = await attemptModel.clearAllHistory(connection);
+      const deletedAttempts = await attemptModel.clearAllHistory(connection, roomId);
 
       await connection.commit();
 
@@ -761,17 +918,18 @@ class AdminService {
     return { questions, errors };
   }
 
-  async createImportedQuestions(parsedQuestions, sourceLabel) {
+  async createImportedQuestions(parsedQuestions, sourceLabel, roomId = null) {
     const connection = await pool.getConnection();
 
     try {
       await connection.beginTransaction();
 
       const questionIds = [];
-      const gameSettings = await this.getGameSettings();
+      const gameSettings = await this.getGameSettings(roomId);
       for (const question of parsedQuestions) {
         const questionId = await questionModel.createWithConnection(connection, {
           ...question,
+          roomId,
           timeLimit: gameSettings.settings.timeLimits[question.difficulty]
         });
         questionIds.push(questionId);
@@ -794,7 +952,7 @@ class AdminService {
     }
   }
 
-  async importQuestionsFromText(rawText) {
+  async importQuestionsFromText(rawText, roomId = null) {
     try {
       const parsed = this.parseQuestionsFromText(rawText);
 
@@ -813,14 +971,14 @@ class AdminService {
         };
       }
 
-      return await this.createImportedQuestions(parsed.questions, 'pasted text');
+      return await this.createImportedQuestions(parsed.questions, 'pasted text', roomId);
     } catch (error) {
       logger.error('Error importing questions from text:', error);
       throw error;
     }
   }
 
-  async importQuestionsFromDocx(buffer) {
+  async importQuestionsFromDocx(buffer, roomId = null) {
     try {
       const extracted = await mammoth.extractRawText({ buffer });
       const parsed = this.parseQuestionsFromText(extracted.value);
@@ -840,7 +998,7 @@ class AdminService {
         };
       }
 
-      return await this.createImportedQuestions(parsed.questions, 'DOCX');
+      return await this.createImportedQuestions(parsed.questions, 'DOCX', roomId);
     } catch (error) {
       logger.error('Error importing questions from docx:', error);
       throw error;
@@ -851,31 +1009,37 @@ class AdminService {
     return QUESTION_TIME_LIMITS[difficulty] || QUESTION_TIME_LIMITS.easy;
   }
 
-  async getGameSettings() {
+  async getGameSettings(roomId = 1) {
     try {
       const totalQuestions = await gameSettingModel.getValue(
         'totalQuestions',
-        DEFAULT_GAME_SETTINGS.totalQuestions
+        DEFAULT_GAME_SETTINGS.totalQuestions,
+        roomId
       );
       const gameEnabled = await gameSettingModel.getValue(
         'gameEnabled',
-        DEFAULT_GAME_SETTINGS.gameEnabled
+        DEFAULT_GAME_SETTINGS.gameEnabled,
+        roomId
       );
       const savedTimeLimits = await gameSettingModel.getValue(
         'questionTimeLimits',
-        DEFAULT_GAME_SETTINGS.timeLimits
+        DEFAULT_GAME_SETTINGS.timeLimits,
+        roomId
       );
       const savedQuestionDistribution = await gameSettingModel.getValue(
         'questionDistribution',
-        DEFAULT_GAME_SETTINGS.questionDistribution
+        DEFAULT_GAME_SETTINGS.questionDistribution,
+        roomId
       );
       const randomQuestionOrderEnabled = await gameSettingModel.getValue(
         'randomQuestionOrderEnabled',
-        DEFAULT_GAME_SETTINGS.randomQuestionOrderEnabled
+        DEFAULT_GAME_SETTINGS.randomQuestionOrderEnabled,
+        roomId
       );
       const randomAnswerOrderEnabled = await gameSettingModel.getValue(
         'randomAnswerOrderEnabled',
-        DEFAULT_GAME_SETTINGS.randomAnswerOrderEnabled
+        DEFAULT_GAME_SETTINGS.randomAnswerOrderEnabled,
+        roomId
       );
       const timeLimits = this.normalizeQuestionTimeLimits(savedTimeLimits);
       const questionDistribution = this.normalizeQuestionDistribution(savedQuestionDistribution);
@@ -930,7 +1094,7 @@ class AdminService {
     return distribution;
   }
 
-  async updateGameSettings(settingsData) {
+  async updateGameSettings(settingsData, roomId = 1) {
     try {
       const totalQuestions = parseInt(settingsData.totalQuestions, 10);
       const gameEnabled = settingsData.gameEnabled !== false;
@@ -982,12 +1146,12 @@ class AdminService {
         };
       }
 
-      await gameSettingModel.set('gameEnabled', gameEnabled);
-      await gameSettingModel.set('totalQuestions', totalQuestions);
-      await gameSettingModel.set('randomQuestionOrderEnabled', randomQuestionOrderEnabled);
-      await gameSettingModel.set('randomAnswerOrderEnabled', randomAnswerOrderEnabled);
-      await gameSettingModel.set('questionTimeLimits', timeLimits);
-      await gameSettingModel.set('questionDistribution', questionDistribution);
+      await gameSettingModel.set('gameEnabled', gameEnabled, roomId);
+      await gameSettingModel.set('totalQuestions', totalQuestions, roomId);
+      await gameSettingModel.set('randomQuestionOrderEnabled', randomQuestionOrderEnabled, roomId);
+      await gameSettingModel.set('randomAnswerOrderEnabled', randomAnswerOrderEnabled, roomId);
+      await gameSettingModel.set('questionTimeLimits', timeLimits, roomId);
+      await gameSettingModel.set('questionDistribution', questionDistribution, roomId);
 
       await pool.query(
         `UPDATE questions
@@ -996,8 +1160,11 @@ class AdminService {
            WHEN 'medium' THEN ?
            WHEN 'hard' THEN ?
            ELSE time_limit
-         END`,
-        [timeLimits.easy, timeLimits.medium, timeLimits.hard]
+         END
+         ${roomId ? 'WHERE room_id = ?' : ''}`,
+        roomId
+          ? [timeLimits.easy, timeLimits.medium, timeLimits.hard, roomId]
+          : [timeLimits.easy, timeLimits.medium, timeLimits.hard]
       );
 
       logger.info(

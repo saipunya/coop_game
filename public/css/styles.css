@@ -614,10 +614,51 @@ select:focus-visible {
 
 /* Footer */
 .footer {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
   text-align: center;
   padding: 20px 0;
   color: rgba(255, 255, 255, 0.8);
   font-size: 0.9rem;
+}
+
+.footer .footer-meta {
+  margin: 0;
+}
+
+.footer .system-credit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  margin: 0 auto;
+  max-width: 760px;
+  padding: 10px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.86);
+  font-weight: 700;
+  line-height: 1.65;
+}
+
+.footer .credit-label {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  font-size: 0.82rem;
+}
+
+.footer .credit-name {
+  color: #fff;
+  font-weight: 800;
+}
+
+.footer .credit-office {
+  color: rgba(255, 255, 255, 0.78);
 }
 
 @media (prefers-reduced-motion: reduce) {

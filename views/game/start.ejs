@@ -9,8 +9,15 @@
   <link rel="stylesheet" href="/coopgame/css/start.css">
 </head>
 <body>
-  <% const isGameOpen = typeof gameEnabled === 'undefined' || gameEnabled !== false; %>
-  <div class="start-shell">
+  <%
+    const isGameOpen = typeof gameEnabled === 'undefined' || gameEnabled !== false;
+    const activeRoom = typeof room !== 'undefined' ? room : null;
+    const resolvedVerifyUrl = typeof verifyUrl !== 'undefined' ? verifyUrl : '/coopgame/game/verify-code';
+    const resolvedLeaderboardUrl = typeof leaderboardUrl !== 'undefined' ? leaderboardUrl : '/coopgame/game/leaderboard';
+    const resolvedLeaderboardApiUrl = typeof leaderboardApiUrl !== 'undefined' ? leaderboardApiUrl : '/coopgame/game/api/leaderboard';
+    const resolvedPlayBaseUrl = typeof playBaseUrl !== 'undefined' ? playBaseUrl : '/coopgame/game/play';
+  %>
+  <div class="start-shell <%= activeRoom ? 'room-start-page' : '' %>">
     <a href="/coopgame/admin/login" class="admin-float-link" aria-label="เข้าสู่ระบบผู้ดูแล">
       <i data-lucide="shield-check"></i>
       <span>Admin</span>
@@ -31,7 +38,7 @@
               <i data-lucide="zap"></i>
               <span>เริ่มเลย</span>
             </a>
-            <a href="/coopgame/game/leaderboard" class="hero-link">
+            <a href="<%= resolvedLeaderboardUrl %>" class="hero-link">
               <i data-lucide="trophy"></i>
               <span>ดูอันดับ</span>
             </a>
@@ -104,8 +111,8 @@
             <div class="card-heading">
               <span class="card-icon"><i data-lucide="key-round"></i></span>
               <div>
-                <h2 id="startTitle">ใส่รหัสเพื่อเข้าเกม</h2>
-                <p>รหัส 6 ตัวอักษร/ตัวเลขจากผู้ดูแลระบบ</p>
+              <h2 id="startTitle"><%= activeRoom ? activeRoom.name : 'ใส่รหัสเพื่อเข้าเกม' %></h2>
+              <p>รหัส 6 ตัวอักษร/ตัวเลขจากผู้ดูแลระบบ<%= activeRoom ? 'ของห้องนี้' : '' %></p>
               </div>
             </div>
 
@@ -195,7 +202,7 @@
                 <h2>อันดับผู้เล่นล่าสุด</h2>
                 <p>อันดับผู้เล่นที่บันทึกผลแล้ว</p>
               </div>
-              <a href="/coopgame/game/leaderboard">ทั้งหมด</a>
+              <a href="<%= resolvedLeaderboardUrl %>">ทั้งหมด</a>
             </div>
             <div id="leaderboardPreview" class="activity-list">
               <div class="activity-loading">
@@ -208,8 +215,15 @@
       </section>
 
       <footer class="start-footer">
-        <span>Illustrations by Storyset by Freepik</span>
-        <span>© 2026 naimet</span>
+        <div class="start-footer-meta">
+          <span>Illustrations by Storyset by Freepik</span>
+          <span>© 2026 naimet</span>
+        </div>
+        <div class="system-credit">
+          <span class="credit-label">พัฒนาระบบโดย</span>
+          <span class="credit-name">นายสุเมธ ชูรัตน์</span>
+          <span class="credit-office">นักวิชาการสหกรณ์ชำนาญการ · สำนักงานสหกรณ์จังหวัดชัยภูมิ</span>
+        </div>
       </footer>
     </main>
   </div>
@@ -221,6 +235,10 @@
     const codeInput = document.getElementById('code');
     const messageDiv = document.getElementById('message');
     const gameEnabled = <%= isGameOpen ? 'true' : 'false' %>;
+    const verifyUrl = '<%= resolvedVerifyUrl %>';
+    const leaderboardUrl = '<%= resolvedLeaderboardUrl %>';
+    const leaderboardApiUrl = '<%= resolvedLeaderboardApiUrl %>';
+    const playBaseUrl = '<%= resolvedPlayBaseUrl %>';
 
     function renderIcons() {
       if (window.lucide) {
@@ -262,7 +280,7 @@
       showMessage('info', 'loader-circle', 'กำลังตรวจสอบรหัส...');
 
       try {
-        const response = await fetch('/coopgame/game/verify-code', {
+        const response = await fetch(verifyUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ code })
@@ -273,7 +291,7 @@
         if (result.success) {
           showMessage('success', 'circle-check', 'ตรวจสอบรหัสสำเร็จ กำลังพาเข้าสู่เกม...');
           setTimeout(() => {
-            window.location.href = `/coopgame/game/play?attemptId=${result.data.attemptId}`;
+            window.location.href = `${playBaseUrl}?attemptId=${result.data.attemptId}`;
           }, 650);
         } else {
           showMessage('error', 'circle-x', result.message || 'รหัสไม่ถูกต้อง');
@@ -301,7 +319,7 @@
       const preview = document.getElementById('leaderboardPreview');
 
       try {
-        const response = await fetch('/coopgame/game/api/leaderboard?limit=4');
+        const response = await fetch(`${leaderboardApiUrl}?limit=4`);
         const result = await response.json();
         const entries = Array.isArray(result.data) ? result.data : [];
         updateStatsFromLeaderboard(entries);

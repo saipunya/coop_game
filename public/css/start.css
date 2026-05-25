@@ -882,14 +882,54 @@ body {
 }
 
 .start-footer {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
+  display: grid;
+  justify-items: center;
   gap: 10px;
-  padding: 2px 4px 14px;
+  padding: 4px 4px 16px;
   color: rgba(255, 255, 255, 0.72);
   font-size: 0.9rem;
   font-weight: 700;
+}
+
+.start-footer-meta {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.start-footer .system-credit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  max-width: 860px;
+  padding: 10px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.86);
+  line-height: 1.6;
+  text-align: center;
+}
+
+.start-footer .credit-label {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+  font-size: 0.82rem;
+}
+
+.start-footer .credit-name {
+  color: #ffffff;
+  font-weight: 800;
+}
+
+.start-footer .credit-office {
+  color: rgba(255, 255, 255, 0.78);
 }
 
 svg {
@@ -967,6 +1007,120 @@ svg {
   }
 }
 
+@media (max-width: 768px) {
+  .room-start-page {
+    min-height: 100dvh;
+    padding: 10px;
+  }
+
+  .room-start-page::before,
+  .room-start-page .admin-float-link,
+  .room-start-page .hero-card,
+  .room-start-page .mobile-prize-banner,
+  .room-start-page .mission-grid,
+  .room-start-page .rules-card {
+    display: none;
+  }
+
+  .room-start-page .game-lobby,
+  .room-start-page .lobby-grid,
+  .room-start-page .main-stack,
+  .room-start-page .side-stack {
+    gap: 10px;
+  }
+
+  .room-start-page .game-card {
+    padding: 14px;
+    box-shadow: 0 12px 28px rgba(2, 16, 58, 0.2);
+  }
+
+  .room-start-page .start-card {
+    order: 1;
+    border-color: rgba(255, 210, 60, 0.82);
+  }
+
+  .room-start-page .scoreboard-card {
+    order: 2;
+  }
+
+  .room-start-page .card-heading {
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .room-start-page .card-icon {
+    width: 42px;
+    height: 42px;
+  }
+
+  .room-start-page .card-heading h2,
+  .room-start-page .recent-head h2 {
+    font-size: 1.08rem;
+  }
+
+  .room-start-page .card-heading p,
+  .room-start-page .recent-head p,
+  .room-start-page .field-help {
+    font-size: 0.84rem;
+  }
+
+  .room-start-page .code-form {
+    gap: 9px;
+  }
+
+  .room-start-page .code-prefix {
+    width: 48px;
+  }
+
+  .room-start-page .code-input {
+    min-height: 56px;
+    font-size: 1.28rem;
+    letter-spacing: 0.12rem;
+  }
+
+  .room-start-page .start-btn {
+    min-height: 52px;
+    font-size: 1rem;
+  }
+
+  .room-start-page .message-slot {
+    min-height: 0;
+    margin-top: 10px;
+  }
+
+  .room-start-page .recent-head {
+    align-items: center;
+    margin-bottom: 10px;
+  }
+
+  .room-start-page .recent-head p {
+    display: none;
+  }
+
+  .room-start-page .activity-loading {
+    min-height: 70px;
+  }
+
+  .room-start-page .empty-state img {
+    display: none;
+  }
+
+  .room-start-page .start-footer {
+    padding: 0 0 10px;
+    font-size: 0.78rem;
+  }
+
+  .room-start-page .start-footer-meta {
+    justify-content: center;
+  }
+
+  .room-start-page .start-footer .system-credit {
+    padding: 8px 10px;
+    gap: 4px 8px;
+  }
+}
+
 @media (max-width: 520px) {
   body {
     background:
@@ -984,8 +1138,7 @@ svg {
   .admin-float-link,
   .hero-card,
   .mission-grid,
-  .rules-card,
-  .start-footer {
+  .rules-card {
     display: none;
   }
 

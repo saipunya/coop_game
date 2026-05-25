@@ -1,14 +1,14 @@
 const pool = require('../config/database');
 
 class GameCodeModel {
-  async resolveRequiredInsertRelations(query = pool) {
+  async resolveRequiredInsertRelations(query = pool, preferredRoomId = null) {
     const [columns] = await query.query('SHOW COLUMNS FROM game_codes');
     const columnMap = new Map(columns.map(column => [column.Field, column]));
     const resolved = {};
 
     const roomColumn = columnMap.get('room_id');
     if (roomColumn && roomColumn.Null === 'NO' && roomColumn.Default === null) {
-      resolved.room_id = await this.resolveRoomId(query);
+      resolved.room_id = await this.resolveRoomId(query, preferredRoomId);
     }
 
     const categoryColumn = columnMap.get('category_id');
@@ -19,9 +19,19 @@ class GameCodeModel {
     return resolved;
   }
 
-  async resolveRoomId(query = pool) {
+  async resolveRoomId(query = pool, preferredRoomId = null) {
+    const parsedPreferredRoomId = parseInt(preferredRoomId, 10);
+    const params = [];
+    let where = "WHERE status = 'active'";
+
+    if (Number.isInteger(parsedPreferredRoomId) && parsedPreferredRoomId > 0) {
+      where += ' AND id = ?';
+      params.push(parsedPreferredRoomId);
+    }
+
     const [rows] = await query.query(
-      'SELECT id FROM rooms ORDER BY id ASC LIMIT 1'
+      `SELECT id FROM rooms ${where} ORDER BY id ASC LIMIT 1`,
+      params
     );
 
     if (rows.length === 0) {
@@ -48,10 +58,14 @@ class GameCodeModel {
   }
 
   // Find code by value
-  async findByCode(code) {
+  async findByCode(code, roomId = null) {
+    const params = [code];
+    const roomClause = roomId ? ' AND room_id = ?' : '';
+    if (roomId) params.push(roomId);
+
     const [rows] = await pool.query(
-      'SELECT * FROM game_codes WHERE code = ?',
-      [code]
+      `SELECT * FROM game_codes WHERE code = ?${roomClause}`,
+      params
     );
     return rows[0] || null;
   }
@@ -132,16 +146,36 @@ class GameCodeModel {
   }
 
   // Delete every code and all game history rows that reference those codes
-  async clearAllWithHistory() {
+  async clearAllWithHistory(roomId = null) {
     const connection = await pool.getConnection();
 
     try {
       await connection.beginTransaction();
 
-      await connection.query('DELETE FROM attempt_answers');
-      await connection.query('DELETE FROM attempt_questions');
-      const [attemptResult] = await connection.query('DELETE FROM game_attempts');
-      const [codeResult] = await connection.query('DELETE FROM game_codes');
+      let attemptResult;
+      let codeResult;
+
+      if (roomId) {
+        await connection.query(
+          `DELETE aa FROM attempt_answers aa
+           JOIN game_attempts ga ON ga.id = aa.attempt_id
+           WHERE ga.room_id = ?`,
+          [roomId]
+        );
+        await connection.query(
+          `DELETE aq FROM attempt_questions aq
+           JOIN game_attempts ga ON ga.id = aq.attempt_id
+           WHERE ga.room_id = ?`,
+          [roomId]
+        );
+        [attemptResult] = await connection.query('DELETE FROM game_attempts WHERE room_id = ?', [roomId]);
+        [codeResult] = await connection.query('DELETE FROM game_codes WHERE room_id = ?', [roomId]);
+      } else {
+        await connection.query('DELETE FROM attempt_answers');
+        await connection.query('DELETE FROM attempt_questions');
+        [attemptResult] = await connection.query('DELETE FROM game_attempts');
+        [codeResult] = await connection.query('DELETE FROM game_codes');
+      }
 
       await connection.commit();
 
@@ -158,8 +192,8 @@ class GameCodeModel {
   }
 
   // Create new code
-  async create(code, expiresAt) {
-    const requiredRelations = await this.resolveRequiredInsertRelations();
+  async create(code, expiresAt, roomId = null) {
+    const requiredRelations = await this.resolveRequiredInsertRelations(pool, roomId);
     const columns = [];
     const values = [];
 
@@ -184,8 +218,8 @@ class GameCodeModel {
   }
 
   // Batch create codes
-  async createBatch(codes, expiresAt) {
-    const requiredRelations = await this.resolveRequiredInsertRelations();
+  async createBatch(codes, expiresAt, roomId = null) {
+    const requiredRelations = await this.resolveRequiredInsertRelations(pool, roomId);
     const columns = [];
 
     if (requiredRelations.room_id !== undefined) {
@@ -222,37 +256,63 @@ class GameCodeModel {
   }
 
   // Get codes by status
-  async getByStatus(status, limit = 50, offset = 0) {
+  async getByStatus(status, limit = 50, offset = 0, roomId = null) {
+    const params = [status];
+    const roomClause = roomId ? ' AND gc.room_id = ?' : '';
+    if (roomId) params.push(roomId);
+    params.push(limit, offset);
+
     const [rows] = await pool.query(
-      'SELECT * FROM game_codes WHERE status = ? ORDER BY created_at DESC LIMIT ? OFFSET ?',
-      [status, limit, offset]
+      `SELECT gc.*, r.name AS room_name, r.slug AS room_slug
+       FROM game_codes gc
+       LEFT JOIN rooms r ON r.id = gc.room_id
+       WHERE gc.status = ?${roomClause}
+       ORDER BY gc.created_at DESC LIMIT ? OFFSET ?`,
+      params
     );
     return rows;
   }
 
   // Get all codes
-  async getAll(limit = 50, offset = 0) {
+  async getAll(limit = 50, offset = 0, roomId = null) {
+    const params = [];
+    const roomClause = roomId ? 'WHERE gc.room_id = ?' : '';
+    if (roomId) params.push(roomId);
+    params.push(limit, offset);
+
     const [rows] = await pool.query(
-      'SELECT * FROM game_codes ORDER BY created_at DESC LIMIT ? OFFSET ?',
-      [limit, offset]
+      `SELECT gc.*, r.name AS room_name, r.slug AS room_slug
+       FROM game_codes gc
+       LEFT JOIN rooms r ON r.id = gc.room_id
+       ${roomClause}
+       ORDER BY gc.created_at DESC LIMIT ? OFFSET ?`,
+      params
     );
     return rows;
   }
 
   // Count codes by status
-  async countByStatus(status) {
+  async countByStatus(status, roomId = null) {
+    const params = [status];
+    const roomClause = roomId ? ' AND room_id = ?' : '';
+    if (roomId) params.push(roomId);
+
     const [rows] = await pool.query(
-      'SELECT COUNT(*) as count FROM game_codes WHERE status = ?',
-      [status]
+      `SELECT COUNT(*) as count FROM game_codes WHERE status = ?${roomClause}`,
+      params
     );
     return rows[0].count;
   }
 
   // Mark expired codes
-  async markExpired() {
+  async markExpired(roomId = null) {
+    const params = ['expired', 'unused'];
+    const roomClause = roomId ? ' AND room_id = ?' : '';
+    if (roomId) params.push(roomId);
+
     const [result] = await pool.query(
-      'UPDATE game_codes SET status = ? WHERE status = ? AND expires_at < NOW()',
-      ['expired', 'unused']
+      `UPDATE game_codes SET status = ? WHERE status = ? AND expires_at < NOW()${roomClause}`,
+      params
     );
     return result.affectedRows;
   }

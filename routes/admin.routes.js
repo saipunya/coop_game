@@ -21,22 +21,22 @@ router.use(adminAuthMiddleware);
 
 // Page routes (render views)
 router.get('/questions', (req, res) => {
-  const isAssistant = res.locals.adminUser?.role === 'assistant';
-  const viewName = isAssistant ? 'admin/questions-assistant' : 'admin/questions';
-  res.render(viewName, { title: 'จัดการคำถาม', adminUser: res.locals.adminUser });
+  res.render('admin/questions', { title: 'จัดการคำถาม', adminUser: res.locals.adminUser });
 });
 
 // Question assistant role can only add questions
 router.post('/api/questions', adminController.addQuestion);
 router.get('/api/questions', adminController.getQuestions);
+router.delete('/api/questions/bulk', adminController.deleteQuestionsBulk);
 router.put('/api/questions/:id', adminController.updateQuestion);
 router.delete('/api/questions/:id', adminController.deleteQuestion);
 
-// The following routes are for full admin only
-router.use(adminRoleMiddleware(['admin']));
-
 router.get('/codes', (req, res) => {
   res.render('admin/codes', { title: 'จัดการรหัส', adminUser: res.locals.adminUser });
+});
+
+router.get('/rooms', adminRoleMiddleware(['super_admin']), (req, res) => {
+  res.render('admin/rooms', { title: 'จัดการห้อง', adminUser: res.locals.adminUser });
 });
 
 router.get('/', (req, res) => {
@@ -44,10 +44,18 @@ router.get('/', (req, res) => {
 });
 
 // Conversion dashboard
-router.get('/conversion', adminController.renderConversion);
+router.get('/conversion', adminRoleMiddleware(['super_admin']), adminController.renderConversion);
 
 // Dashboard
 router.get('/api/dashboard', adminController.getDashboard);
+
+// Room and admin-user management
+router.get('/api/rooms', adminRoleMiddleware(['super_admin']), adminController.getRooms);
+router.post('/api/rooms', adminRoleMiddleware(['super_admin']), adminController.createRoom);
+router.put('/api/rooms/:id', adminRoleMiddleware(['super_admin']), adminController.updateRoom);
+router.get('/api/admin-users', adminRoleMiddleware(['super_admin']), adminController.getAdminUsers);
+router.post('/api/admin-users', adminRoleMiddleware(['super_admin']), adminController.createAdminUser);
+router.put('/api/admin-users/:id', adminRoleMiddleware(['super_admin']), adminController.updateAdminUser);
 
 // Code management
 router.post('/api/codes/generate', adminController.generateCodes);

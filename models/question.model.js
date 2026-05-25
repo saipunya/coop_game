@@ -1,7 +1,19 @@
 const pool = require('../config/database');
 
 class QuestionModel {
+  async ensureRoomColumn() {
+    const [rows] = await pool.query("SHOW COLUMNS FROM questions LIKE 'room_id'");
+    if (rows.length === 0) {
+      await pool.query(
+        `ALTER TABLE questions
+         ADD COLUMN room_id INT NOT NULL DEFAULT 1 AFTER id,
+         ADD INDEX idx_questions_room (room_id)`
+      );
+    }
+  }
+
   async ensureCreatedByColumn() {
+    await this.ensureRoomColumn();
     const [rows] = await pool.query("SHOW COLUMNS FROM questions LIKE 'created_by'");
     if (rows.length === 0) {
       await pool.query(
@@ -50,11 +62,16 @@ class QuestionModel {
   }
 
   // Get questions by difficulty
-  async getByDifficulty(difficulty, limit = 10) {
+  async getByDifficulty(difficulty, limit = 10, roomId = null) {
     await this.ensureCreatedByColumn();
+    const params = [difficulty, true];
+    const roomClause = roomId ? ' AND room_id = ?' : '';
+    if (roomId) params.push(roomId);
+    params.push(limit);
+
     const [rows] = await pool.query(
-      'SELECT * FROM questions WHERE difficulty = ? AND is_active = ? ORDER BY RAND() LIMIT ?',
-      [difficulty, true, limit]
+      `SELECT * FROM questions WHERE difficulty = ? AND is_active = ?${roomClause} ORDER BY RAND() LIMIT ?`,
+      params
     );
     return rows;
   }
@@ -71,29 +88,50 @@ class QuestionModel {
   }
 
   // Get all active questions
-  async getAllActive() {
+  async getAllActive(roomId = null) {
     await this.ensureCreatedByColumn();
+    const params = [];
+    const roomClause = roomId ? ' AND q.room_id = ?' : '';
+    if (roomId) params.push(roomId);
+
     const [rows] = await pool.query(
-      'SELECT * FROM questions WHERE is_active = ? ORDER BY difficulty, id',
-      [true]
+      `SELECT q.*, r.name AS room_name, r.slug AS room_slug
+       FROM questions q
+       LEFT JOIN rooms r ON r.id = q.room_id
+       WHERE q.is_active = ?${roomClause}
+       ORDER BY q.difficulty, q.id`,
+      [true, ...params]
     );
     return rows;
   }
 
   // Get all questions (including inactive) for admin
-  async getAll() {
+  async getAll(roomId = null) {
     await this.ensureCreatedByColumn();
+    const params = [];
+    const roomClause = roomId ? 'WHERE q.room_id = ?' : '';
+    if (roomId) params.push(roomId);
+
     const [rows] = await pool.query(
-      'SELECT * FROM questions ORDER BY id DESC'
+      `SELECT q.*, r.name AS room_name, r.slug AS room_slug
+       FROM questions q
+       LEFT JOIN rooms r ON r.id = q.room_id
+       ${roomClause}
+       ORDER BY q.id DESC`,
+      params
     );
     return rows;
   }
 
-  async getByCreator(createdBy) {
+  async getByCreator(createdBy, roomId = null) {
     await this.ensureCreatedByColumn();
+    const params = [createdBy];
+    const roomClause = roomId ? ' AND room_id = ?' : '';
+    if (roomId) params.push(roomId);
+
     const [rows] = await pool.query(
-      'SELECT * FROM questions WHERE created_by = ? ORDER BY id DESC',
-      [createdBy]
+      `SELECT * FROM questions WHERE created_by = ?${roomClause} ORDER BY id DESC`,
+      params
     );
     return rows;
   }
@@ -171,9 +209,10 @@ class QuestionModel {
     const [result] = await pool.query(
       `UPDATE questions 
        SET question_text = ?, option_a = ?, option_b = ?, option_c = ?, option_d = ?, 
-           correct_answer = ?, difficulty = ?, time_limit = ?, is_active = COALESCE(?, is_active)
+           correct_answer = ?, difficulty = ?, time_limit = ?, is_active = COALESCE(?, is_active),
+           room_id = COALESCE(?, room_id)
        WHERE id = ?`,
-      [questionText, optionA, optionB, optionC, optionD, correctAnswer, difficulty, timeLimit, normalizedIsActive, id]
+      [questionText, optionA, optionB, optionC, optionD, correctAnswer, difficulty, timeLimit, normalizedIsActive, questionData.roomId || null, id]
     );
     return result.affectedRows > 0;
   }
@@ -216,12 +255,25 @@ class QuestionModel {
   }
 
   // Delete question permanently, including game-history references to it
-  async deletePermanently(id) {
+  async deletePermanently(id, roomId = null) {
     await this.ensureCreatedByColumn();
     const connection = await pool.getConnection();
 
     try {
       await connection.beginTransaction();
+
+      const ownerParams = [id];
+      const ownerRoomClause = roomId ? ' AND room_id = ?' : '';
+      if (roomId) ownerParams.push(roomId);
+      const [ownerRows] = await connection.query(
+        `SELECT id FROM questions WHERE id = ?${ownerRoomClause} LIMIT 1`,
+        ownerParams
+      );
+
+      if (ownerRows.length === 0) {
+        await connection.rollback();
+        return { deleted: false };
+      }
 
       const [answerResult] = await connection.query(
         'DELETE FROM attempt_answers WHERE question_id = ?',
@@ -232,8 +284,8 @@ class QuestionModel {
         [id]
       );
       const [questionResult] = await connection.query(
-        'DELETE FROM questions WHERE id = ?',
-        [id]
+        `DELETE FROM questions WHERE id = ?${ownerRoomClause}`,
+        ownerParams
       );
 
       if (questionResult.affectedRows === 0) {
@@ -245,6 +297,79 @@ class QuestionModel {
 
       return {
         deleted: true,
+        deletedAnswers: answerResult.affectedRows,
+        deletedAttemptQuestions: attemptQuestionResult.affectedRows
+      };
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+  }
+
+  async deletePermanentlyMany(ids, roomId = null) {
+    await this.ensureCreatedByColumn();
+    const normalizedIds = Array.from(new Set(
+      (ids || [])
+        .map(id => parseInt(id, 10))
+        .filter(id => Number.isInteger(id) && id > 0)
+    ));
+
+    if (normalizedIds.length === 0) {
+      return {
+        deleted: false,
+        deletedQuestions: 0,
+        deletedAnswers: 0,
+        deletedAttemptQuestions: 0
+      };
+    }
+
+    const connection = await pool.getConnection();
+
+    try {
+      await connection.beginTransaction();
+
+      const idPlaceholders = normalizedIds.map(() => '?').join(',');
+      const ownerParams = [...normalizedIds];
+      const roomClause = roomId ? ' AND room_id = ?' : '';
+      if (roomId) ownerParams.push(roomId);
+
+      const [ownerRows] = await connection.query(
+        `SELECT id FROM questions WHERE id IN (${idPlaceholders})${roomClause}`,
+        ownerParams
+      );
+      const allowedIds = ownerRows.map(row => row.id);
+
+      if (allowedIds.length === 0) {
+        await connection.rollback();
+        return {
+          deleted: false,
+          deletedQuestions: 0,
+          deletedAnswers: 0,
+          deletedAttemptQuestions: 0
+        };
+      }
+
+      const allowedPlaceholders = allowedIds.map(() => '?').join(',');
+      const [answerResult] = await connection.query(
+        `DELETE FROM attempt_answers WHERE question_id IN (${allowedPlaceholders})`,
+        allowedIds
+      );
+      const [attemptQuestionResult] = await connection.query(
+        `DELETE FROM attempt_questions WHERE question_id IN (${allowedPlaceholders})`,
+        allowedIds
+      );
+      const [questionResult] = await connection.query(
+        `DELETE FROM questions WHERE id IN (${allowedPlaceholders})`,
+        allowedIds
+      );
+
+      await connection.commit();
+
+      return {
+        deleted: questionResult.affectedRows > 0,
+        deletedQuestions: questionResult.affectedRows,
         deletedAnswers: answerResult.affectedRows,
         deletedAttemptQuestions: attemptQuestionResult.affectedRows
       };
@@ -307,11 +432,15 @@ class QuestionModel {
   }
 
   // Count by difficulty
-  async countByDifficulty(difficulty) {
+  async countByDifficulty(difficulty, roomId = null) {
     await this.ensureCreatedByColumn();
+    const params = [difficulty, true];
+    const roomClause = roomId ? ' AND room_id = ?' : '';
+    if (roomId) params.push(roomId);
+
     const [rows] = await pool.query(
-      'SELECT COUNT(*) as count FROM questions WHERE difficulty = ? AND is_active = ?',
-      [difficulty, true]
+      `SELECT COUNT(*) as count FROM questions WHERE difficulty = ? AND is_active = ?${roomClause}`,
+      params
     );
     return rows[0].count;
   }

@@ -370,6 +370,11 @@
         <a href="/coopgame/admin/codes" class="btn btn-outline-success">
           <i class="bi bi-ticket-perforated"></i> จัดการรหัส
         </a>
+        <% if (adminUser.role === 'super_admin') { %>
+          <a href="/coopgame/admin/rooms" class="btn btn-outline-success">
+            <i class="bi bi-door-open"></i> จัดการห้อง/ผู้ใช้
+          </a>
+        <% } %>
         <button type="button" class="btn btn-outline-danger" onclick="clearAdminData()">
           <i class="bi bi-trash3"></i> เคลียร์โค้ด
         </button>
@@ -379,7 +384,7 @@
         <button type="button" class="btn" style="background: linear-gradient(135deg, #1b5e20 0%, #43a047 100%); color: white; border: none;" onclick="startAdminGame(this)">
           <i class="bi bi-controller"></i> เล่นแบบผู้ดูแล
         </button>
-        <a href="/coopgame/game/start" class="btn" style="background: linear-gradient(135deg, #43a047 0%, #66bb6a 100%); color: white; border: none;">
+        <a id="publicPlayLink" href="<%= adminUser.roomSlug ? `/coopgame/r/${adminUser.roomSlug}` : '/coopgame/game/start' %>" class="btn" style="background: linear-gradient(135deg, #43a047 0%, #66bb6a 100%); color: white; border: none;">
           <i class="bi bi-controller"></i> เล่นเกม
         </a>
         <span style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
@@ -390,6 +395,27 @@
         </span>
       </div>
     </header>
+
+    <% if (adminUser.role === 'super_admin') { %>
+      <section class="admin-header fade-in" style="align-items:flex-end;">
+        <div style="flex:1; min-width:240px;">
+          <label for="dashboardRoomSelect" style="font-weight:700; color:#2e7d32; margin-bottom:8px; display:block;">
+            <i class="bi bi-door-open me-1"></i> เลือกห้องสำหรับแดชบอร์ด
+          </label>
+          <select id="dashboardRoomSelect" class="form-select" style="border:2px solid #a5d6a7; border-radius:12px; padding:10px 16px;">
+            <option value="">กำลังโหลดห้อง...</option>
+          </select>
+        </div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <a id="roomLeaderboardLink" href="/coopgame/game/leaderboard" class="btn btn-outline-success">
+            <i class="bi bi-trophy"></i> Leaderboard ห้องนี้
+          </a>
+          <a id="roomPublicLink" href="/coopgame/game/start" class="btn btn-outline-success">
+            <i class="bi bi-link-45deg"></i> ลิงก์เล่นห้องนี้
+          </a>
+        </div>
+      </section>
+    <% } %>
 
     <div class="stat-grid fade-in">
       <div class="stat-card">
@@ -501,17 +527,109 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script>
     let dashboardTotalQuestions = 9;
+    const adminRole = '<%= adminUser.role %>';
+    const fixedRoomId = <%= adminUser.roomId || 'null' %>;
+    const fixedRoomSlug = '<%= adminUser.roomSlug || '' %>';
+    let dashboardRooms = [];
 
     document.addEventListener('DOMContentLoaded', () => {
-      loadStats();
-      loadLeaderboard();
-      loadDailyStats();
-      loadRecentGames();
+      initializeDashboardRoom().then(() => {
+        loadStats();
+        loadLeaderboard();
+        loadDailyStats();
+        loadRecentGames();
+      });
     });
+
+    async function initializeDashboardRoom() {
+      if (adminRole !== 'super_admin') {
+        updateRoomLinks();
+        return;
+      }
+
+      const roomSelect = document.getElementById('dashboardRoomSelect');
+      try {
+        const response = await fetch('/coopgame/admin/api/rooms');
+        const result = await response.json();
+        dashboardRooms = result.success && Array.isArray(result.data)
+          ? result.data.filter(room => room.status === 'active')
+          : [];
+
+        roomSelect.innerHTML = dashboardRooms.map(room => (
+          `<option value="${room.id}" data-slug="${escapeHtml(room.slug)}">${escapeHtml(room.name)} (${escapeHtml(room.slug)})</option>`
+        )).join('');
+
+        if (!dashboardRooms.length) {
+          roomSelect.innerHTML = '<option value="">ยังไม่มีห้อง</option>';
+        }
+
+        roomSelect.addEventListener('change', () => {
+          updateRoomLinks();
+          loadStats();
+          loadLeaderboard();
+          loadDailyStats();
+          loadRecentGames();
+        });
+      } catch (error) {
+        console.error('Error loading dashboard rooms:', error);
+        roomSelect.innerHTML = '<option value="">โหลดห้องไม่ได้</option>';
+      }
+
+      updateRoomLinks();
+    }
+
+    function getSelectedRoom() {
+      if (adminRole !== 'super_admin') {
+        return fixedRoomId && fixedRoomSlug
+          ? { id: fixedRoomId, slug: fixedRoomSlug }
+          : null;
+      }
+
+      const roomSelect = document.getElementById('dashboardRoomSelect');
+      const roomId = roomSelect && roomSelect.value ? parseInt(roomSelect.value, 10) : null;
+      return dashboardRooms.find(room => room.id === roomId) || null;
+    }
+
+    function getSelectedRoomId() {
+      return getSelectedRoom()?.id || null;
+    }
+
+    function getSelectedRoomSlug() {
+      return getSelectedRoom()?.slug || '';
+    }
+
+    function withRoomParam(url) {
+      const roomId = getSelectedRoomId();
+      if (!roomId) return url;
+      return `${url}${url.includes('?') ? '&' : '?'}roomId=${roomId}`;
+    }
+
+    function getLeaderboardApiUrl(limit) {
+      const slug = getSelectedRoomSlug();
+      const baseUrl = slug
+        ? `/coopgame/r/${slug}/api/leaderboard`
+        : '/coopgame/game/api/leaderboard';
+      return `${baseUrl}?limit=${limit}`;
+    }
+
+    function updateRoomLinks() {
+      const slug = getSelectedRoomSlug();
+      const playUrl = slug ? `/coopgame/r/${slug}` : '/coopgame/game/start';
+      const leaderboardUrl = slug ? `/coopgame/r/${slug}/leaderboard` : '/coopgame/game/leaderboard';
+
+      const publicPlayLink = document.getElementById('publicPlayLink');
+      if (publicPlayLink) publicPlayLink.href = playUrl;
+
+      const roomPublicLink = document.getElementById('roomPublicLink');
+      if (roomPublicLink) roomPublicLink.href = playUrl;
+
+      const roomLeaderboardLink = document.getElementById('roomLeaderboardLink');
+      if (roomLeaderboardLink) roomLeaderboardLink.href = leaderboardUrl;
+    }
 
     async function loadStats() {
       try {
-        const response = await fetch('/coopgame/admin/api/stats');
+        const response = await fetch(withRoomParam('/coopgame/admin/api/stats'));
         const result = await response.json();
 
         if (result.success && result.data) {
@@ -535,7 +653,7 @@
       const tbody = document.getElementById('leaderboardBody');
 
       try {
-        const response = await fetch('/coopgame/game/api/leaderboard?limit=20');
+        const response = await fetch(getLeaderboardApiUrl(20));
         const result = await response.json();
 
         if (result.success && result.data && result.data.length > 0) {
@@ -595,7 +713,7 @@
       const container = document.getElementById('dailyStats');
 
       try {
-        const response = await fetch('/coopgame/admin/api/stats');
+        const response = await fetch(withRoomParam('/coopgame/admin/api/stats'));
         const result = await response.json();
 
         if (result.success && result.data) {
@@ -639,7 +757,7 @@
       const tbody = document.getElementById('recentGamesBody');
 
       try {
-        const response = await fetch('/coopgame/game/api/leaderboard?limit=10');
+        const response = await fetch(getLeaderboardApiUrl(10));
         const result = await response.json();
 
         if (result.success && result.data && result.data.length > 0) {
@@ -686,7 +804,7 @@
       if (!confirmed) return;
 
       try {
-        const response = await fetch('/coopgame/admin/api/codes/clear', {
+        const response = await fetch(withRoomParam('/coopgame/admin/api/codes/clear'), {
           method: 'POST'
         });
         const result = await response.json();
@@ -715,7 +833,7 @@
       if (typed !== 'DELETE') return;
 
       try {
-        const response = await fetch('/coopgame/admin/api/history/clear', {
+        const response = await fetch(withRoomParam('/coopgame/admin/api/history/clear'), {
           method: 'POST'
         });
         const result = await response.json();
@@ -744,7 +862,9 @@
 
       try {
         const response = await fetch('/coopgame/game/api/admin/start', {
-          method: 'POST'
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ roomId: getSelectedRoomId() })
         });
 
         if (response.status === 401) {
@@ -755,7 +875,10 @@
         const result = await response.json();
 
         if (result.success && result.data?.attemptId) {
-          window.location.href = `/coopgame/game/play?attemptId=${result.data.attemptId}`;
+          const slug = getSelectedRoomSlug();
+          window.location.href = slug
+            ? `/coopgame/r/${slug}/play?attemptId=${result.data.attemptId}`
+            : `/coopgame/game/play?attemptId=${result.data.attemptId}`;
           return;
         }
 

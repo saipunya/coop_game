@@ -431,6 +431,11 @@
         <a href="/coopgame/admin/codes" class="btn btn-outline-success">
           <i class="bi bi-ticket-perforated"></i> จัดการรหัส
         </a>
+        <% if (adminUser.role === 'super_admin') { %>
+          <a href="/coopgame/admin/rooms" class="btn btn-outline-success">
+            <i class="bi bi-door-open"></i> จัดการห้อง/ผู้ใช้
+          </a>
+        <% } %>
         <a href="/coopgame/game/start" class="btn" style="background: linear-gradient(135deg, #43a047 0%, #66bb6a 100%); color: white; border: none;">
           <i class="bi bi-controller"></i> เล่นเกม
         </a>
@@ -445,6 +450,14 @@
 
     <section class="panel fade-in">
       <h3><i class="bi bi-sliders me-2" style="color:#43a047;"></i>ตั้งค่าเกมและเวลาในการตอบ</h3>
+      <% if (adminUser.role === 'super_admin') { %>
+        <div class="form-group" style="margin-bottom:16px;">
+          <label for="roomSelect"><i class="bi bi-door-open me-1"></i>ห้องที่กำลังจัดการ</label>
+          <select id="roomSelect" class="form-select">
+            <option value="">กำลังโหลดห้อง...</option>
+          </select>
+        </div>
+      <% } %>
       <form id="gameSettingsForm">
         <div class="settings-grid">
           <div class="form-group">
@@ -697,6 +710,9 @@
         <option value="active">เปิดใช้งาน</option>
         <option value="inactive">ปิดใช้งาน</option>
       </select>
+      <button type="button" class="btn btn-outline-danger" id="bulkDeleteBtn" disabled>
+        <i class="bi bi-trash3"></i> ลบที่เลือก (<span id="selectedQuestionCount">0</span>)
+      </button>
     </div>
 
     <div class="form-group fade-in">
@@ -708,6 +724,9 @@
         <table class="table">
           <thead>
             <tr>
+              <th style="width: 46px;">
+                <input class="form-check-input" type="checkbox" id="selectAllQuestions" aria-label="เลือกคำถามทั้งหมดในรายการ">
+              </th>
               <th style="width: 50px;">#</th>
               <th>คำถาม</th>
               <th style="width: 110px;">ระดับ</th>
@@ -718,7 +737,7 @@
           </thead>
           <tbody id="questionsList">
             <tr>
-              <td colspan="6" class="loading">กำลังโหลด...</td>
+              <td colspan="7" class="loading">กำลังโหลด...</td>
             </tr>
           </tbody>
         </table>
@@ -807,7 +826,10 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script>
     let questions = [];
+    let selectedQuestionIds = new Set();
     let editQuestionModal = null;
+    const adminRole = '<%= adminUser.role %>';
+    const fixedRoomId = <%= adminUser.roomId || 'null' %>;
     let gameSettings = {
       gameEnabled: true,
       totalQuestions: 9,
@@ -849,9 +871,11 @@
       setTimeLimitInputs(gameSettings.timeLimits);
       setDistributionInputs(gameSettings.questionDistribution);
       renderTimeSettingsPreview();
-      loadQuestions();
-      loadStats();
-      loadGameSettings();
+      loadRoomsIfNeeded().then(() => {
+        loadQuestions();
+        loadStats();
+        loadGameSettings();
+      });
       updateQuestionTimeLimit(document.getElementById('difficulty').value || 'easy');
 
       const randomQuestionOrderSwitch = document.getElementById('randomQuestionOrderSwitch');
@@ -876,12 +900,42 @@
       }
     });
 
+    function getSelectedRoomId() {
+      if (adminRole !== 'super_admin') return fixedRoomId;
+      const roomSelect = document.getElementById('roomSelect');
+      return roomSelect && roomSelect.value ? parseInt(roomSelect.value, 10) : null;
+    }
+
+    function withRoomParam(url) {
+      const roomId = getSelectedRoomId();
+      if (!roomId) return url;
+      return `${url}${url.includes('?') ? '&' : '?'}roomId=${roomId}`;
+    }
+
+    async function loadRoomsIfNeeded() {
+      if (adminRole !== 'super_admin') return;
+      const roomSelect = document.getElementById('roomSelect');
+      const response = await fetch('/coopgame/admin/api/rooms');
+      const result = await response.json();
+      const rooms = result.success && Array.isArray(result.data) ? result.data.filter(room => room.status === 'active') : [];
+      roomSelect.innerHTML = rooms.map(room => `<option value="${room.id}">${escapeHtml(room.name)} (${escapeHtml(room.slug)})</option>`).join('');
+      if (!rooms.length) {
+        roomSelect.innerHTML = '<option value="">ยังไม่มีห้อง</option>';
+      }
+      roomSelect.addEventListener('change', () => {
+        loadQuestions();
+        loadStats();
+        loadGameSettings();
+      });
+    }
+
     async function loadQuestions() {
       try {
-        const response = await fetch('/coopgame/admin/api/questions');
+        const response = await fetch(withRoomParam('/coopgame/admin/api/questions'));
         const result = await response.json();
 
         if (result.success) {
+          selectedQuestionIds.clear();
           questions = result.data || [];
           renderQuestions();
         } else {
@@ -894,7 +948,7 @@
 
     async function loadGameSettings() {
       try {
-        const response = await fetch('/coopgame/admin/api/game-settings');
+        const response = await fetch(withRoomParam('/coopgame/admin/api/game-settings'));
         const result = await response.json();
 
         if (result.success && result.data) {
@@ -930,14 +984,15 @@
 
     async function loadStats() {
       try {
-        const response = await fetch('/coopgame/admin/api/stats');
+        const response = await fetch(withRoomParam('/coopgame/admin/api/stats'));
         const result = await response.json();
 
         if (result.success && result.data) {
-          document.getElementById('totalQuestions').textContent = result.data.totalQuestions || 0;
-          document.getElementById('easyCount').textContent = result.data.easyQuestions || 0;
-          document.getElementById('mediumCount').textContent = result.data.mediumQuestions || 0;
-          document.getElementById('hardCount').textContent = result.data.hardQuestions || 0;
+          const questionStats = result.data.questions || {};
+          document.getElementById('totalQuestions').textContent = questionStats.total || 0;
+          document.getElementById('easyCount').textContent = questionStats.easy || 0;
+          document.getElementById('mediumCount').textContent = questionStats.medium || 0;
+          document.getElementById('hardCount').textContent = questionStats.hard || 0;
         }
       } catch (error) {
         console.error('Error loading stats:', error);
@@ -1159,13 +1214,27 @@
         return (a.id || 0) - (b.id || 0);
       });
 
+      const visibleIds = new Set(filtered.map(q => q.id));
+      selectedQuestionIds = new Set([...selectedQuestionIds].filter(id => visibleIds.has(id)));
+
       if (filtered.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="empty-state">ไม่พบคำถาม</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="empty-state">ไม่พบคำถาม</td></tr>';
+        updateBulkSelectionState(filtered);
         return;
       }
 
       tbody.innerHTML = filtered.map((q, index) => `
         <tr>
+          <td>
+            <input
+              class="form-check-input question-select"
+              type="checkbox"
+              value="${q.id}"
+              aria-label="เลือกคำถาม ${index + 1}"
+              ${selectedQuestionIds.has(q.id) ? 'checked' : ''}
+              onchange="toggleQuestionSelection(${q.id}, this.checked)"
+            >
+          </td>
           <td>${index + 1}</td>
           <td>
             <strong>${escapeHtml((q.question_text || '').substring(0, 80))}${(q.question_text || '').length > 80 ? '...' : ''}</strong>
@@ -1188,6 +1257,47 @@
           </td>
         </tr>
       `).join('');
+      updateBulkSelectionState(filtered);
+    }
+
+    function updateBulkSelectionState(visibleQuestions = null) {
+      const selectedCount = selectedQuestionIds.size;
+      const countEl = document.getElementById('selectedQuestionCount');
+      const bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
+      const selectAll = document.getElementById('selectAllQuestions');
+      const visible = visibleQuestions || questions;
+      const visibleIds = visible.map(q => q.id);
+      const selectedVisibleCount = visibleIds.filter(id => selectedQuestionIds.has(id)).length;
+
+      if (countEl) countEl.textContent = selectedCount;
+      if (bulkDeleteBtn) bulkDeleteBtn.disabled = selectedCount === 0;
+      if (selectAll) {
+        selectAll.checked = visibleIds.length > 0 && selectedVisibleCount === visibleIds.length;
+        selectAll.indeterminate = selectedVisibleCount > 0 && selectedVisibleCount < visibleIds.length;
+      }
+    }
+
+    function toggleQuestionSelection(id, isChecked) {
+      if (isChecked) {
+        selectedQuestionIds.add(id);
+      } else {
+        selectedQuestionIds.delete(id);
+      }
+      updateBulkSelectionState(getFilteredQuestionsForSelection());
+    }
+
+    function getFilteredQuestionsForSelection() {
+      const filterDiff = document.getElementById('filterDifficulty').value;
+      const filterStat = document.getElementById('filterStatus').value;
+      const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+
+      return questions.filter(q => {
+        if (filterDiff && q.difficulty !== filterDiff) return false;
+        if (filterStat === 'active' && !q.is_active) return false;
+        if (filterStat === 'inactive' && q.is_active) return false;
+        if (searchTerm && !String(q.question_text || '').toLowerCase().includes(searchTerm)) return false;
+        return true;
+      });
     }
 
     function escapeHtml(text) {
@@ -1248,7 +1358,8 @@
             randomQuestionOrderEnabled,
             randomAnswerOrderEnabled,
             timeLimits,
-            questionDistribution
+            questionDistribution,
+            roomId: getSelectedRoomId()
           })
         });
         const result = await response.json();
@@ -1302,7 +1413,7 @@
         const response = await fetch('/coopgame/admin/api/questions', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(formData)
+          body: JSON.stringify({ ...formData, roomId: getSelectedRoomId() })
         });
 
         const result = await response.json();
@@ -1367,10 +1478,10 @@
       }
 
       try {
-        const response = await fetch(`/coopgame/admin/api/questions/${id}`, {
+        const response = await fetch(withRoomParam(`/coopgame/admin/api/questions/${id}`), {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(formData)
+          body: JSON.stringify({ ...formData, roomId: getSelectedRoomId() })
         });
 
         const result = await response.json();
@@ -1399,10 +1510,10 @@
       if (switchEl) switchEl.disabled = true;
 
       try {
-        const response = await fetch(`/coopgame/admin/api/questions/${id}`, {
+        const response = await fetch(withRoomParam(`/coopgame/admin/api/questions/${id}`), {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(buildQuestionPayload(q, { isActive: nextIsActive }))
+          body: JSON.stringify({ ...buildQuestionPayload(q, { isActive: nextIsActive }), roomId: getSelectedRoomId() })
         });
 
         const result = await response.json();
@@ -1428,7 +1539,7 @@
       if (!confirm('คุณแน่ใจหรือไม่ที่จะลบคำถามนี้ออกจากระบบถาวร? ประวัติเกมที่อ้างอิงคำถามนี้จะถูกลบตามไปด้วย')) return;
 
       try {
-        const response = await fetch(`/coopgame/admin/api/questions/${id}`, {
+        const response = await fetch(withRoomParam(`/coopgame/admin/api/questions/${id}`), {
           method: 'DELETE'
         });
 
@@ -1446,6 +1557,41 @@
       }
     }
 
+    async function deleteSelectedQuestions() {
+      const ids = [...selectedQuestionIds];
+      if (ids.length === 0) return;
+
+      const confirmed = confirm(`คุณแน่ใจหรือไม่ที่จะลบคำถามที่เลือก ${ids.length} ข้อถาวร? ประวัติเกมที่อ้างอิงคำถามเหล่านี้จะถูกลบตามไปด้วย`);
+      if (!confirmed) return;
+
+      const button = document.getElementById('bulkDeleteBtn');
+      if (button) button.disabled = true;
+
+      try {
+        const response = await fetch('/coopgame/admin/api/questions/bulk', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ids, roomId: getSelectedRoomId() })
+        });
+        const result = await response.json();
+
+        if (result.success) {
+          const deletedQuestions = result.data?.deletedQuestions || ids.length;
+          selectedQuestionIds.clear();
+          await loadQuestions();
+          await loadStats();
+          alert(`✅ ลบคำถาม ${deletedQuestions} ข้อสำเร็จ`);
+        } else {
+          alert('❌ ' + (result.message || 'ไม่สามารถลบคำถามที่เลือกได้'));
+        }
+      } catch (error) {
+        console.error('Error bulk deleting questions:', error);
+        alert('เกิดข้อผิดพลาด กรุณาลองใหม่');
+      } finally {
+        updateBulkSelectionState();
+      }
+    }
+
     function resetForm() {
       document.getElementById('formTitle').innerHTML = '<i class="bi bi-plus-circle me-2" style="color:#43a047;"></i>เพิ่มคำถามใหม่';
       document.getElementById('submitBtn').innerHTML = '<i class="bi bi-save"></i> บันทึกคำถาม';
@@ -1459,6 +1605,18 @@
     document.getElementById('filterDifficulty').addEventListener('change', renderQuestions);
     document.getElementById('filterStatus').addEventListener('change', renderQuestions);
     document.getElementById('searchInput').addEventListener('input', renderQuestions);
+    document.getElementById('bulkDeleteBtn').addEventListener('click', deleteSelectedQuestions);
+    document.getElementById('selectAllQuestions').addEventListener('change', (e) => {
+      const visibleQuestions = getFilteredQuestionsForSelection();
+      visibleQuestions.forEach(question => {
+        if (e.target.checked) {
+          selectedQuestionIds.add(question.id);
+        } else {
+          selectedQuestionIds.delete(question.id);
+        }
+      });
+      renderQuestions();
+    });
     document.getElementById('difficulty').addEventListener('change', (e) => {
       updateQuestionTimeLimit(e.target.value || 'easy');
     });
@@ -1532,7 +1690,7 @@
         const response = await fetch('/coopgame/admin/api/questions/import-text', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ importText })
+          body: JSON.stringify({ importText, roomId: getSelectedRoomId() })
         });
 
         const result = await response.json();
@@ -1570,6 +1728,7 @@
 
       const formData = new FormData();
       formData.append('file', file);
+      formData.append('roomId', getSelectedRoomId());
 
       try {
         setImportStatus('กำลังนำเข้าคำถามจากไฟล์ Word...');

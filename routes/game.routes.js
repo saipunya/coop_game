@@ -15,7 +15,7 @@ router.get('/onboarding', gameController.renderOnboarding);
 
 // Verify code API
 router.post('/verify-code', gameController.verifyCode);
-router.post('/api/admin/start', adminAuthMiddleware, adminRoleMiddleware(['admin']), gameController.startAdminGame);
+router.post('/api/admin/start', adminAuthMiddleware, adminRoleMiddleware(['super_admin', 'room_admin']), gameController.startAdminGame);
 
 // Play page
 router.get('/play', gameController.renderPlay);
