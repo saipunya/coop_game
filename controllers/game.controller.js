@@ -222,7 +222,7 @@ class GameController {
         phoneNumber: attempt.phone_number || '',
         isAdminPlay,
         adminPreviewSettings,
-        startUrl: urls.startUrl,
+        startUrl: isAdminPlay ? '/coopgame/admin' : urls.startUrl,
         finishUrl: `${urls.finishUrl}?attemptId=${attemptId}`,
         leaderboardUrl: urls.leaderboardUrl
       });

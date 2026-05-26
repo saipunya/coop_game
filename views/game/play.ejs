@@ -1834,7 +1834,7 @@
             return;
           }
           gameCompleted = true;
-          replaceToGameEndUrl(finishRedirectUrl);
+          replaceToGameEndUrl(gameEndRedirectUrl);
         }
       } catch (error) {
         console.error('Error loading question:', error);
@@ -2057,13 +2057,14 @@
             return;
           }
 
-          await showAnswerFeedback(feedbackType);
           if (isTopThreeRank(resultData.rank)) {
+            await showAnswerFeedback(feedbackType);
             await showTopRankPopup(resultData.rank);
             replaceToGameEndUrl();
             return;
           }
-          showGameOver(resultData);
+          await showAnswerFeedback(feedbackType, { actionLabel: 'OK' });
+          replaceToGameEndUrl();
         } else if (result.success && result.data) {
           if (result.data.isCorrect) {
             score++;
