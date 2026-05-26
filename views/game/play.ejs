@@ -1575,10 +1575,10 @@
               <h2 id="resultTitle" class="result-title"></h2>
               <p id="resultMessage" class="result-message"></p>
               <div class="result-actions">
-                <a href="/coopgame/game/finish?attemptId=<%= attemptId %>" class="btn btn-emerald" id="finishResultLink">
+                <a href="<%= finishUrl %>" class="btn btn-emerald" id="finishResultLink">
                   <i class="bi bi-clipboard2-check-fill"></i> ดูผลลัพธ์ท้ายเกม
                 </a>
-                <a href="/coopgame/game/start" class="btn btn-outline-emerald" id="playAgainLink">
+                <a href="<%= startUrl %>" class="btn btn-outline-emerald" id="playAgainLink">
                   <i class="bi bi-arrow-counterclockwise"></i> เล่นใหม่
                 </a>
               </div>
@@ -1652,7 +1652,8 @@
   <script>
     const attemptId = <%= attemptId %>;
     const isAdminPlay = <%= isAdminPlay ? 'true' : 'false' %>;
-    const gameEndRedirectUrl = isAdminPlay ? '/coopgame/admin' : '/coopgame/game/start';
+    const gameEndRedirectUrl = <%- JSON.stringify(startUrl || '/coopgame/game/start') %>;
+    const finishRedirectUrl = <%- JSON.stringify(finishUrl || `/coopgame/game/finish?attemptId=${attemptId}`) %>;
     const initialPlayerName = <%- JSON.stringify(playerName || '') %>;
     const initialPhoneNumber = <%- JSON.stringify(phoneNumber || '') %>;
     let hasPlayerInfo = isAdminPlay || Boolean(initialPlayerName && initialPhoneNumber);
@@ -1743,7 +1744,7 @@
     document.getElementById('playAgainLink')?.addEventListener('click', (event) => {
       event.preventDefault();
       gameCompleted = true;
-      replaceToGameEndUrl('/coopgame/game/start');
+      replaceToGameEndUrl(gameEndRedirectUrl);
     });
 
     if (hasPlayerInfo) {
@@ -1833,12 +1834,12 @@
             return;
           }
           gameCompleted = true;
-          replaceToGameEndUrl(`/coopgame/game/finish?attemptId=${attemptId}`);
+          replaceToGameEndUrl(finishRedirectUrl);
         }
       } catch (error) {
         console.error('Error loading question:', error);
         alert('เกิดข้อผิดพลาด กรุณาลองใหม่');
-        replaceToGameEndUrl('/coopgame/game/start');
+        replaceToGameEndUrl(gameEndRedirectUrl);
       }
     }
 

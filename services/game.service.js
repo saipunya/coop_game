@@ -18,6 +18,11 @@ const DEFAULT_RANDOM_SETTINGS = {
   randomQuestionOrderEnabled: true,
   randomAnswerOrderEnabled: true
 };
+const QUESTION_DIFFICULTY_ORDER = {
+  easy: 1,
+  medium: 2,
+  hard: 3
+};
 
 class GameService {
   /**
@@ -339,7 +344,19 @@ class GameService {
     }
 
     const finalQuestions = selectedQuestions.slice(0, totalQuestions);
-    return shouldRandomize ? shuffleArray(finalQuestions) : finalQuestions;
+    return this.orderQuestionsByDifficulty(finalQuestions);
+  }
+
+  orderQuestionsByDifficulty(questions = []) {
+    return questions
+      .map((question, index) => ({ question, index }))
+      .sort((a, b) => {
+        const difficultyDiff = (QUESTION_DIFFICULTY_ORDER[a.question.difficulty] || 99)
+          - (QUESTION_DIFFICULTY_ORDER[b.question.difficulty] || 99);
+        if (difficultyDiff !== 0) return difficultyDiff;
+        return a.index - b.index;
+      })
+      .map(item => item.question);
   }
 
   normalizeQuestionDistribution(rawDistribution = {}) {

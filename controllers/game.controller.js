@@ -6,6 +6,26 @@ const logger = require('../utils/logger');
 
 const ANONYMOUS_PLAYER_NAME = 'ไม่ประสงค์จะออกนาม';
 
+function buildAttemptUrls(attempt) {
+  const roomSlug = attempt?.room_slug;
+
+  if (!roomSlug) {
+    return {
+      startUrl: '/coopgame/game/start',
+      playUrl: '/coopgame/game/play',
+      finishUrl: '/coopgame/game/finish',
+      leaderboardUrl: '/coopgame/game/leaderboard'
+    };
+  }
+
+  return {
+    startUrl: `/coopgame/r/${roomSlug}`,
+    playUrl: `/coopgame/r/${roomSlug}/play`,
+    finishUrl: `/coopgame/game/finish`,
+    leaderboardUrl: `/coopgame/r/${roomSlug}/leaderboard`
+  };
+}
+
 class GameController {
   // Render start page
   async renderStart(req, res) {
@@ -150,13 +170,13 @@ class GameController {
       const { attemptId } = req.query;
 
       if (!attemptId || isNaN(attemptId)) {
-        return res.redirect('/coopgame/game/start');
+        return res.redirect(req.params.roomSlug ? `/coopgame/r/${req.params.roomSlug}` : '/coopgame/game/start');
       }
 
       const attempt = await gameService.getAttemptWithCode(parseInt(attemptId));
 
       if (!attempt) {
-        return res.redirect('/coopgame/game/start');
+        return res.redirect(req.params.roomSlug ? `/coopgame/r/${req.params.roomSlug}` : '/coopgame/game/start');
       }
 
       if (req.params.roomSlug && attempt.room_slug !== req.params.roomSlug) {
@@ -174,7 +194,7 @@ class GameController {
 
       if (isAdminPlay) {
         try {
-          const gameSettings = await gameService.getGameSettings();
+          const gameSettings = await gameService.getGameSettings(attempt.room_id);
           adminPreviewSettings = {
             randomQuestionOrderEnabled: gameSettings.randomQuestionOrderEnabled !== false,
             randomAnswerOrderEnabled: gameSettings.randomAnswerOrderEnabled !== false
@@ -185,8 +205,11 @@ class GameController {
       }
 
       if (attempt.status !== 'in_progress') {
-        return res.redirect(isAdminPlay ? '/coopgame/admin' : '/coopgame/game/start');
+        const urls = buildAttemptUrls(attempt);
+        return res.redirect(isAdminPlay ? '/coopgame/admin' : urls.startUrl);
       }
+
+      const urls = buildAttemptUrls(attempt);
 
       res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
       res.set('Pragma', 'no-cache');
@@ -198,11 +221,14 @@ class GameController {
         playerName: attempt.player_name || '',
         phoneNumber: attempt.phone_number || '',
         isAdminPlay,
-        adminPreviewSettings
+        adminPreviewSettings,
+        startUrl: urls.startUrl,
+        finishUrl: `${urls.finishUrl}?attemptId=${attemptId}`,
+        leaderboardUrl: urls.leaderboardUrl
       });
     } catch (err) {
       logger.error('Error rendering play:', err);
-      return res.redirect('/coopgame/game/start');
+      return res.redirect(req.params.roomSlug ? `/coopgame/r/${req.params.roomSlug}` : '/coopgame/game/start');
     }
   }
 
@@ -324,6 +350,7 @@ class GameController {
       const isAdminPlay = Boolean(
         attemptWithCode && typeof attemptWithCode.game_code === 'string' && attemptWithCode.game_code.startsWith('ADM')
       );
+      const urls = buildAttemptUrls(attemptWithCode);
 
       res.render('game/finish', { 
         title: 'สรุปผล',
@@ -334,6 +361,8 @@ class GameController {
         playerName: attempt.player_name || '',
         phoneNumber: attempt.phone_number || '',
         isAdminPlay,
+        startUrl: isAdminPlay ? '/coopgame/admin' : urls.startUrl,
+        leaderboardUrl: urls.leaderboardUrl,
         rank: !isAdminPlay && attempt.player_name && attempt.finished_at
           ? await gameService.calculateRank(attempt.score, attempt.total_time, attempt.finished_at, attempt.room_id)
           : null

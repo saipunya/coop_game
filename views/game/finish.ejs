@@ -536,7 +536,7 @@
               </p>
             </div>
             <div class="d-none d-md-block">
-              <a href="/coopgame/game/start" class="btn-ghost">
+              <a href="<%= startUrl %>" class="btn-ghost">
                 <i class="bi bi-arrow-counterclockwise"></i> เล่นอีกครั้ง
               </a>
             </div>
@@ -603,10 +603,10 @@
               <p class="rank-note">ขอบคุณที่ร่วมสนุก คะแนนของคุณถูกบันทึกเรียบร้อยแล้ว</p>
 
               <div class="rank-actions">
-                <a href="/coopgame/game/leaderboard" class="btn-emerald">
+                <a href="<%= leaderboardUrl %>" class="btn-emerald">
                   <i class="bi bi-people-fill"></i> ดู Leaderboard
                 </a>
-                <a href="/coopgame/game/start" class="btn-ghost">
+                <a href="<%= startUrl %>" class="btn-ghost">
                   <i class="bi bi-play-circle-fill"></i> เล่นใหม่อีกครั้ง
                 </a>
               </div>
@@ -648,7 +648,7 @@
     const attemptId = <%= attemptId %>;
     const initialRank = <%= rank ? Number(rank) : 'null' %>;
     const isAdminPlay = <%= isAdminPlay ? 'true' : 'false' %>;
-    const startUrl = '/coopgame/game/start';
+    const startUrl = <%- JSON.stringify(startUrl || '/coopgame/game/start') %>;
 
     function showTopRankPopup(rankValue) {
       const rankNumber = Number(rankValue);
