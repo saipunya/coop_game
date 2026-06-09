@@ -17,6 +17,7 @@
     .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px; }
     .table th { color:#235c2a; }
     .play-link { font-family:monospace; font-size:.92rem; }
+    .room-actions { min-width:230px; }
   </style>
 </head>
 <body>
@@ -60,7 +61,7 @@
       <h2 class="h4 mb-3">รายการห้อง</h2>
       <div class="table-responsive">
         <table class="table align-middle">
-          <thead><tr><th>ID</th><th>ชื่อ</th><th>Slug</th><th>สถานะ</th><th>ลิงก์เล่น</th><th></th></tr></thead>
+          <thead><tr><th>ID</th><th>ชื่อ</th><th>Slug</th><th>สถานะ</th><th>ลิงก์เล่น</th><th>จัดการ</th></tr></thead>
           <tbody id="roomsList"></tbody>
         </table>
       </div>
@@ -139,7 +140,19 @@
           <td>${escapeHtml(room.slug)}</td>
           <td>${room.status}</td>
           <td class="play-link"><a href="/coopgame/r/${room.slug}" target="_blank">${playLink(room)}</a></td>
-          <td><button class="btn btn-sm btn-outline-success" onclick="editRoom(${room.id})">แก้ไข</button></td>
+          <td class="room-actions">
+            <div class="d-flex gap-2 flex-wrap">
+              <button class="btn btn-sm btn-outline-success" onclick="editRoom(${room.id})">
+                <i class="bi bi-pencil-square"></i> แก้ไข
+              </button>
+              <button class="btn btn-sm btn-outline-danger" onclick="clearRoomCodes(${room.id}, this)">
+                <i class="bi bi-key"></i> เคลียร์รหัส
+              </button>
+              <button class="btn btn-sm btn-outline-warning" onclick="clearRoomStats(${room.id}, this)">
+                <i class="bi bi-bar-chart"></i> เคลียร์สถิติ
+              </button>
+            </div>
+          </td>
         </tr>
       `).join('');
       document.getElementById('adminRoomId').innerHTML = rooms
@@ -193,6 +206,79 @@
       document.getElementById('role').value = user.role;
       document.getElementById('adminRoomId').value = user.room_id || '';
       document.getElementById('isActive').value = user.is_active ? 'true' : 'false';
+    }
+
+    function findRoom(id) {
+      return rooms.find(item => item.id === id);
+    }
+
+    function roomLabel(room, id) {
+      return room ? `${room.name} (${room.slug})` : `ID ${id}`;
+    }
+
+    async function postRoomAction(url, roomId, button) {
+      const originalHtml = button ? button.innerHTML : '';
+      if (button) {
+        button.disabled = true;
+        button.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>กำลังลบ';
+      }
+
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ roomId })
+        });
+        return await response.json();
+      } finally {
+        if (button) {
+          button.disabled = false;
+          button.innerHTML = originalHtml;
+        }
+      }
+    }
+
+    async function clearRoomCodes(id, button) {
+      const room = findRoom(id);
+      if (!room) return;
+      const label = roomLabel(room, id);
+      if (!confirm(`ต้องการเคลียร์รหัสทั้งหมดของห้อง "${label}" หรือไม่?\n\nประวัติเกมที่ผูกกับรหัสของห้องนี้จะถูกลบตามไปด้วย`)) return;
+
+      const typed = prompt(`พิมพ์ CLEAR เพื่อยืนยันการเคลียร์รหัสของห้อง "${label}"`);
+      if (typed !== 'CLEAR') return;
+
+      try {
+        const result = await postRoomAction('/coopgame/admin/api/codes/clear', id, button);
+        if (!result.success) return alert(result.message || 'เคลียร์รหัสไม่สำเร็จ');
+
+        const deletedCodes = result.data?.count || 0;
+        const deletedAttempts = result.data?.attempts || 0;
+        alert(`เคลียร์รหัสของห้อง "${label}" สำเร็จ\nลบรหัส ${deletedCodes} รายการ\nลบประวัติเกม ${deletedAttempts} รายการ`);
+      } catch (error) {
+        console.error('Error clearing room codes:', error);
+        alert('เกิดข้อผิดพลาด กรุณาลองใหม่');
+      }
+    }
+
+    async function clearRoomStats(id, button) {
+      const room = findRoom(id);
+      if (!room) return;
+      const label = roomLabel(room, id);
+      if (!confirm(`ต้องการเคลียร์สถิติของห้อง "${label}" หรือไม่?\n\nประวัติการเล่น คะแนน และ leaderboard ของห้องนี้จะถูกลบถาวร`)) return;
+
+      const typed = prompt(`พิมพ์ DELETE เพื่อยืนยันการเคลียร์สถิติของห้อง "${label}"`);
+      if (typed !== 'DELETE') return;
+
+      try {
+        const result = await postRoomAction('/coopgame/admin/api/history/clear', id, button);
+        if (!result.success) return alert(result.message || 'เคลียร์สถิติไม่สำเร็จ');
+
+        const deletedAttempts = result.data?.count || 0;
+        alert(`เคลียร์สถิติของห้อง "${label}" สำเร็จ\nลบประวัติเกม ${deletedAttempts} รายการ`);
+      } catch (error) {
+        console.error('Error clearing room stats:', error);
+        alert('เกิดข้อผิดพลาด กรุณาลองใหม่');
+      }
     }
 
     document.getElementById('roomForm').addEventListener('submit', async (event) => {
