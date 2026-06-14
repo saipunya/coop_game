@@ -37,13 +37,15 @@ class GameService {
     try {
       await connection.beginTransaction();
 
+      const normalizedCode = String(code || '').trim();
+
       // Validate code format
-      if (!code || code.length !== 6 || !/^[A-Z0-9]{6}$/.test(code.toUpperCase())) {
+      if (!normalizedCode || normalizedCode.length !== 6 || !/^\d{6}$/.test(normalizedCode)) {
         await connection.rollback();
-        return { success: false, message: 'Code must be 6 alphanumeric characters' };
+        return { success: false, message: 'Code must be 6 numeric digits' };
       }
 
-      const upperCode = code.toUpperCase();
+      const upperCode = normalizedCode;
 
       // Check code with lock (FOR UPDATE prevents race conditions)
       const codeParams = [upperCode];
@@ -474,7 +476,7 @@ class GameService {
         }
       }
 
-      if (!isAdminAttempt && (!attempt.player_name || !attempt.phone_number)) {
+      if (!attempt.player_name || !attempt.phone_number) {
         return { playerInfoRequired: true };
       }
 
@@ -665,7 +667,7 @@ class GameService {
         }
       }
 
-      if (!isAdminAttempt && (!attempt.player_name || !attempt.phone_number)) {
+      if (!attempt.player_name || !attempt.phone_number) {
         await connection.rollback();
         return { success: false, message: 'กรุณากรอกชื่อและเบอร์โทรศัพท์ก่อนเริ่มเกม' };
       }
@@ -731,7 +733,7 @@ class GameService {
         await connection.commit();
         logger.info(`Attempt ${attemptId} timed out on question ${questionId}`);
 
-        const rank = isAdminAttempt || !attempt.player_name
+        const rank = !attempt.player_name
           ? null
           : await this.calculateRank(
             completedAttempt.score,
@@ -805,7 +807,7 @@ class GameService {
           await connection.commit();
           logger.info(`Attempt ${attemptId} completed with score ${newScore}`);
 
-          const rank = isAdminAttempt || !attempt.player_name
+          const rank = !attempt.player_name
             ? null
             : await this.calculateRank(
               completedAttempt.score,
@@ -850,7 +852,7 @@ class GameService {
         await connection.commit();
         logger.info(`Attempt ${attemptId} failed on question ${questionId}`);
 
-        const rank = isAdminAttempt || !attempt.player_name
+        const rank = !attempt.player_name
           ? null
           : await this.calculateRank(
             completedAttempt.score,
@@ -898,17 +900,13 @@ class GameService {
         ? phoneNumber.trim()
         : null;
 
-      if (!isAdminAttempt) {
-        // Update player info only for regular players
-        await attemptModel.updatePlayerInfo(attemptId, normalizedPlayerName, normalizedPhoneNumber);
-      }
+      await attemptModel.updatePlayerInfo(attemptId, normalizedPlayerName, normalizedPhoneNumber);
 
       logger.info(`Attempt ${attemptId} finished with player: ${normalizedPlayerName}`);
 
-      // Calculate rank only for regular players
-      const rank = isAdminAttempt
-        ? null
-        : await this.calculateRank(attempt.score, attempt.total_time, attempt.finished_at, attempt.room_id);
+      const rank = normalizedPlayerName && attempt.finished_at
+        ? await this.calculateRank(attempt.score, attempt.total_time, attempt.finished_at, attempt.room_id)
+        : null;
 
       return {
         success: true,
@@ -938,7 +936,6 @@ class GameService {
          FROM game_attempts ga
          JOIN game_codes gc ON gc.id = ga.game_code_id
          WHERE ga.status = ? AND ga.player_name IS NOT NULL
-         AND gc.code NOT LIKE 'ADM%'
          AND (ga.score > ? OR (ga.score = ? AND ga.total_time < ?) OR (ga.score = ? AND ga.total_time = ? AND ga.finished_at < ?))
          ${roomClause}`,
         params

@@ -652,7 +652,7 @@
 
     function showTopRankPopup(rankValue) {
       const rankNumber = Number(rankValue);
-      if (isAdminPlay || !Number.isInteger(rankNumber) || rankNumber < 1 || rankNumber > 3) {
+      if (!Number.isInteger(rankNumber) || rankNumber < 1 || rankNumber > 3) {
         return;
       }
 

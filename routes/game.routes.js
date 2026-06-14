@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const gameController = require('../controllers/game.controller');
 const { adminAuthMiddleware, adminRoleMiddleware } = require('../utils/adminAuth');
+const { verifyCodeAttemptLimiter } = require('../utils/codeAttemptLimiter');
 
 // Default redirect to start page
 router.get('/', (req, res) => {
@@ -14,7 +15,7 @@ router.get('/start', gameController.renderStart);
 router.get('/onboarding', gameController.renderOnboarding);
 
 // Verify code API
-router.post('/verify-code', gameController.verifyCode);
+router.post('/verify-code', verifyCodeAttemptLimiter, gameController.verifyCode);
 router.post('/api/admin/start', adminAuthMiddleware, adminRoleMiddleware(['super_admin', 'room_admin']), gameController.startAdminGame);
 
 // Play page

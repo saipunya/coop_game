@@ -3,8 +3,29 @@ const gameService = require('../services/game.service');
 const roomModel = require('../models/room.model');
 const { success, error, validationError, notFound } = require('../utils/response');
 const logger = require('../utils/logger');
+const {
+  recordFailedVerifyCode,
+  resetVerifyCodeAttempts
+} = require('../utils/codeAttemptLimiter');
 
 const ANONYMOUS_PLAYER_NAME = 'ไม่ประสงค์จะออกนาม';
+
+function sendFailedCodeResponse(req, res, message) {
+  const attemptEntry = recordFailedVerifyCode(req);
+
+  if (attemptEntry.lockedUntil && Date.now() < attemptEntry.lockedUntil) {
+    const retryAfterSeconds = Math.ceil((attemptEntry.lockedUntil - Date.now()) / 1000);
+    res.set('Retry-After', String(retryAfterSeconds));
+    return res.status(429).json({
+      success: false,
+      message: `ใส่รหัสผิดหลายครั้งเกินไป กรุณารอ ${Math.ceil(retryAfterSeconds / 60)} นาที แล้วลองใหม่`,
+      errorCode: 'CODE_ATTEMPTS_LOCKED',
+      retryAfterSeconds
+    });
+  }
+
+  return error(res, message, 400);
+}
 
 function buildAttemptUrls(attempt) {
   const roomSlug = attempt?.room_slug;
@@ -99,18 +120,19 @@ class GameController {
       const { code } = req.body;
 
       if (!code) {
-        return validationError(res, [{ msg: 'กรุณากรอกรหัส' }]);
+        return sendFailedCodeResponse(req, res, 'กรุณากรอกรหัส');
       }
 
-      const result = await gameService.verifyCode(code.trim().toUpperCase());
+      const result = await gameService.verifyCode(String(code).trim());
 
       if (result.success) {
+        resetVerifyCodeAttempts(req);
         success(res, { attemptId: result.attemptId, totalQuestions: result.totalQuestions }, 'เริ่มเกมสำเร็จ');
       } else {
-        error(res, result.message, 400);
+        sendFailedCodeResponse(req, res, result.message);
       }
-    } catch (error) {
-      console.error('[ERROR] Error verifying code:', error);
+    } catch (err) {
+      console.error('[ERROR] Error verifying code:', err);
       error(res, 'เกิดข้อผิดพลาด');
     }
   }
@@ -125,15 +147,16 @@ class GameController {
       }
 
       if (!code) {
-        return validationError(res, [{ msg: 'กรุณากรอกรหัส' }]);
+        return sendFailedCodeResponse(req, res, 'กรุณากรอกรหัส');
       }
 
-      const result = await gameService.verifyCode(code.trim().toUpperCase(), room.id);
+      const result = await gameService.verifyCode(String(code).trim(), room.id);
 
       if (result.success) {
+        resetVerifyCodeAttempts(req);
         success(res, { attemptId: result.attemptId, totalQuestions: result.totalQuestions }, 'เริ่มเกมสำเร็จ');
       } else {
-        error(res, result.message, 400);
+        sendFailedCodeResponse(req, res, result.message);
       }
     } catch (err) {
       logger.error('Error verifying room code:', err);
@@ -200,7 +223,7 @@ class GameController {
             randomAnswerOrderEnabled: gameSettings.randomAnswerOrderEnabled !== false
           };
         } catch (settingsError) {
-          logger.warn('Failed to load game settings for admin preview badges:', settingsError);
+          logger.warn('Failed to load game settings for admin-led badges:', settingsError);
         }
       }
 
@@ -363,7 +386,7 @@ class GameController {
         isAdminPlay,
         startUrl: isAdminPlay ? '/coopgame/admin' : urls.startUrl,
         leaderboardUrl: urls.leaderboardUrl,
-        rank: !isAdminPlay && attempt.player_name && attempt.finished_at
+        rank: attempt.player_name && attempt.finished_at
           ? await gameService.calculateRank(attempt.score, attempt.total_time, attempt.finished_at, attempt.room_id)
           : null
       });

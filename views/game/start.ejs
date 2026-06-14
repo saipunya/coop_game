@@ -112,7 +112,7 @@
               <span class="card-icon"><i data-lucide="key-round"></i></span>
               <div>
               <h2 id="startTitle"><%= activeRoom ? activeRoom.name : 'ใส่รหัสเพื่อเข้าเกม' %></h2>
-              <p>รหัส 6 ตัวอักษร/ตัวเลขจากผู้ดูแลระบบ<%= activeRoom ? 'ของห้องนี้' : '' %></p>
+              <p>รหัสตัวเลข 6 หลักจากผู้ดูแลระบบ<%= activeRoom ? 'ของห้องนี้' : '' %></p>
               </div>
             </div>
 
@@ -140,8 +140,9 @@
                   name="code"
                   class="form-control code-input"
                   maxlength="6"
-                  placeholder="ABC123"
-                  inputmode="search"
+                  placeholder="123456"
+                  inputmode="numeric"
+                  pattern="[0-9]{6}"
                   autocomplete="off"
                   aria-labelledby="codeHelp"
                   <%= !isGameOpen ? 'disabled' : '' %>
@@ -149,7 +150,7 @@
                 />
               </div>
               <div id="codeHelp" class="field-help">
-                พิมพ์เล็กหรือใหญ่ได้ ระบบจะปรับให้อัตโนมัติ
+                กรอกรหัสตัวเลข 6 หลัก
               </div>
 
               <button type="submit" class="start-btn" <%= !isGameOpen ? 'disabled' : '' %>>
@@ -269,9 +270,13 @@
         return;
       }
 
-      const code = codeInput.value.trim().toUpperCase();
+      const code = codeInput.value.trim();
       if (!code) {
         showMessage('error', 'circle-alert', 'กรุณากรอกรหัสเกม');
+        return;
+      }
+      if (!/^\d{6}$/.test(code)) {
+        showMessage('error', 'circle-alert', 'กรุณากรอกรหัสเป็นตัวเลข 6 หลัก');
         return;
       }
 
@@ -305,7 +310,7 @@
     });
 
     codeInput.addEventListener('input', function () {
-      this.value = this.value.toUpperCase();
+      this.value = this.value.replace(/\D/g, '').slice(0, 6);
     });
 
     function updateStatsFromLeaderboard(entries) {

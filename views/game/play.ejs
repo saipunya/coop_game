@@ -1450,8 +1450,8 @@
       </header>
 
       <% if (isAdminPlay) { %>
-      <section class="admin-preview-strip fade-in" aria-label="Admin preview settings">
-        <div class="question-tag"><i class="bi bi-shield-check"></i> โหมดทดสอบผู้ดูแล</div>
+      <section class="admin-preview-strip fade-in" aria-label="Admin-led game settings">
+        <div class="question-tag"><i class="bi bi-shield-check"></i> เริ่มโดยผู้ดูแล</div>
         <div class="admin-preview-badge <%= adminPreviewSettings?.randomQuestionOrderEnabled !== false ? 'is-on' : 'is-off' %>">
           <i class="bi bi-shuffle"></i>
           <span>สุ่มลำดับข้อ: <%= adminPreviewSettings?.randomQuestionOrderEnabled !== false ? 'เปิด' : 'ปิด' %></span>
@@ -1656,7 +1656,7 @@
     const finishRedirectUrl = <%- JSON.stringify(finishUrl || `/coopgame/game/finish?attemptId=${attemptId}`) %>;
     const initialPlayerName = <%- JSON.stringify(playerName || '') %>;
     const initialPhoneNumber = <%- JSON.stringify(phoneNumber || '') %>;
-    let hasPlayerInfo = isAdminPlay || Boolean(initialPlayerName && initialPhoneNumber);
+    let hasPlayerInfo = Boolean(initialPlayerName && initialPhoneNumber);
     let currentQuestion = null;
     let score = 0;
     let questionStartTime = 0;
@@ -1755,11 +1755,6 @@
     }
 
     function showPlayerIntro(message = '') {
-      if (isAdminPlay) {
-        showLoadingPanel();
-        loadQuestion();
-        return;
-      }
       playerIntro.classList.remove('hidden');
       loadingPanel.classList.add('hidden');
       document.getElementById('gameArea').classList.add('hidden');
@@ -1917,7 +1912,7 @@
 
     function isTopThreeRank(rankValue) {
       const rankNumber = Number(rankValue);
-      return !isAdminPlay && Number.isInteger(rankNumber) && rankNumber >= 1 && rankNumber <= 3;
+      return Number.isInteger(rankNumber) && rankNumber >= 1 && rankNumber <= 3;
     }
 
     function showTopRankPopup(rankValue) {
@@ -2042,12 +2037,6 @@
           const feedbackType = resultData.reason === 'timeout'
             ? 'timeout'
             : resultData.isCorrect ? 'correct' : 'wrong';
-          if (isAdminPlay) {
-            await showAnswerFeedback(feedbackType, { actionLabel: 'OK' });
-            replaceToGameEndUrl();
-            return;
-          }
-
           if (!resultData.isCorrect || resultData.reason === 'timeout') {
             await showAnswerFeedback(feedbackType, { actionLabel: 'OK' });
             if (isTopThreeRank(resultData.rank)) {

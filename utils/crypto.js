@@ -5,10 +5,10 @@
 const crypto = require('crypto');
 
 /**
- * Generate random game code (6 alphanumeric characters)
+ * Generate random game code (6 numeric digits)
  */
 function generateGameCode() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Removed confusing chars (I, O, 0, 1)
+  const chars = '0123456789';
   let code = '';
   for (let i = 0; i < 6; i++) {
     const randomIndex = crypto.randomInt(0, chars.length);
@@ -66,10 +66,10 @@ function validatePhoneNumber(phone) {
 }
 
 /**
- * Validate game code (6 alphanumeric characters)
+ * Validate game code (6 numeric digits)
  */
 function validateGameCode(code) {
-  return /^[A-Z0-9]{6}$/.test(code.toUpperCase());
+  return /^\d{6}$/.test(String(code || ''));
 }
 
 module.exports = {

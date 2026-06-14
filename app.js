@@ -4,6 +4,10 @@ require('dotenv').config();
 
 const app = express();
 
+if (process.env.TRUST_PROXY) {
+  app.set('trust proxy', process.env.TRUST_PROXY === 'true' ? 1 : process.env.TRUST_PROXY);
+}
+
 // middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

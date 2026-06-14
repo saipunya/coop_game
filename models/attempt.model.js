@@ -83,7 +83,6 @@ class AttemptModel {
        JOIN game_codes gc ON gc.id = ga.game_code_id
        LEFT JOIN rooms r ON r.id = ga.room_id
        WHERE ga.status = ? AND ga.player_name IS NOT NULL
-       AND gc.code NOT LIKE 'ADM%'
        ${roomClause}
        ORDER BY ga.score DESC, ga.total_time ASC, ga.finished_at ASC
        LIMIT ? OFFSET ?`,
@@ -103,7 +102,6 @@ class AttemptModel {
        FROM game_attempts ga
        JOIN game_codes gc ON gc.id = ga.game_code_id
        WHERE ga.status = ? AND ga.player_name IS NOT NULL
-       AND gc.code NOT LIKE 'ADM%'
        ${roomClause}`,
       params
     );
@@ -120,7 +118,6 @@ class AttemptModel {
        FROM game_attempts ga
        JOIN game_codes gc ON gc.id = ga.game_code_id
        WHERE ga.player_name IS NOT NULL
-       AND gc.code NOT LIKE 'ADM%'
        ${roomClause}`,
       roomParams
     );
@@ -128,7 +125,7 @@ class AttemptModel {
       `SELECT COUNT(*) as count
        FROM game_attempts ga
        JOIN game_codes gc ON gc.id = ga.game_code_id
-       WHERE ga.status = ? AND gc.code NOT LIKE 'ADM%'
+       WHERE ga.status = ?
        ${roomClause}`,
       ['completed', ...roomParams]
     );
@@ -136,7 +133,7 @@ class AttemptModel {
       `SELECT AVG(ga.score) as avg
        FROM game_attempts ga
        JOIN game_codes gc ON gc.id = ga.game_code_id
-       WHERE ga.status = ? AND gc.code NOT LIKE 'ADM%'
+       WHERE ga.status = ?
        ${roomClause}`,
       ['completed', ...roomParams]
     );
@@ -144,7 +141,7 @@ class AttemptModel {
       `SELECT AVG(ga.total_time) as avg
        FROM game_attempts ga
        JOIN game_codes gc ON gc.id = ga.game_code_id
-       WHERE ga.status = ? AND gc.code NOT LIKE 'ADM%'
+       WHERE ga.status = ?
        ${roomClause}`,
       ['completed', ...roomParams]
     );
