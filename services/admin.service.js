@@ -20,6 +20,7 @@ const DEFAULT_GAME_SETTINGS = {
   totalQuestions: 9,
   randomQuestionOrderEnabled: true,
   randomAnswerOrderEnabled: true,
+  ipAccessLockEnabled: false,
   timeLimits: QUESTION_TIME_LIMITS,
   questionDistribution: {
     easy: 30,
@@ -1041,6 +1042,11 @@ class AdminService {
         DEFAULT_GAME_SETTINGS.randomAnswerOrderEnabled,
         roomId
       );
+      const ipAccessLockEnabled = await gameSettingModel.getValue(
+        'ipAccessLockEnabled',
+        DEFAULT_GAME_SETTINGS.ipAccessLockEnabled,
+        roomId
+      );
       const timeLimits = this.normalizeQuestionTimeLimits(savedTimeLimits);
       const questionDistribution = this.normalizeQuestionDistribution(savedQuestionDistribution);
 
@@ -1053,6 +1059,7 @@ class AdminService {
           gameEnabled: gameEnabled !== false,
           randomQuestionOrderEnabled: randomQuestionOrderEnabled !== false,
           randomAnswerOrderEnabled: randomAnswerOrderEnabled !== false,
+          ipAccessLockEnabled: ipAccessLockEnabled === true,
           timeLimits,
           questionDistribution
         }
@@ -1100,6 +1107,14 @@ class AdminService {
       const gameEnabled = settingsData.gameEnabled !== false;
       const randomQuestionOrderEnabled = settingsData.randomQuestionOrderEnabled !== false;
       const randomAnswerOrderEnabled = settingsData.randomAnswerOrderEnabled !== false;
+      const hasIpAccessLockSetting = Object.prototype.hasOwnProperty.call(settingsData, 'ipAccessLockEnabled');
+      const ipAccessLockEnabled = hasIpAccessLockSetting
+        ? settingsData.ipAccessLockEnabled === true
+        : (await gameSettingModel.getValue(
+          'ipAccessLockEnabled',
+          DEFAULT_GAME_SETTINGS.ipAccessLockEnabled,
+          roomId
+        )) === true;
       const rawTimeLimits = settingsData.timeLimits || {};
       const rawQuestionDistribution = settingsData.questionDistribution || {};
       const timeLimits = {
@@ -1150,6 +1165,7 @@ class AdminService {
       await gameSettingModel.set('totalQuestions', totalQuestions, roomId);
       await gameSettingModel.set('randomQuestionOrderEnabled', randomQuestionOrderEnabled, roomId);
       await gameSettingModel.set('randomAnswerOrderEnabled', randomAnswerOrderEnabled, roomId);
+      await gameSettingModel.set('ipAccessLockEnabled', ipAccessLockEnabled, roomId);
       await gameSettingModel.set('questionTimeLimits', timeLimits, roomId);
       await gameSettingModel.set('questionDistribution', questionDistribution, roomId);
 
@@ -1172,6 +1188,7 @@ class AdminService {
         `gameEnabled=${gameEnabled}, ` +
         `randomQuestionOrderEnabled=${randomQuestionOrderEnabled}, ` +
         `randomAnswerOrderEnabled=${randomAnswerOrderEnabled}, ` +
+        `ipAccessLockEnabled=${ipAccessLockEnabled}, ` +
         `timeLimits=${JSON.stringify(timeLimits)}, ` +
         `questionDistribution=${JSON.stringify(questionDistribution)}`
       );
@@ -1183,6 +1200,7 @@ class AdminService {
           gameEnabled,
           randomQuestionOrderEnabled,
           randomAnswerOrderEnabled,
+          ipAccessLockEnabled,
           timeLimits,
           questionDistribution
         }

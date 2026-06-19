@@ -95,6 +95,7 @@ CREATE TABLE IF NOT EXISTS game_attempts (
   game_code_id INT NOT NULL,
   player_name VARCHAR(100) NULL,
   phone_number VARCHAR(20) NULL,
+  client_ip VARCHAR(45) NULL,
   score INT DEFAULT 0,
   total_time INT DEFAULT 0 COMMENT 'total seconds taken',
   status ENUM('in_progress', 'completed', 'abandoned') DEFAULT 'in_progress',
@@ -103,6 +104,7 @@ CREATE TABLE IF NOT EXISTS game_attempts (
   FOREIGN KEY (game_code_id) REFERENCES game_codes(id),
   FOREIGN KEY (room_id) REFERENCES rooms(id),
   INDEX idx_room (room_id),
+  INDEX idx_client_ip (client_ip),
   INDEX idx_status (status),
   INDEX idx_score (score DESC),
   INDEX idx_finished (finished_at)

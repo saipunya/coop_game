@@ -255,6 +255,35 @@
       white-space: nowrap;
     }
 
+    .settings-panel {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .settings-panel p {
+      margin: 6px 0 0;
+      color: #5f9f63;
+      font-weight: 600;
+    }
+
+    .settings-action {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .settings-status {
+      min-width: 120px;
+      color: var(--green-700);
+      font-weight: 800;
+      text-align: right;
+    }
+
     .empty-state,
     .loading {
       text-align: center;
@@ -356,6 +385,20 @@
         flex-direction: column;
         align-items: flex-start;
       }
+
+      .settings-panel {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .settings-action {
+        width: 100%;
+        justify-content: space-between;
+      }
+
+      .settings-status {
+        text-align: left;
+      }
     }
   </style>
 </head>
@@ -416,6 +459,25 @@
         </div>
       </section>
     <% } %>
+
+    <section class="card-panel settings-panel fade-in">
+      <div>
+        <h2 style="margin-bottom:0;">
+          <span><i class="bi bi-shield-lock me-2" style="color:#43a047;"></i>ล็อค IP ต่อห้อง</span>
+        </h2>
+        <p>เมื่อเปิดใช้งาน IP เดียวกันจะเริ่มเกมได้ไม่เกิน 2 ครั้งในห้องที่เลือก</p>
+      </div>
+      <div class="settings-action">
+        <span id="ipAccessLockStatus" class="settings-status">กำลังโหลด...</span>
+        <div class="form-check form-switch m-0">
+          <input class="form-check-input" type="checkbox" role="switch" id="ipAccessLockSwitch" disabled>
+          <label class="form-check-label fw-bold" for="ipAccessLockSwitch" id="ipAccessLockLabel">ปิดล็อค IP</label>
+        </div>
+        <button type="button" class="btn btn-success" id="saveIpAccessLockButton" onclick="saveIpAccessLockSetting()" disabled>
+          <i class="bi bi-save"></i> บันทึก
+        </button>
+      </div>
+    </section>
 
     <div class="stat-grid fade-in">
       <div class="stat-card">
@@ -527,6 +589,7 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script>
     let dashboardTotalQuestions = 9;
+    let dashboardGameSettings = null;
     const adminRole = '<%= adminUser.role %>';
     const fixedRoomId = <%= adminUser.roomId || 'null' %>;
     const fixedRoomSlug = '<%= adminUser.roomSlug || '' %>';
@@ -534,6 +597,7 @@
 
     document.addEventListener('DOMContentLoaded', () => {
       initializeDashboardRoom().then(() => {
+        loadIpAccessLockSettings();
         loadStats();
         loadLeaderboard();
         loadDailyStats();
@@ -565,6 +629,7 @@
 
         roomSelect.addEventListener('change', () => {
           updateRoomLinks();
+          loadIpAccessLockSettings();
           loadStats();
           loadLeaderboard();
           loadDailyStats();
@@ -645,6 +710,106 @@
         }
       } catch (error) {
         console.error('Error loading stats:', error);
+      }
+    }
+
+    async function loadIpAccessLockSettings() {
+      const switchEl = document.getElementById('ipAccessLockSwitch');
+      const labelEl = document.getElementById('ipAccessLockLabel');
+      const statusEl = document.getElementById('ipAccessLockStatus');
+      const saveButton = document.getElementById('saveIpAccessLockButton');
+
+      if (!switchEl || !labelEl || !statusEl || !saveButton) return;
+
+      switchEl.disabled = true;
+      saveButton.disabled = true;
+      statusEl.textContent = 'กำลังโหลด...';
+
+      try {
+        const response = await fetch(withRoomParam('/coopgame/admin/api/game-settings'));
+        const result = await response.json();
+
+        if (!result.success || !result.data) {
+          throw new Error(result.message || 'Unable to load game settings');
+        }
+
+        dashboardGameSettings = {
+          gameEnabled: result.data.gameEnabled !== false,
+          totalQuestions: parseInt(result.data.totalQuestions, 10) || 9,
+          randomQuestionOrderEnabled: result.data.randomQuestionOrderEnabled !== false,
+          randomAnswerOrderEnabled: result.data.randomAnswerOrderEnabled !== false,
+          ipAccessLockEnabled: result.data.ipAccessLockEnabled === true,
+          timeLimits: result.data.timeLimits || { easy: 15, medium: 20, hard: 25 },
+          questionDistribution: result.data.questionDistribution || { easy: 30, medium: 35, hard: 35 }
+        };
+
+        setIpAccessLockSwitch(dashboardGameSettings.ipAccessLockEnabled);
+        switchEl.disabled = false;
+        saveButton.disabled = false;
+      } catch (error) {
+        console.error('Error loading IP lock settings:', error);
+        dashboardGameSettings = null;
+        statusEl.textContent = 'โหลดไม่ได้';
+        labelEl.textContent = 'ปิดล็อค IP';
+        switchEl.checked = false;
+      }
+    }
+
+    function setIpAccessLockSwitch(enabled) {
+      const switchEl = document.getElementById('ipAccessLockSwitch');
+      const labelEl = document.getElementById('ipAccessLockLabel');
+      const statusEl = document.getElementById('ipAccessLockStatus');
+
+      if (switchEl) switchEl.checked = enabled === true;
+      if (labelEl) labelEl.textContent = enabled === true ? 'เปิดล็อค IP' : 'ปิดล็อค IP';
+      if (statusEl) statusEl.textContent = enabled === true ? 'จำกัดไม่เกิน 2 ครั้ง' : 'ไม่จำกัด IP';
+    }
+
+    async function saveIpAccessLockSetting() {
+      if (!dashboardGameSettings) {
+        alert('ยังโหลดการตั้งค่าไม่สำเร็จ กรุณาลองใหม่');
+        return;
+      }
+
+      const switchEl = document.getElementById('ipAccessLockSwitch');
+      const saveButton = document.getElementById('saveIpAccessLockButton');
+      const roomId = getSelectedRoomId();
+
+      if (saveButton) saveButton.disabled = true;
+
+      try {
+        const payload = {
+          ...dashboardGameSettings,
+          ipAccessLockEnabled: switchEl.checked
+        };
+
+        if (roomId) {
+          payload.roomId = roomId;
+        }
+
+        const response = await fetch('/coopgame/admin/api/game-settings', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const result = await response.json();
+
+        if (!result.success) {
+          throw new Error(result.message || 'Unable to save game settings');
+        }
+
+        dashboardGameSettings = {
+          ...dashboardGameSettings,
+          ...(result.data || {}),
+          ipAccessLockEnabled: result.data?.ipAccessLockEnabled === true
+        };
+        setIpAccessLockSwitch(dashboardGameSettings.ipAccessLockEnabled);
+        alert('บันทึกการตั้งค่าล็อค IP สำเร็จ');
+      } catch (error) {
+        console.error('Error saving IP lock settings:', error);
+        alert('เกิดข้อผิดพลาดในการบันทึก กรุณาลองใหม่');
+      } finally {
+        if (saveButton) saveButton.disabled = false;
       }
     }
 
@@ -907,6 +1072,9 @@
     }, 30000);
 
     document.getElementById('leaderboardFilter').addEventListener('change', loadLeaderboard);
+    document.getElementById('ipAccessLockSwitch').addEventListener('change', (event) => {
+      setIpAccessLockSwitch(event.target.checked);
+    });
   </script>
 </body>
 </html>

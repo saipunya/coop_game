@@ -18,6 +18,7 @@ const DEFAULT_RANDOM_SETTINGS = {
   randomQuestionOrderEnabled: true,
   randomAnswerOrderEnabled: true
 };
+const DEFAULT_IP_ACCESS_LIMIT = 2;
 const QUESTION_DIFFICULTY_ORDER = {
   easy: 1,
   medium: 2,
@@ -29,9 +30,10 @@ class GameService {
    * Verify game code and start game session
    * Uses transaction to ensure atomicity
    */
-  async verifyCode(code, roomId = null) {
+  async verifyCode(code, roomId = null, clientIp = null) {
     await attemptQuestionModel.ensureOptionOrderColumn();
     await this.ensureAttemptAnswerNullableColumn();
+    await attemptModel.ensureClientIpColumn();
     const connection = await pool.getConnection();
     
     try {
@@ -87,6 +89,22 @@ class GameService {
         return { success: false, message: 'ระบบเกมปิดอยู่ชั่วคราว กรุณาติดต่อผู้ดูแลระบบ' };
       }
 
+      if (gameSettings.ipAccessLockEnabled && clientIp) {
+        const ipAttemptCount = await attemptModel.countByClientIp(
+          gameCode.room_id,
+          clientIp,
+          connection
+        );
+
+        if (ipAttemptCount >= DEFAULT_IP_ACCESS_LIMIT) {
+          await connection.rollback();
+          return {
+            success: false,
+            message: `IP นี้เข้าใช้งานครบ ${DEFAULT_IP_ACCESS_LIMIT} ครั้งแล้ว กรุณาติดต่อผู้ดูแลระบบ`
+          };
+        }
+      }
+
       const result = await this.createGameAttempt(
         connection,
         gameCode.id,
@@ -96,7 +114,8 @@ class GameService {
           randomQuestionOrderEnabled: gameSettings.randomQuestionOrderEnabled,
           randomAnswerOrderEnabled: gameSettings.randomAnswerOrderEnabled
         },
-        gameCode.room_id
+        gameCode.room_id,
+        clientIp
       );
 
       if (!result.success) {
@@ -127,7 +146,8 @@ class GameService {
     totalQuestions,
     questionDistribution = DEFAULT_QUESTION_DISTRIBUTION,
     randomSettings = DEFAULT_RANDOM_SETTINGS,
-    roomId = null
+    roomId = null,
+    clientIp = null
   ) {
     const query = connection || pool;
     const normalizedRandomSettings = this.normalizeRandomSettings(randomSettings);
@@ -139,6 +159,12 @@ class GameService {
 
     const attemptColumns = ['game_code_id', 'status'];
     const attemptValues = [gameCodeId, 'in_progress'];
+
+    if (clientIp) {
+      await attemptModel.ensureClientIpColumn(query);
+      attemptColumns.push('client_ip');
+      attemptValues.push(clientIp);
+    }
 
     if (await this.tableHasColumn(query, 'game_attempts', 'room_id')) {
       const resolvedRoomId = roomId || await this.resolveAttemptRoomId(query, gameCodeId);
@@ -439,6 +465,11 @@ class GameService {
       DEFAULT_RANDOM_SETTINGS.randomAnswerOrderEnabled,
       roomId
     );
+    const ipAccessLockEnabled = await gameSettingModel.getValue(
+      'ipAccessLockEnabled',
+      false,
+      roomId
+    );
     const parsedTotalQuestions = parseInt(totalQuestions, 10);
 
     return {
@@ -448,7 +479,8 @@ class GameService {
         : 9,
       questionDistribution: this.normalizeQuestionDistribution(questionDistribution),
       randomQuestionOrderEnabled: randomQuestionOrderEnabled !== false,
-      randomAnswerOrderEnabled: randomAnswerOrderEnabled !== false
+      randomAnswerOrderEnabled: randomAnswerOrderEnabled !== false,
+      ipAccessLockEnabled: ipAccessLockEnabled === true
     };
   }
 

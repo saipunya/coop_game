@@ -27,6 +27,15 @@ function sendFailedCodeResponse(req, res, message) {
   return error(res, message, 400);
 }
 
+function getClientIp(req) {
+  const forwardedFor = req.headers['x-forwarded-for'];
+  if (typeof forwardedFor === 'string' && forwardedFor.trim()) {
+    return forwardedFor.split(',')[0].trim();
+  }
+
+  return req.ip || req.socket?.remoteAddress || 'unknown';
+}
+
 function buildAttemptUrls(attempt) {
   const roomSlug = attempt?.room_slug;
 
@@ -123,7 +132,7 @@ class GameController {
         return sendFailedCodeResponse(req, res, 'กรุณากรอกรหัส');
       }
 
-      const result = await gameService.verifyCode(String(code).trim());
+      const result = await gameService.verifyCode(String(code).trim(), null, getClientIp(req));
 
       if (result.success) {
         resetVerifyCodeAttempts(req);
@@ -150,7 +159,7 @@ class GameController {
         return sendFailedCodeResponse(req, res, 'กรุณากรอกรหัส');
       }
 
-      const result = await gameService.verifyCode(String(code).trim(), room.id);
+      const result = await gameService.verifyCode(String(code).trim(), room.id, getClientIp(req));
 
       if (result.success) {
         resetVerifyCodeAttempts(req);

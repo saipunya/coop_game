@@ -1,6 +1,18 @@
 const pool = require('../config/database');
 
 class AttemptModel {
+  async ensureClientIpColumn(query = pool) {
+    const [columns] = await query.query("SHOW COLUMNS FROM game_attempts LIKE 'client_ip'");
+    if (columns.length === 0) {
+      await query.query('ALTER TABLE game_attempts ADD COLUMN client_ip VARCHAR(45) NULL AFTER phone_number');
+    }
+
+    const [indexes] = await query.query("SHOW INDEX FROM game_attempts WHERE Key_name = 'idx_client_ip'");
+    if (indexes.length === 0) {
+      await query.query('ALTER TABLE game_attempts ADD INDEX idx_client_ip (client_ip)');
+    }
+  }
+
   // Create new attempt
   async create(gameCodeId) {
     const [result] = await pool.query(
@@ -57,6 +69,24 @@ class AttemptModel {
       [playerName, phoneNumber, id]
     );
     return result.affectedRows > 0;
+  }
+
+  async countByClientIp(roomId, clientIp, connection = null) {
+    if (!roomId || !clientIp) return 0;
+    const query = connection || pool;
+    await this.ensureClientIpColumn(query);
+
+    const [rows] = await query.query(
+      `SELECT COUNT(*) AS count
+       FROM game_attempts ga
+       JOIN game_codes gc ON gc.id = ga.game_code_id
+       WHERE ga.room_id = ?
+         AND ga.client_ip = ?
+         AND gc.code NOT LIKE 'ADM%'`,
+      [roomId, clientIp]
+    );
+
+    return rows[0]?.count || 0;
   }
 
   // Update status
