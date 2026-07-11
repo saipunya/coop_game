@@ -1,5 +1,7 @@
 const express = require('express');
+const http = require('http');
 const path = require('path');
+const { spawn } = require('child_process');
 require('dotenv').config();
 
 const app = express();
@@ -7,6 +9,73 @@ const app = express();
 if (process.env.TRUST_PROXY) {
   app.set('trust proxy', process.env.TRUST_PROXY === 'true' ? 1 : process.env.TRUST_PROXY);
 }
+
+const yangRoutePrefix = '/yang';
+const yangDocRoot = path.join(__dirname, 'yang');
+const yangPhpHost = process.env.YANG_PHP_HOST || '127.0.0.1';
+const yangPhpPort = Number(process.env.YANG_PHP_PORT || 8072);
+const yangPhpBin = process.env.YANG_PHP_BIN || 'php';
+let yangPhpProcess = null;
+
+function startYangPhpServer() {
+  if (process.env.YANG_PHP_AUTOSTART === 'false' || yangPhpProcess) {
+    return;
+  }
+
+  yangPhpProcess = spawn(
+    yangPhpBin,
+    ['-S', `${yangPhpHost}:${yangPhpPort}`, '-t', yangDocRoot],
+    { stdio: ['ignore', 'pipe', 'pipe'] }
+  );
+
+  yangPhpProcess.stdout.on('data', (data) => {
+    console.log(`[yang-php] ${data.toString().trim()}`);
+  });
+
+  yangPhpProcess.stderr.on('data', (data) => {
+    console.error(`[yang-php] ${data.toString().trim()}`);
+  });
+
+  yangPhpProcess.on('exit', (code, signal) => {
+    console.error(`[yang-php] exited with code ${code || '-'} signal ${signal || '-'}`);
+    yangPhpProcess = null;
+  });
+}
+
+function proxyYangToPhp(req, res) {
+  startYangPhpServer();
+
+  const strippedPath = req.originalUrl.slice(yangRoutePrefix.length) || '/';
+  const targetPath = strippedPath.startsWith('/') ? strippedPath : `/${strippedPath}`;
+
+  const headers = {
+    ...req.headers,
+    host: `${yangPhpHost}:${yangPhpPort}`,
+    'x-forwarded-prefix': yangRoutePrefix,
+    'x-forwarded-host': req.headers.host || '',
+    'x-forwarded-proto': req.protocol
+  };
+
+  const proxyReq = http.request({
+    hostname: yangPhpHost,
+    port: yangPhpPort,
+    path: targetPath,
+    method: req.method,
+    headers
+  }, (proxyRes) => {
+    res.writeHead(proxyRes.statusCode || 200, proxyRes.headers);
+    proxyRes.pipe(res);
+  });
+
+  proxyReq.on('error', (err) => {
+    console.error('Yang PHP proxy error:', err.message);
+    res.status(502).send('Yang PHP service is not available.');
+  });
+
+  req.pipe(proxyReq);
+}
+
+app.use(yangRoutePrefix, proxyYangToPhp);
 
 // middleware
 app.use(express.json());
@@ -106,6 +175,7 @@ app.use((err, req, res, next) => {
 
 // server start
 const PORT = process.env.PORT || 3001;
+startYangPhpServer();
 app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);
 });
