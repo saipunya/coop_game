@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/auth.php';
 require_user();
+require_once __DIR__ . '/navbar.php';
 
 $user = current_user();
 $stats = [
@@ -59,6 +60,7 @@ function user_money($value)
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>แดชบอร์ดเจ้าหน้าที่</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     :root {
       --bg: #f2f5f3;
@@ -157,24 +159,12 @@ function user_money($value)
       .hero h1 { font-size: 25px; }
     }
   </style>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="<?php echo h(navbar_url('navbar.css')); ?>" rel="stylesheet">
 </head>
 <body>
+  <?php render_topbar(); ?>
   <main class="shell">
-    <header class="topbar">
-      <a class="brand" href="<?php echo h(url_for('index.php')); ?>">
-        <div class="mark">ย</div>
-        <div>
-          <strong>ระบบรวบรวมยาง</strong>
-          <span>พื้นที่เจ้าหน้าที่</span>
-        </div>
-      </a>
-      <div class="actions">
-        <a class="btn" href="<?php echo h(url_for('index.php')); ?>">ภาพรวม</a>
-        <a class="btn" href="<?php echo h(url_for('rubbers.php')); ?>">รายการรับซื้อ</a>
-        <a class="btn btn-primary" href="<?php echo h(url_for('user-logout.php')); ?>">ออกจากระบบ</a>
-      </div>
-    </header>
-
     <section class="hero">
       <h1>สวัสดี <?php echo h($user['user_fullname']); ?></h1>
       <p>บัญชี <?php echo h($user['user_username']); ?> · สิทธิ์ <?php echo h($user['user_level']); ?> · สถานะ <?php echo h($user['user_status']); ?></p>
