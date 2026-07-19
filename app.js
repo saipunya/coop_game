@@ -22,25 +22,49 @@ function startYangPhpServer() {
     return;
   }
 
-  yangPhpProcess = spawn(
+  const phpProcess = spawn(
     yangPhpBin,
     ['-S', `${yangPhpHost}:${yangPhpPort}`, '-t', yangDocRoot],
     { stdio: ['ignore', 'pipe', 'pipe'] }
   );
+  yangPhpProcess = phpProcess;
 
-  yangPhpProcess.stdout.on('data', (data) => {
+  phpProcess.stdout.on('data', (data) => {
     console.log(`[yang-php] ${data.toString().trim()}`);
   });
 
-  yangPhpProcess.stderr.on('data', (data) => {
+  phpProcess.stderr.on('data', (data) => {
     console.error(`[yang-php] ${data.toString().trim()}`);
   });
 
-  yangPhpProcess.on('exit', (code, signal) => {
-    console.error(`[yang-php] exited with code ${code || '-'} signal ${signal || '-'}`);
-    yangPhpProcess = null;
+  phpProcess.on('error', (err) => {
+    console.error(`[yang-php] failed to start: ${err.message}`);
+  });
+
+  phpProcess.on('exit', (code, signal) => {
+    console.error(`[yang-php] exited with code ${code ?? '-'} signal ${signal ?? '-'}`);
+    if (yangPhpProcess === phpProcess) {
+      yangPhpProcess = null;
+    }
   });
 }
+
+function stopYangPhpServer() {
+  if (yangPhpProcess && !yangPhpProcess.killed) {
+    yangPhpProcess.kill('SIGTERM');
+  }
+  yangPhpProcess = null;
+}
+
+// nodemon restarts Node with SIGUSR2. Stop the PHP child as well so the next
+// process can bind to YANG_PHP_PORT instead of leaving an orphan worker behind.
+process.once('exit', stopYangPhpServer);
+process.once('SIGINT', () => process.exit(0));
+process.once('SIGTERM', () => process.exit(0));
+process.once('SIGUSR2', () => {
+  stopYangPhpServer();
+  process.kill(process.pid, 'SIGUSR2');
+});
 
 function proxyYangToPhp(req, res) {
   startYangPhpServer();

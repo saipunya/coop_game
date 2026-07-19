@@ -1,8 +1,10 @@
 <?php
 require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/system.php';
 
 $thaiMonths = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
 $publicUser = $_SESSION['user'] ?? null;
+$publicMember = $_SESSION['member'] ?? null;
 $selectedYear = filter_var($_GET['year'] ?? null, FILTER_VALIDATE_INT) ?: 0;
 $availableYears = [];
 $monthlyData = array_fill(1, 12, ['quantity' => 0, 'records' => 0]);
@@ -113,6 +115,7 @@ $buddhistYear = $selectedYear + 543;
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ข้อมูลการรวบรวมยาง</title>
+  <link href="typography.css" rel="stylesheet">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -201,6 +204,10 @@ $buddhistYear = $selectedYear + 543;
     font-size: 14px;
     font-weight: 700;
   }
+
+  .login-btn i { margin-right: 5px; }
+
+  .member-btn { color: var(--green-dark); border-color: #fff; background: #fff; }
 
   .hero {
     color: #fff;
@@ -380,7 +387,7 @@ $buddhistYear = $selectedYear + 543;
   th {
     color: var(--muted);
     background: #fafcfb;
-    font-size: 12px;
+    font-size: 14px;
   }
 
   td.num,
@@ -406,6 +413,10 @@ $buddhistYear = $selectedYear + 543;
   }
 
   @media (max-width:760px) {
+    .nav-inner { width: min(100% - 20px, 1180px); gap: 8px; }
+    .nav-actions { gap: 6px; }
+    .login-btn { padding: 8px 10px; white-space: nowrap; }
+
     .nav-link {
       display: none;
     }
@@ -433,6 +444,11 @@ $buddhistYear = $selectedYear + 543;
       padding: 12px 16px;
     }
   }
+
+  @media (max-width:520px) {
+    .brand > span:last-child { display: none; }
+    .member-btn { font-size: 13px; }
+  }
   </style>
 </head>
 
@@ -440,18 +456,19 @@ $buddhistYear = $selectedYear + 543;
   <header class="public-nav">
     <div class="nav-inner">
       <a class="brand" href="<?php echo h(url_for('index.php')); ?>"><span
-          class="brand-mark">ย</span><span>ระบบรวบรวมยาง</span></a>
+          class="brand-mark">ย</span><span><?php echo h(system_name()); ?></span></a>
       <nav class="nav-actions" aria-label="เมนูหลัก">
         <a class="nav-link" href="<?php echo h(url_for('index.php')); ?>"><i
             class="bi bi-house-door me-1"></i>หน้าแรก</a>
         <a class="nav-link" href="#monthly">ข้อมูลรายเดือน</a>
         <a class="nav-link" href="<?php echo h(url_for('price.php')); ?>"><i class="bi bi-tags me-1"></i>ราคาอ้างอิง</a>
+        <a class="login-btn member-btn" href="<?php echo h(url_for($publicMember ? 'allmember.php' : 'login.php')); ?>"><i class="bi bi-people-fill me-1"></i>สำหรับสมาชิก</a>
         <?php if ($publicUser): ?>
         <a class="login-btn" href="<?php echo h(url_for('dashboard.php')); ?>"><i class="bi bi-grid-1x2 me-1"></i>
           แดชบอร์ด</a>
         <?php else: ?>
         <a class="login-btn" href="<?php echo h(url_for('user-login.php')); ?>"><i class="bi bi-person-lock me-1"></i>
-          เข้าสู่ระบบ</a>
+          สำหรับเจ้าหน้าที่</a>
         <?php endif; ?>
       </nav>
     </div>

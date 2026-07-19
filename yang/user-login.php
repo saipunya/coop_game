@@ -1,5 +1,11 @@
 <?php
 require_once __DIR__ . '/auth.php';
+require_once __DIR__ . '/system.php';
+
+ensure_system_schema();
+if ((int) db()->query('SELECT COUNT(*) FROM tbl_user')->fetchColumn() === 0) {
+  redirect_to('setup.php');
+}
 
 if (current_user()) {
   redirect_to('dashboard.php');
@@ -44,6 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>เข้าสู่ระบบเจ้าหน้าที่</title>
+  <link href="typography.css" rel="stylesheet">
   <style>
   :root {
     --ink: #17212f;
@@ -65,7 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     display: grid;
     place-items: center;
     padding: 24px;
-    font-family: Arial, Tahoma, sans-serif;
+    font-family: var(--font-family-sans);
     background:
       linear-gradient(rgba(238, 243, 240, 0.86), rgba(238, 243, 240, 0.92)),
       url("https://images.unsplash.com/photo-1605000797499-95a51c5269ae?auto=format&fit=crop&w=1400&q=80");
@@ -181,8 +188,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="brand">
       <div class="mark">ย</div>
       <div>
-        <strong>ระบบรวบรวมยาง</strong><br>
-        <span style="color: var(--muted); font-size: 13px;">สำหรับเจ้าหน้าที่</span>
+        <strong><?php echo h(system_name()); ?></strong><br>
+        <span style="color: var(--muted); font-size: 13px;"><?php echo h(cooperative_name()); ?> · สำหรับเจ้าหน้าที่</span>
       </div>
     </div>
 

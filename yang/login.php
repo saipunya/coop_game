@@ -1,8 +1,9 @@
 <?php
 require_once __DIR__ . '/auth.php';
+require_once __DIR__ . '/system.php';
 
 if (current_member()) {
-  redirect_to('member.php');
+  redirect_to('allmember.php');
 }
 
 $error = '';
@@ -23,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
       if ($member && $storedPin !== '' && hash_equals($storedPin, $pin)) {
         login_member($member);
-        redirect_to('member.php');
+        redirect_to('allmember.php');
       }
 
       $error = 'เลขสมาชิกหรือรหัสสมาชิกไม่ถูกต้อง';
@@ -40,6 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>เข้าสู่ระบบสมาชิก</title>
+  <link href="typography.css" rel="stylesheet">
   <style>
     :root {
       --ink: #17212f;
@@ -57,7 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       min-height: 100vh;
       display: grid;
       grid-template-columns: minmax(0, 1fr) 440px;
-      font-family: Arial, Tahoma, sans-serif;
+      font-family: var(--font-family-sans);
       background: var(--bg);
       color: var(--ink);
     }
@@ -186,7 +188,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     .links a { color: var(--green-dark); text-decoration: none; font-weight: 800; }
-    .hint { margin-top: 26px; color: var(--muted); font-size: 12px; line-height: 1.55; }
+    .hint { margin-top: 26px; color: var(--muted); font-size: 14px; line-height: 1.55; }
 
     @media (max-width: 860px) {
       body { grid-template-columns: 1fr; }
@@ -199,7 +201,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <section class="visual">
     <div class="brand">
       <div class="brand-mark">ย</div>
-      <div>ระบบรวบรวมยาง</div>
+      <div><?php echo h(system_name()); ?></div>
     </div>
     <div>
       <h1>ตรวจสอบข้อมูลรับซื้อของสมาชิกได้ทันที</h1>
@@ -229,7 +231,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <div class="links">
       <a href="<?php echo h(url_for('index.php')); ?>">กลับหน้าภาพรวม</a>
-      <a href="<?php echo h(url_for('member.php')); ?>">หน้าสมาชิก</a>
+      <a href="<?php echo h(url_for('allmember.php')); ?>">ข้อมูลขายยางของฉัน</a>
     </div>
 
     <div class="hint">

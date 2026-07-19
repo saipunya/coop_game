@@ -1,0 +1,36 @@
+@import url("https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700;800&display=swap");
+
+:root {
+  --font-family-sans: "Sarabun", sans-serif;
+  --font-size-xs: 0.8125rem;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-h3: 1.25rem;
+  --font-size-h2: 1.5rem;
+  --font-size-h1: 2rem;
+  --line-height-tight: 1.3;
+  --line-height-base: 1.65;
+  --bs-body-font-family: var(--font-family-sans);
+  --bs-font-sans-serif: var(--font-family-sans);
+  --bs-body-font-size: var(--font-size-base);
+  --bs-body-line-height: var(--line-height-base);
+}
+
+html { font-size:16px; -webkit-text-size-adjust:100%; }
+
+body,button,input,select,textarea,.btn,.form-control,.form-select,.input-group-text,.table {
+  font-family:var(--font-family-sans) !important;
+}
+
+body { font-size:var(--font-size-base); line-height:var(--line-height-base); }
+h1,h2,h3,h4,h5,h6 { font-family:var(--font-family-sans); font-weight:700; line-height:var(--line-height-tight); }
+p,label,button,input,select,textarea,.btn,.form-control,.form-select,.input-group-text { font-size:var(--font-size-base); }
+.form-label,.form-text,.form-hint,small,.small,.text-secondary { font-size:var(--font-size-sm); line-height:1.5; }
+.table { font-size:.9375rem; line-height:1.5; }
+.table thead th { font-size:var(--font-size-sm); font-weight:700; letter-spacing:.01em; }
+.badge,.status-badge,.badge-soft,.workflow-status { font-size:var(--font-size-xs); line-height:1.35; }
+
+@media (max-width:760px) {
+  :root { --font-size-h1:1.75rem; --font-size-h2:1.375rem; }
+}

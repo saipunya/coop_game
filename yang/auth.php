@@ -78,13 +78,83 @@ function log_member_action($member, $actionType)
 
 function current_user()
 {
-  return $_SESSION['user'] ?? null;
+  if (empty($_SESSION['user'])) return null;
+  static $validated = [];
+  $userId = (int) ($_SESSION['user']['user_id'] ?? 0);
+  if (!$userId) {
+    unset($_SESSION['user']);
+    return null;
+  }
+  if (!isset($validated[$userId])) {
+    $stmt = db()->prepare('SELECT user_id, user_username, user_fullname, user_level, user_status
+      FROM tbl_user WHERE user_id = :user_id LIMIT 1');
+    $stmt->execute(['user_id' => $userId]);
+    $freshUser = $stmt->fetch();
+    if (!$freshUser || $freshUser['user_status'] !== 'active') {
+      unset($_SESSION['user']);
+      return null;
+    }
+    $_SESSION['user'] = [
+      'user_id' => (int) $freshUser['user_id'],
+      'user_username' => $freshUser['user_username'],
+      'user_fullname' => $freshUser['user_fullname'],
+      'user_level' => $freshUser['user_level'],
+      'user_status' => $freshUser['user_status'],
+    ];
+    $validated[$userId] = true;
+  }
+  return $_SESSION['user'];
 }
 
 function require_user()
 {
   if (!current_user()) {
     redirect_to('user-login.php');
+  }
+}
+
+function workflow_permission_definitions()
+{
+  return [
+    'placement' => ['label' => 'วางยาง', 'description' => 'บันทึกจำนวนกระสอบตอนวางยาง', 'icon' => 'bi-box-seam-fill'],
+    'weighing' => ['label' => 'ชั่งยาง', 'description' => 'บันทึกน้ำหนักจริงของแต่ละรายการ', 'icon' => 'bi-speedometer2'],
+    'deductions' => ['label' => 'บันทึกยอดหัก', 'description' => 'กรอกยอดหักและคำนวณยอดสุทธิ', 'icon' => 'bi-receipt-cutoff'],
+    'payments' => ['label' => 'พิมพ์ใบเสร็จและจ่ายเงิน', 'description' => 'ดูใบเสร็จและยืนยันการจ่ายเงิน', 'icon' => 'bi-cash-coin'],
+  ];
+}
+
+function user_permission_keys($user = null)
+{
+  $user = $user ?: current_user();
+  if (!$user) return [];
+  $definitions = workflow_permission_definitions();
+  if (($user['user_level'] ?? '') === 'admin') return array_keys($definitions);
+
+  require_once __DIR__ . '/system.php';
+  ensure_system_schema();
+  static $cache = [];
+  $userId = (int) ($user['user_id'] ?? 0);
+  if (!$userId) return [];
+  if (!isset($cache[$userId])) {
+    $stmt = db()->prepare('SELECT permission_key FROM tbl_user_permission WHERE user_id = :user_id');
+    $stmt->execute(['user_id' => $userId]);
+    $cache[$userId] = array_values(array_intersect(array_keys($definitions), $stmt->fetchAll(PDO::FETCH_COLUMN)));
+  }
+  return $cache[$userId];
+}
+
+function user_can($permissionKey, $user = null)
+{
+  return in_array($permissionKey, user_permission_keys($user), true);
+}
+
+function require_user_permission($permissionKey)
+{
+  require_user();
+  if (!user_can($permissionKey)) {
+    $definition = workflow_permission_definitions()[$permissionKey] ?? ['label' => 'ส่วนนี้'];
+    http_response_code(403);
+    exit('บัญชีนี้ไม่มีสิทธิ์เข้าถึง: ' . $definition['label']);
   }
 }
 

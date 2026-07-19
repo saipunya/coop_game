@@ -4,6 +4,7 @@ require_once __DIR__ . '/navbar.php';
 
 $user = current_user();
 $isAdmin = $user && ($user['user_level'] ?? '') === 'admin';
+ensure_system_schema();
 $error = '';
 $flash = $_SESSION['price_flash'] ?? null;
 unset($_SESSION['price_flash']);
@@ -39,8 +40,16 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         throw new RuntimeException('ไม่พบรายการราคาที่ต้องการลบ');
       }
 
+      $stmt = db()->prepare('SELECT pr_date FROM tbl_price WHERE pr_id = :id');
+      $stmt->execute(['id' => $id]);
+      $priceDate = $stmt->fetchColumn();
+      if ($priceDate === false) throw new RuntimeException('ไม่พบรายการราคาที่ต้องการลบ');
+      $stmt = db()->prepare('SELECT COUNT(*) FROM tbl_rubber_workflow WHERE weigh_date = :date AND workflow_status IN ("deducted", "paid")');
+      $stmt->execute(['date' => $priceDate]);
+      if ((int) $stmt->fetchColumn() > 0) throw new RuntimeException('ลบราคานี้ไม่ได้ เนื่องจากมีการคำนวณยอดหรือจ่ายเงินแล้ว');
       $stmt = db()->prepare('DELETE FROM tbl_price WHERE pr_id = :id');
       $stmt->execute(['id' => $id]);
+      audit_log('delete', 'price', $id, 'ลบราคายางรอบวันที่ ' . $priceDate, ['price_date' => $priceDate]);
       $_SESSION['price_flash'] = ['type' => 'success', 'message' => 'ลบข้อมูลราคาเรียบร้อยแล้ว'];
       price_redirect();
     }
@@ -50,15 +59,11 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     }
 
     $date = trim($_POST['date'] ?? '');
-    $round = trim($_POST['round'] ?? '');
     $price = trim($_POST['price'] ?? '');
     $dateObject = DateTime::createFromFormat('Y-m-d', $date);
 
     if (!$dateObject || $dateObject->format('Y-m-d') !== $date) {
       throw new RuntimeException('กรุณาระบุวันที่ราคาให้ถูกต้อง');
-    }
-    if ($round === '' || mb_strlen($round) > 255) {
-      throw new RuntimeException('กรุณาระบุรอบรับซื้อ');
     }
     if (!is_numeric($price) || (float) $price <= 0 || (float) $price > 999999) {
       throw new RuntimeException('ราคาต้องเป็นตัวเลขมากกว่า 0');
@@ -67,11 +72,26 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     $data = [
       'year' => (int) $dateObject->format('Y') + 543,
       'date' => $date,
-      'round' => $round,
+      'round' => '1',
       'price' => number_format((float) $price, 2, '.', ''),
       'saveby' => $user['user_fullname'],
       'savedate' => date('Y-m-d'),
     ];
+
+    $stmt = db()->prepare('SELECT pr_id FROM tbl_price WHERE pr_date = :date AND (:id_zero = 0 OR pr_id <> :id_exclude) LIMIT 1');
+    $stmt->execute(['date' => $date, 'id_zero' => $id ?: 0, 'id_exclude' => $id ?: 0]);
+    if ($stmt->fetchColumn()) throw new RuntimeException('วันที่นี้มีราคายางอยู่แล้ว สามารถบันทึกได้เพียงราคาเดียวต่อวัน');
+
+    if ($action === 'update') {
+      $stmt = db()->prepare('SELECT pr_date FROM tbl_price WHERE pr_id = :id');
+      $stmt->execute(['id' => $id]);
+      $oldDate = $stmt->fetchColumn();
+      if ($oldDate !== false) {
+        $stmt = db()->prepare('SELECT COUNT(*) FROM tbl_rubber_workflow WHERE weigh_date = :date AND workflow_status IN ("deducted", "paid")');
+        $stmt->execute(['date' => $oldDate]);
+        if ((int) $stmt->fetchColumn() > 0) throw new RuntimeException('แก้ไขราคานี้ไม่ได้ เนื่องจากมีการคำนวณยอดหรือจ่ายเงินแล้ว');
+      }
+    }
 
     if ($action === 'create') {
       $stmt = db()->prepare('
@@ -94,6 +114,10 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     }
 
     $stmt->execute($data);
+    $priceId = $action === 'create' ? (int) db()->lastInsertId() : (int) $id;
+    audit_log($action, 'price', $priceId, ($action === 'create' ? 'เพิ่ม' : 'แก้ไข') . 'ราคายางรอบวันที่ ' . $date . ' เป็น ' . number_format((float) $price, 2) . ' บาท/kg', [
+      'price_date' => $date, 'price' => (float) $price, 'round_number' => '1',
+    ]);
     $_SESSION['price_flash'] = ['type' => 'success', 'message' => $message];
     price_redirect();
   } catch (Throwable $e) {
@@ -125,7 +149,7 @@ try {
   $where = [];
   $params = [];
   if ($search !== '') {
-    $where[] = '(pr_number LIKE :search OR pr_saveby LIKE :search)';
+    $where[] = 'pr_saveby LIKE :search';
     $params['search'] = '%' . $search . '%';
   }
   if ($year > 0) {
@@ -254,7 +278,7 @@ try {
 
   .table thead th {
     color: #776e80;
-    font-size: 12px;
+    font-size: 14px;
     letter-spacing: .03em;
     background: #faf9fb;
     white-space: nowrap;
@@ -295,12 +319,12 @@ try {
               <?php if ($latestPrice): ?>
               <div class="mt-3"><i
                   class="bi bi-calendar3 me-2"></i><?php echo h(date('d/m/Y', strtotime($latestPrice['pr_date']))); ?> ·
-                รอบ <?php echo h($latestPrice['pr_number']); ?></div>
+                ราคาประจำวันชั่ง</div>
               <?php endif; ?>
             </div>
             <div class="col-md-auto text-md-end">
               <h1 class="h3 fw-bold mb-2">จัดการราคายาง</h1>
-              <p class="mb-0 text-white-50">ดูประวัติราคาตามวันที่และรอบรับซื้อ</p>
+              <p class="mb-0 text-white-50">หนึ่งราคาใช้สำหรับการชั่งและขายยางทั้งหมดในวันนั้น</p>
             </div>
           </div>
         </section>
@@ -330,9 +354,6 @@ try {
                   <div class="mb-3"><label class="form-label fw-semibold" for="date">วันที่ราคา</label><input
                       class="form-control" id="date" name="date" type="date"
                       value="<?php echo h($editPrice['pr_date'] ?? date('Y-m-d')); ?>" required></div>
-                  <div class="mb-3"><label class="form-label fw-semibold" for="round">รอบรับซื้อ</label><input
-                      class="form-control" id="round" name="round"
-                      value="<?php echo h($editPrice['pr_number'] ?? '1'); ?>" maxlength="255" required></div>
                   <div class="mb-4"><label class="form-label fw-semibold" for="price">ราคา (บาท/kg)</label>
                     <div class="input-group"><input class="form-control" id="price" name="price" type="number"
                         min="0.01" max="999999" step="0.01" value="<?php echo h($editPrice['pr_price'] ?? ''); ?>"
@@ -358,7 +379,7 @@ try {
                   </div>
                   <form class="d-flex gap-2" method="get">
                     <input class="form-control form-control-sm" name="q" value="<?php echo h($search); ?>"
-                      placeholder="ค้นหารอบ/ผู้บันทึก">
+                      placeholder="ค้นหาผู้บันทึก">
                     <input class="form-control form-control-sm" name="year" type="number"
                       value="<?php echo $year ?: ''; ?>" placeholder="ปี พ.ศ." style="max-width:120px">
                     <button class="btn btn-dark" aria-label="ค้นหา"><i class="bi bi-search"></i></button>
@@ -371,7 +392,6 @@ try {
                     <tr>
                       <th>วันที่</th>
                       <th>ปี พ.ศ.</th>
-                      <th>รอบ</th>
                       <th class="text-end">ราคา</th>
                       <?php if ($isAdmin): ?><th class="text-end">จัดการ</th><?php endif; ?>
                     </tr>
@@ -381,7 +401,6 @@ try {
                     <tr>
                       <td class="fw-semibold"><?php echo h(date('d/m/Y', strtotime($row['pr_date']))); ?></td>
                       <td><?php echo h($row['pr_year']); ?></td>
-                      <td><span class="badge text-bg-light">รอบ <?php echo h($row['pr_number']); ?></span></td>
                       <td class="text-end"><span
                           class="price-pill"><?php echo number_format((float) $row['pr_price'], 2); ?> ฿</span></td>
                       <?php if ($isAdmin): ?> <td class="text-end text-nowrap">
@@ -399,7 +418,7 @@ try {
                     </tr>
                     <?php endforeach; ?>
                     <?php if (!$prices): ?><tr>
-                      <td colspan="<?php echo $isAdmin ? 6 : 5; ?>" class="empty"><i
+                      <td colspan="<?php echo $isAdmin ? 5 : 4; ?>" class="empty"><i
                           class="bi bi-inbox fs-1 d-block mb-2"></i>ไม่พบข้อมูลราคา</td>
                     </tr><?php endif; ?>
                   </tbody>

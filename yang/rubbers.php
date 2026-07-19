@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/auth.php';
-require_user();
+require_user_permission('placement');
 require_once __DIR__ . '/navbar.php';
 
 $user = current_user();
@@ -45,8 +45,16 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
 
     if ($action === 'delete') {
       if (!$id) throw new RuntimeException('ไม่พบรายการที่ต้องการลบ');
+      $rowStmt = db()->prepare('SELECT ru_date, ru_lan, ru_number, ru_fullname, ru_quantity, ru_netvalue FROM tbl_rubber WHERE ru_id = :id');
+      $rowStmt->execute(['id' => $id]);
+      $deletedRubber = $rowStmt->fetch();
+      if (!$deletedRubber) throw new RuntimeException('ไม่พบรายการที่ต้องการลบ');
       $stmt = db()->prepare('DELETE FROM tbl_rubber WHERE ru_id = :id');
       $stmt->execute(['id' => $id]);
+      audit_log('delete', 'rubber_record', $id, 'ลบรายการรับยางของ ' . $deletedRubber['ru_number'], [
+        'date' => $deletedRubber['ru_date'], 'yard' => $deletedRubber['ru_lan'], 'member_number' => $deletedRubber['ru_number'],
+        'quantity' => (float) $deletedRubber['ru_quantity'], 'net_amount' => (float) $deletedRubber['ru_netvalue'],
+      ]);
       $_SESSION['rubber_flash'] = ['type' => 'success', 'message' => 'ลบรายการรวบรวมยางเรียบร้อยแล้ว'];
       rubber_redirect();
     }
@@ -86,6 +94,11 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
       $message = 'แก้ไขรายการรวบรวมยางเรียบร้อยแล้ว';
     }
     db()->prepare($sql)->execute($data);
+    $rubberId = $action === 'create' ? (int) db()->lastInsertId() : (int) $id;
+    audit_log($action, 'rubber_record', $rubberId, ($action === 'create' ? 'เพิ่ม' : 'แก้ไข') . 'รายการรับยางของ ' . $number, [
+      'date' => $date, 'yard' => $lan, 'member_number' => $number, 'quantity' => $quantity,
+      'gross_amount' => $value, 'total_deduction' => $expend, 'net_amount' => $net,
+    ]);
     $_SESSION['rubber_flash'] = ['type' => 'success', 'message' => $message];
     rubber_redirect('lan=' . urlencode($lan));
   } catch (Throwable $e) {
