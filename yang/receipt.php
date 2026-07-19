@@ -42,11 +42,15 @@ if ($user) {
   ]);
 }
 
-$stmt = db()->prepare('SELECT deduction_label, deduction_amount FROM tbl_rubber_deduction WHERE workflow_id = :id ORDER BY deduction_id');
+$stmt = db()->prepare('SELECT deduction_label, deduction_amount FROM tbl_rubber_deduction
+  WHERE workflow_id = :id AND deduction_amount > 0 ORDER BY sort_order, deduction_id');
 $stmt->execute(['id' => $id]);
 $deductions = $stmt->fetchAll();
 
 $isPaid = $receipt['workflow_status'] === 'paid' && !empty($receipt['paid_at']);
+$isAdminEdited = $isPaid && !empty($receipt['admin_edited_at']);
+$adminEditTypeLabels = ['weight' => 'น้ำหนักจริง', 'deduction' => 'รายการหัก'];
+$adminEditTypeLabel = $adminEditTypeLabels[$receipt['admin_edit_type'] ?? ''] ?? 'ข้อมูลรายการ';
 
 function receipt_thai_datetime(?string $value): string
 {
@@ -70,9 +74,11 @@ function receipt_thai_datetime(?string $value): string
     * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     body { margin: 0; padding: 28px; font-family: "Sarabun", sans-serif; color: #17212f; background: #eef2ef; }
     .receipt { position: relative; isolation: isolate; overflow: hidden; width: min(780px, 100%); margin: auto; padding: 42px 48px; background: #fff; border: 1px solid #cfd8d2; box-shadow: 0 12px 34px rgba(0, 0, 0, .08); }
-    .receipt > :not(.paid-watermark) { position: relative; z-index: 2; }
+    .receipt > :not(.paid-watermark):not(.admin-edit-watermark) { position: relative; z-index: 2; }
     .paid-watermark { position: absolute; inset: 0; z-index: 1; display: grid; place-items: center; pointer-events: none; }
     .paid-watermark span { transform: rotate(-28deg); padding: 13px 30px; border: 7px double rgba(185, 28, 28, .15); border-radius: 16px; color: rgba(185, 28, 28, .13); font-size: clamp(48px, 10vw, 82px); font-weight: 900; line-height: 1; letter-spacing: .08em; white-space: nowrap; }
+    .admin-edit-watermark { position: absolute; inset: 0; z-index: 1; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 145px; pointer-events: none; }
+    .admin-edit-watermark span { transform: rotate(16deg); padding: 9px 20px; border: 5px double rgba(185, 28, 28, .22); border-radius: 12px; color: rgba(185, 28, 28, .19); font-size: clamp(28px, 6vw, 48px); font-weight: 900; line-height: 1; letter-spacing: .05em; white-space: nowrap; }
     .head { display: flex; justify-content: space-between; gap: 24px; border-bottom: 3px solid #175c40; padding-bottom: 20px; }
     .head h1 { margin: 0; color: #175c40; font-size: 27px; }
     .head p { margin: 5px 0 0; color: #5f6e65; }
@@ -86,6 +92,8 @@ function receipt_thai_datetime(?string $value): string
     .info strong { display: block; margin-top: 3px; }
     .paid-record { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 18px; padding: 12px 14px !important; border: 1px solid #fecaca !important; border-radius: 9px; background: rgba(254, 242, 242, .94); }
     .paid-record strong { color: #991b1b; }
+    .admin-edit-record { grid-column: 1 / -1; padding: 12px 14px !important; border: 2px solid #ef4444 !important; border-radius: 9px; background: rgba(254, 242, 242, .95); }
+    .admin-edit-record strong { color: #991b1b; }
     table { width: 100%; border-collapse: collapse; margin-top: 18px; }
     th, td { padding: 11px 12px; border: 1px solid #d7dfda; }
     th { background: #f3f7f4; text-align: left; font-size: 12px; }
@@ -108,6 +116,8 @@ function receipt_thai_datetime(?string $value): string
       .info, .paid-record { grid-template-columns: 1fr; }
       .signatures { gap: 24px; }
       .paid-watermark span { font-size: 44px; }
+      .admin-edit-watermark { padding-bottom: 175px; }
+      .admin-edit-watermark span { font-size: 26px; }
     }
     @media print {
       @page { margin: 10mm; }
@@ -122,6 +132,9 @@ function receipt_thai_datetime(?string $value): string
   <main class="receipt">
     <?php if ($isPaid): ?>
       <div class="paid-watermark" aria-hidden="true"><span>จ่ายเงินแล้ว</span></div>
+    <?php endif; ?>
+    <?php if ($isAdminEdited): ?>
+      <div class="admin-edit-watermark" aria-hidden="true"><span>แก้ไขโดย ADMIN</span></div>
     <?php endif; ?>
 
     <header class="head">
@@ -147,6 +160,12 @@ function receipt_thai_datetime(?string $value): string
         <div class="paid-record">
           <div><span>เจ้าหน้าที่ผู้กด “จ่ายเงินแล้ว”</span><strong><?php echo h($receipt['paid_by'] ?: '-'); ?></strong></div>
           <div><span>วัน–เวลาที่จ่ายเงิน</span><strong><?php echo h(receipt_thai_datetime($receipt['paid_at'])); ?></strong></div>
+        </div>
+      <?php endif; ?>
+      <?php if ($isAdminEdited): ?>
+        <div class="admin-edit-record">
+          <span>รายการนี้ถูกแก้ไขหลังบันทึกการจ่ายเงิน</span>
+          <strong>แก้ไข<?php echo h($adminEditTypeLabel); ?>โดย ADMIN: <?php echo h($receipt['admin_edited_by'] ?: '-'); ?> · <?php echo h(receipt_thai_datetime($receipt['admin_edited_at'])); ?></strong>
         </div>
       <?php endif; ?>
     </section>

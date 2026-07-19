@@ -173,7 +173,7 @@ foreach ($existingYards as $yard) $yardMap[(int) $yard['sort_order']] = $yard['y
           <div id="yardFields" data-names="<?php echo h(json_encode(array_values($yardMap), JSON_UNESCAPED_UNICODE)); ?>"></div>
           <hr class="my-4">
           <h3 class="h6 fw-bold mb-3">รายการหักมาตรฐาน</h3>
-          <div class="mb-3"><label class="form-label">จำนวนรายการหัก</label><input id="deductionCount" class="form-control" type="number" name="deduction_count" min="1" max="20" required value="<?php echo (int) $deductionCount; ?>"><div class="form-hint mt-1">หน้าบันทึกยอดหักจะแสดงรายการเหล่านี้ และให้กรอกเฉพาะจำนวนเงิน</div></div>
+          <div class="mb-3"><label class="form-label">จำนวนรายการหัก</label><input id="deductionCount" class="form-control" type="number" name="deduction_count" min="1" max="20" required value="<?php echo (int) $deductionCount; ?>"><div class="form-hint mt-1">ใช้กับรายการที่ยังไม่เคยบันทึกยอดหักเท่านั้น รายการที่บันทึกแล้วหรือจ่ายเงินแล้วจะเก็บ Snapshot เดิมไว้</div></div>
           <div id="deductionFields" data-names="<?php echo h(json_encode(array_values($deductionNames), JSON_UNESCAPED_UNICODE)); ?>"></div>
           <button class="btn btn-green w-100 mt-3" type="submit"><i class="bi bi-check2-circle me-1"></i>บันทึกและพร้อมใช้งาน</button>
         </div>

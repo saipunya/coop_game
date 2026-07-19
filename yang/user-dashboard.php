@@ -42,7 +42,7 @@ try {
     $stmt = db()->prepare('SELECT COUNT(*) record_count, COALESCE(SUM(gross_amount),0) total_gross, COALESCE(SUM(total_deduction),0) total_deduction, COALESCE(SUM(net_amount),0) total_net FROM tbl_rubber_workflow WHERE weigh_date=:round_date AND workflow_status IN ("deducted","paid")');
     $stmt->execute(['round_date' => $roundDate]);
     $deductions = array_merge($deductions, $stmt->fetch() ?: []);
-    $stmt = db()->prepare('SELECT d.deduction_label, COUNT(*) record_count, COALESCE(SUM(d.deduction_amount),0) total_amount FROM tbl_rubber_deduction d INNER JOIN tbl_rubber_workflow w ON w.workflow_id=d.workflow_id WHERE w.weigh_date=:round_date AND w.workflow_status IN ("deducted","paid") GROUP BY d.deduction_label ORDER BY total_amount DESC,d.deduction_label');
+    $stmt = db()->prepare('SELECT d.deduction_label, COUNT(*) record_count, COALESCE(SUM(d.deduction_amount),0) total_amount FROM tbl_rubber_deduction d INNER JOIN tbl_rubber_workflow w ON w.workflow_id=d.workflow_id WHERE w.weigh_date=:round_date AND w.workflow_status IN ("deducted","paid") AND d.deduction_amount > 0 GROUP BY d.deduction_label ORDER BY total_amount DESC,d.deduction_label');
     $stmt->execute(['round_date' => $roundDate]);
     $deductionTypes = $stmt->fetchAll();
   }

@@ -36,10 +36,17 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     if ($action === 'delete') {
       $id = filter_var($_POST['id'] ?? 0, FILTER_VALIDATE_INT);
       if (!$id) throw new RuntimeException('ไม่พบรายการที่ต้องการลบ');
-      $stmt = db()->prepare('SELECT wang_saveby, wang_date, wang_lan, wang_number, wang_name, wang_sack FROM tbl_wangyang WHERE wang_id = :id');
+      $stmt = db()->prepare('SELECT placement.wang_saveby, placement.wang_date, placement.wang_lan,
+          placement.wang_mid, placement.wang_number, placement.wang_name, placement.wang_sack,
+          workflow.workflow_status
+        FROM tbl_wangyang placement
+        LEFT JOIN tbl_rubber_workflow workflow ON workflow.weigh_date = placement.wang_date
+          AND workflow.yard_code = placement.wang_lan AND workflow.member_id = placement.wang_mid
+        WHERE placement.wang_id = :id');
       $stmt->execute(['id' => $id]);
       $deletedRow = $stmt->fetch();
       if (!$deletedRow) throw new RuntimeException('ไม่พบรายการที่ต้องการลบ');
+      if ($deletedRow['workflow_status'] === 'paid') throw new RuntimeException('รายการนี้จ่ายเงินแล้ว จึงลบการวางยางไม่ได้ หากต้องแก้ข้อมูลให้ admin ดำเนินการจากหน้าชั่งน้ำหนักหรือรายการหัก');
       if (($user['user_level'] ?? '') !== 'admin' && $deletedRow['wang_saveby'] !== $user['user_fullname']) throw new RuntimeException('คุณไม่มีสิทธิ์ลบรายการนี้');
       db()->beginTransaction();
       db()->prepare('DELETE FROM tbl_wangyang WHERE wang_id = :id')->execute(['id' => $id]);
@@ -100,8 +107,11 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
 
 $latestRows = [];
 if ($selectedYard) {
-  $stmt = db()->prepare('SELECT w.*, COALESCE(y.yard_name, CONCAT("ลาน ", w.wang_lan)) AS yard_name
+  $stmt = db()->prepare('SELECT w.*, COALESCE(y.yard_name, CONCAT("ลาน ", w.wang_lan)) AS yard_name,
+      workflow.workflow_status
     FROM tbl_wangyang w LEFT JOIN tbl_yard y ON y.yard_code = w.wang_lan
+    LEFT JOIN tbl_rubber_workflow workflow ON workflow.weigh_date = w.wang_date
+      AND workflow.yard_code = w.wang_lan AND workflow.member_id = w.wang_mid
     WHERE w.wang_lan = :yard_code ORDER BY w.wang_id DESC LIMIT 30');
   $stmt->execute(['yard_code' => $selectedYard['yard_code']]);
   $latestRows = $stmt->fetchAll();
@@ -135,7 +145,7 @@ foreach ($members as $memberOption) {
 <div class="mb-3"><label class="form-label">หมายเหตุ</label><textarea class="form-control" name="note" rows="3"><?php echo h($_POST['note'] ?? ''); ?></textarea></div>
 <button class="btn btn-green w-100" <?php echo !$yards ? 'disabled' : ''; ?>><i class="bi bi-floppy me-1"></i>บันทึกจำนวนกระสอบ</button></form></section>
 <section class="ops-card"><div class="ops-card-head"><div><h2>รายการล่าสุด · <?php echo h($selectedYard['yard_name']); ?></h2><small class="text-secondary">แสดงเฉพาะรายการของลานที่เลือก</small></div><a class="btn btn-sm btn-outline-success" href="<?php echo h(url_for('bag-report.php')); ?>">เปิดรายงาน</a></div><div class="table-responsive"><table class="table table-hover mb-0"><thead><tr><th>วันช่องยาง</th><th>สมาชิก</th><th class="num">กระสอบ</th><th class="num">ประมาณ kg</th><th>ผู้บันทึก</th><th></th></tr></thead><tbody>
-<?php foreach ($latestRows as $row): ?><tr><td><?php echo h($row['wang_date']); ?></td><td><strong><?php echo h($row['wang_number']); ?></strong><br><small><?php echo h($row['wang_name']); ?></small></td><td class="num fw-bold"><?php echo number_format((float) $row['wang_sack'], 0); ?></td><td class="num"><?php echo number_format((float) $row['wang_weight'], 2); ?></td><td><small><?php echo h($row['wang_saveby']); ?><br><?php echo h($row['wang_savedate']); ?></small></td><td><?php if (($user['user_level'] ?? '') === 'admin' || $row['wang_saveby'] === $user['user_fullname']): ?><form method="post" onsubmit="return confirm('ยืนยันการลบรายการนี้?')"><input type="hidden" name="csrf_token" value="<?php echo h(csrf_token()); ?>"><input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="<?php echo (int) $row['wang_id']; ?>"><button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></form><?php endif; ?></td></tr><?php endforeach; ?><?php if (!$latestRows): ?><tr><td colspan="6" class="empty">ยังไม่มีรายการวางยางในลานนี้</td></tr><?php endif; ?>
+<?php foreach ($latestRows as $row): ?><tr><td><?php echo h($row['wang_date']); ?></td><td><strong><?php echo h($row['wang_number']); ?></strong><br><small><?php echo h($row['wang_name']); ?></small></td><td class="num fw-bold"><?php echo number_format((float) $row['wang_sack'], 0); ?></td><td class="num"><?php echo number_format((float) $row['wang_weight'], 2); ?></td><td><small><?php echo h($row['wang_saveby']); ?><br><?php echo h($row['wang_savedate']); ?></small></td><td><?php if ($row['workflow_status'] === 'paid'): ?><span class="text-secondary" title="ล็อกหลังจ่ายเงิน"><i class="bi bi-lock-fill"></i></span><?php elseif (($user['user_level'] ?? '') === 'admin' || $row['wang_saveby'] === $user['user_fullname']): ?><form method="post" onsubmit="return confirm('ยืนยันการลบรายการนี้?')"><input type="hidden" name="csrf_token" value="<?php echo h(csrf_token()); ?>"><input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="<?php echo (int) $row['wang_id']; ?>"><button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></form><?php endif; ?></td></tr><?php endforeach; ?><?php if (!$latestRows): ?><tr><td colspan="6" class="empty">ยังไม่มีรายการวางยางในลานนี้</td></tr><?php endif; ?>
 </tbody></table></div></section></div>
 <?php endif; ?>
 </main><script>

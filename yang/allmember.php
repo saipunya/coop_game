@@ -28,8 +28,8 @@ try {
   if ($workflowIds) {
     $placeholders = implode(',', array_fill(0, count($workflowIds), '?'));
     $stmt = db()->prepare('SELECT workflow_id, deduction_label, deduction_amount
-      FROM tbl_rubber_deduction WHERE workflow_id IN (' . $placeholders . ')
-      ORDER BY workflow_id, deduction_id');
+      FROM tbl_rubber_deduction WHERE workflow_id IN (' . $placeholders . ') AND deduction_amount > 0
+      ORDER BY workflow_id, sort_order, deduction_id');
     $stmt->execute($workflowIds);
     foreach ($stmt->fetchAll() as $deduction) {
       $deductionMap[(int) $deduction['workflow_id']][] = $deduction;

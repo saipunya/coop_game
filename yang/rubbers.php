@@ -74,8 +74,8 @@ function rubber_summary_query($stage, $search, $page, $perPage = 10)
       'extra' => ', deduction_items.deduction_items',
       'join' => 'LEFT JOIN (
         SELECT workflow_id,
-          GROUP_CONCAT(CONCAT(deduction_label, " ", FORMAT(deduction_amount, 2)) ORDER BY deduction_id SEPARATOR " · ") AS deduction_items
-        FROM tbl_rubber_deduction GROUP BY workflow_id
+          GROUP_CONCAT(CONCAT(deduction_label, " ", FORMAT(deduction_amount, 2)) ORDER BY sort_order, deduction_id SEPARATOR " · ") AS deduction_items
+        FROM tbl_rubber_deduction WHERE deduction_amount > 0 GROUP BY workflow_id
       ) deduction_items ON deduction_items.workflow_id = workflow.workflow_id',
     ],
     'payment' => [

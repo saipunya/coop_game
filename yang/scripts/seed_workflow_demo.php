@@ -138,11 +138,12 @@ try {
     weighed_by = :weighed_by, weighed_at = :weighed_at,
     deduction_by = :deduction_by, deduction_at = :deduction_at,
     receipt_no = :receipt_no, paid_by = :paid_by, paid_at = :paid_at,
+    admin_edited_by = "", admin_edited_at = NULL, admin_edit_type = "",
     created_at = :created_at
     WHERE workflow_id = :workflow_id');
   $insertDeduction = $pdo->prepare('INSERT INTO tbl_rubber_deduction
-    (workflow_id, deduction_label, deduction_amount, saved_by, saved_at)
-    VALUES(:workflow_id, :label, :amount, :saved_by, :saved_at)');
+    (workflow_id, deduction_label, deduction_amount, sort_order, saved_by, saved_at)
+    VALUES(:workflow_id, :label, :amount, :sort_order, :saved_by, :saved_at)');
 
   $statusCounts = ['placed' => 0, 'weighed' => 0, 'deducted' => 0, 'paid' => 0];
   foreach ($demoRows as $demo) {
@@ -211,11 +212,12 @@ try {
         ['actual_weight' => $actualWeight, 'round_date' => $roundDate], $weighedAt);
     }
     if ($deductionAt) {
-      foreach ($deductions as $item) {
+      foreach ($deductions as $deductionIndex => $item) {
         $insertDeduction->execute([
           'workflow_id' => $workflowId,
           'label' => $item['label'],
           'amount' => $item['amount'],
+          'sort_order' => $deductionIndex + 1,
           'saved_by' => 'Demo · เจ้าหน้าที่ยอดหัก',
           'saved_at' => $deductionAt,
         ]);

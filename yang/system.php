@@ -166,6 +166,9 @@ function ensure_system_schema()
     receipt_no varchar(50) DEFAULT NULL,
     paid_by varchar(255) NOT NULL DEFAULT "",
     paid_at datetime DEFAULT NULL,
+    admin_edited_by varchar(255) NOT NULL DEFAULT "",
+    admin_edited_at datetime DEFAULT NULL,
+    admin_edit_type varchar(50) NOT NULL DEFAULT "",
     created_at datetime NOT NULL DEFAULT current_timestamp(),
     updated_at timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
     PRIMARY KEY (workflow_id),
@@ -188,6 +191,16 @@ function ensure_system_schema()
       WHERE workflow.placement_at IS NULL');
   }
 
+  $adminEditColumns = [
+    'admin_edited_by' => 'varchar(255) NOT NULL DEFAULT "" AFTER paid_at',
+    'admin_edited_at' => 'datetime DEFAULT NULL AFTER admin_edited_by',
+    'admin_edit_type' => 'varchar(50) NOT NULL DEFAULT "" AFTER admin_edited_at',
+  ];
+  foreach ($adminEditColumns as $columnName => $definition) {
+    $column = db()->query('SHOW COLUMNS FROM tbl_rubber_workflow LIKE ' . db()->quote($columnName))->fetch();
+    if (!$column) db()->exec('ALTER TABLE tbl_rubber_workflow ADD COLUMN ' . $columnName . ' ' . $definition);
+  }
+
   $wangSavedateColumn = db()->query('SHOW COLUMNS FROM tbl_wangyang LIKE "wang_savedate"')->fetch();
   if ($wangSavedateColumn && stripos((string) ($wangSavedateColumn['Extra'] ?? ''), 'on update') !== false) {
     db()->exec('ALTER TABLE tbl_wangyang MODIFY wang_savedate timestamp NOT NULL DEFAULT current_timestamp()');
@@ -196,13 +209,25 @@ function ensure_system_schema()
   db()->exec('CREATE TABLE IF NOT EXISTS tbl_rubber_deduction (
     deduction_id int(11) NOT NULL AUTO_INCREMENT,
     workflow_id int(11) NOT NULL,
+    deduction_type_id int(11) DEFAULT NULL,
     deduction_label varchar(255) NOT NULL,
     deduction_amount decimal(18,2) NOT NULL DEFAULT 0.00,
+    sort_order int(11) NOT NULL DEFAULT 0,
     saved_by varchar(255) NOT NULL DEFAULT "",
     saved_at datetime NOT NULL DEFAULT current_timestamp(),
     PRIMARY KEY (deduction_id),
     KEY idx_deduction_workflow (workflow_id)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci');
+
+  $deductionSnapshotColumns = [
+    'deduction_type_id' => 'int(11) DEFAULT NULL AFTER workflow_id',
+    'sort_order' => 'int(11) NOT NULL DEFAULT 0 AFTER deduction_amount',
+  ];
+  foreach ($deductionSnapshotColumns as $columnName => $definition) {
+    $column = db()->query('SHOW COLUMNS FROM tbl_rubber_deduction LIKE ' . db()->quote($columnName))->fetch();
+    if (!$column) db()->exec('ALTER TABLE tbl_rubber_deduction ADD COLUMN ' . $columnName . ' ' . $definition);
+  }
+  db()->exec('UPDATE tbl_rubber_deduction SET sort_order = deduction_id WHERE sort_order = 0');
 
   db()->exec('CREATE TABLE IF NOT EXISTS tbl_deduction_type (
     deduction_type_id int(11) NOT NULL AUTO_INCREMENT,
@@ -280,6 +305,8 @@ function audit_action_definitions()
     'deduct' => 'บันทึกยอดหัก',
     'view_receipt' => 'เปิดใบเสร็จ',
     'approve_payment' => 'อนุมัติจ่ายเงิน',
+    'admin_edit_paid_weight' => 'ADMIN แก้น้ำหนักหลังจ่าย',
+    'admin_edit_paid_deduction' => 'ADMIN แก้ยอดหักหลังจ่าย',
     'configure' => 'ตั้งค่าระบบ',
   ];
 }
