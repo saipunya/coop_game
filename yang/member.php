@@ -12,7 +12,6 @@ $stats = [
   'total_net' => 0,
   'record_count' => 0,
 ];
-$latestRows = [];
 $bagStats = ['total_bags' => 0, 'estimated_weight' => 0, 'record_count' => 0];
 $bagRows = [];
 $workflowRows = [];
@@ -23,26 +22,16 @@ try {
   sync_workflow_records();
   $stmt = db()->prepare('
     SELECT
-      COALESCE(SUM(ru_quantity), 0) AS total_quantity,
-      COALESCE(SUM(ru_value), 0) AS total_value,
-      COALESCE(SUM(ru_expend), 0) AS total_deduct,
-      COALESCE(SUM(ru_netvalue), 0) AS total_net,
+      COALESCE(SUM(CASE WHEN actual_weight > 0 THEN actual_weight ELSE 0 END), 0) AS total_quantity,
+      COALESCE(SUM(gross_amount), 0) AS total_value,
+      COALESCE(SUM(total_deduction), 0) AS total_deduct,
+      COALESCE(SUM(net_amount), 0) AS total_net,
       COUNT(*) AS record_count
-    FROM tbl_rubber
-    WHERE ru_number = :mem_number AND ru_class = "member"
+    FROM tbl_rubber_workflow
+    WHERE member_id = :member_id OR member_number = :mem_number
   ');
-  $stmt->execute(['mem_number' => $member['mem_number']]);
+  $stmt->execute(['member_id' => $member['mem_id'], 'mem_number' => $member['mem_number']]);
   $stats = $stmt->fetch() ?: $stats;
-
-  $stmt = db()->prepare('
-    SELECT ru_date, ru_lan, ru_quantity, ru_value, ru_expend, ru_netvalue
-    FROM tbl_rubber
-    WHERE ru_number = :mem_number AND ru_class = "member"
-    ORDER BY ru_date DESC, ru_id DESC
-    LIMIT 10
-  ');
-  $stmt->execute(['mem_number' => $member['mem_number']]);
-  $latestRows = $stmt->fetchAll();
 
   $stmt = db()->query('
     SELECT pr_date, pr_number, pr_price
@@ -286,41 +275,6 @@ function money($value)
       <?php else: ?><div class="empty">ยังไม่มีรายการวางยางล่วงหน้าของสมาชิก</div><?php endif; ?>
     </section>
 
-    <section class="card">
-      <div class="card-head">
-        <h2>รายการส่งยางล่าสุด</h2>
-      </div>
-      <?php if ($latestRows): ?>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>วันที่</th>
-                <th>ลาน</th>
-                <th class="num">ปริมาณ</th>
-                <th class="num">ยอดเงิน</th>
-                <th class="num">ยอดหัก</th>
-                <th class="num">สุทธิ</th>
-              </tr>
-            </thead>
-            <tbody>
-              <?php foreach ($latestRows as $row): ?>
-                <tr>
-                  <td><?php echo h($row['ru_date']); ?></td>
-                  <td><?php echo h($row['ru_lan']); ?></td>
-                  <td class="num"><?php echo money($row['ru_quantity']); ?></td>
-                  <td class="num"><?php echo money($row['ru_value']); ?></td>
-                  <td class="num"><?php echo money($row['ru_expend']); ?></td>
-                  <td class="num"><?php echo money($row['ru_netvalue']); ?></td>
-                </tr>
-              <?php endforeach; ?>
-            </tbody>
-          </table>
-        </div>
-      <?php else: ?>
-        <div class="empty">ยังไม่พบประวัติการส่งยางของสมาชิกเลขนี้ในตาราง tbl_rubber</div>
-      <?php endif; ?>
-    </section>
   </main>
 </body>
 </html>

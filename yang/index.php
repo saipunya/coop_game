@@ -1,8 +1,9 @@
 <?php
 require_once __DIR__ . '/db.php';
-require_once __DIR__ . '/system.php';
+require_once __DIR__ . '/workflow.php';
 
 $thaiMonths = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+$thaiShortMonths = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
 $publicUser = $_SESSION['user'] ?? null;
 $publicMember = $_SESSION['member'] ?? null;
 $selectedYear = filter_var($_GET['year'] ?? null, FILTER_VALIDATE_INT) ?: 0;
@@ -22,10 +23,11 @@ function public_thai_date($date)
 }
 
 try {
+  sync_workflow_records();
   $availableYears = db()->query('
-    SELECT DISTINCT YEAR(ru_date) AS data_year
-    FROM tbl_rubber
-    WHERE ru_date IS NOT NULL
+    SELECT DISTINCT YEAR(weigh_date) AS data_year
+    FROM tbl_rubber_workflow
+    WHERE weigh_date IS NOT NULL AND workflow_status = "paid" AND paid_at IS NOT NULL
     ORDER BY data_year DESC
   ')->fetchAll(PDO::FETCH_COLUMN);
   $availableYears = array_values(array_filter(array_map('intval', $availableYears)));
@@ -35,12 +37,12 @@ try {
   }
 
   $stmt = db()->prepare('
-    SELECT MONTH(ru_date) AS data_month,
-           COALESCE(SUM(ru_quantity), 0) AS total_quantity,
+    SELECT MONTH(weigh_date) AS data_month,
+           COALESCE(SUM(CASE WHEN actual_weight > 0 THEN actual_weight ELSE 0 END), 0) AS total_quantity,
            COUNT(*) AS total_records
-    FROM tbl_rubber
-    WHERE YEAR(ru_date) = :year
-    GROUP BY MONTH(ru_date)
+    FROM tbl_rubber_workflow
+    WHERE YEAR(weigh_date) = :year AND workflow_status = "paid" AND paid_at IS NOT NULL
+    GROUP BY MONTH(weigh_date)
     ORDER BY data_month
   ');
   $stmt->execute(['year' => $selectedYear]);
@@ -55,16 +57,16 @@ try {
   }
 
   $roundStmt = db()->prepare('
-    SELECT ru_date, COUNT(*) AS total_records,
-           COUNT(DISTINCT CONCAT(ru_class, ":", ru_number, ":", ru_fullname)) AS total_people,
-           COALESCE(SUM(ru_quantity), 0) AS total_quantity,
-           COALESCE(SUM(ru_value), 0) AS total_value,
-           COALESCE(SUM(ru_expend), 0) AS total_expend,
-           COALESCE(SUM(ru_netvalue), 0) AS total_netvalue
-    FROM tbl_rubber
-    WHERE YEAR(ru_date) = :year
-    GROUP BY ru_date
-    ORDER BY ru_date DESC
+    SELECT weigh_date AS ru_date, COUNT(*) AS total_records,
+           COUNT(DISTINCT member_id) AS total_people,
+           COALESCE(SUM(CASE WHEN actual_weight > 0 THEN actual_weight ELSE 0 END), 0) AS total_quantity,
+           COALESCE(SUM(gross_amount), 0) AS total_value,
+           COALESCE(SUM(total_deduction), 0) AS total_expend,
+           COALESCE(SUM(net_amount), 0) AS total_netvalue
+    FROM tbl_rubber_workflow
+    WHERE YEAR(weigh_date) = :year AND workflow_status = "paid" AND paid_at IS NOT NULL
+    GROUP BY weigh_date
+    ORDER BY weigh_date DESC
   ');
   $roundStmt->execute(['year' => $selectedYear]);
   $roundRows = $roundStmt->fetchAll();
@@ -72,15 +74,15 @@ try {
 
   if ($latestRoundDate) {
     $yardStmt = db()->prepare('
-      SELECT ru_lan, COUNT(*) AS total_records,
-             COALESCE(SUM(ru_quantity), 0) AS total_quantity,
-             COALESCE(SUM(ru_value), 0) AS total_value,
-             COALESCE(SUM(ru_expend), 0) AS total_expend,
-             COALESCE(SUM(ru_netvalue), 0) AS total_netvalue
-      FROM tbl_rubber
-      WHERE ru_date = :date
-      GROUP BY ru_lan
-      ORDER BY CAST(ru_lan AS UNSIGNED), ru_lan
+      SELECT yard_code AS ru_lan, COUNT(*) AS total_records,
+             COALESCE(SUM(CASE WHEN actual_weight > 0 THEN actual_weight ELSE 0 END), 0) AS total_quantity,
+             COALESCE(SUM(gross_amount), 0) AS total_value,
+             COALESCE(SUM(total_deduction), 0) AS total_expend,
+             COALESCE(SUM(net_amount), 0) AS total_netvalue
+      FROM tbl_rubber_workflow
+      WHERE weigh_date = :date AND workflow_status = "paid" AND paid_at IS NOT NULL
+      GROUP BY yard_code
+      ORDER BY CAST(yard_code AS UNSIGNED), yard_code
     ');
     $yardStmt->execute(['date' => $latestRoundDate]);
     $latestYardRows = $yardStmt->fetchAll();
@@ -96,8 +98,9 @@ $chartQuantities = [];
 $totalQuantity = 0;
 $totalRecords = 0;
 $activeMonths = 0;
+$buddhistYear = $selectedYear + 543;
 foreach ($monthlyData as $month => $data) {
-  $chartLabels[] = $thaiMonths[$month - 1];
+  $chartLabels[] = $thaiShortMonths[$month - 1] . ' ' . $buddhistYear;
   $chartQuantities[] = round($data['quantity'], 2);
   $totalQuantity += $data['quantity'];
   $totalRecords += $data['records'];
@@ -106,7 +109,6 @@ foreach ($monthlyData as $month => $data) {
   }
 }
 $averageQuantity = $activeMonths ? $totalQuantity / $activeMonths : 0;
-$buddhistYear = $selectedYear + 543;
 ?>
 <!doctype html>
 <html lang="th">
@@ -478,8 +480,8 @@ $buddhistYear = $selectedYear + 543;
     <div class="hero-inner">
       <div>
         <div class="eyebrow">RUBBER COLLECTION OVERVIEW</div>
-        <h1>ภาพรวมปริมาณการรวบรวมยางรายเดือน</h1>
-        <p>ข้อมูลสาธารณะสำหรับติดตามปริมาณยางที่รวบรวมได้ในแต่ละเดือนของสหกรณ์</p>
+        <h1>ภาพรวมรายการรับซื้อยางที่จ่ายเงินแล้ว</h1>
+        <p>ข้อมูลสาธารณะสรุปเฉพาะรายการที่สมาชิกได้รับเงินเรียบร้อยแล้ว แสดงตามรอบและรายเดือน</p>
       </div>
       <form class="year-form" method="get">
         <label for="year">เลือกปีข้อมูล</label>
@@ -497,11 +499,11 @@ $buddhistYear = $selectedYear + 543;
   <main class="container" id="monthly">
     <section class="stats" aria-label="ข้อมูลสรุป">
       <article class="stat">
-        <div class="stat-label"><i class="bi bi-box-seam"></i> ปริมาณรวมทั้งปี</div>
+        <div class="stat-label"><i class="bi bi-box-seam"></i> ปริมาณที่จ่ายเงินแล้วทั้งปี</div>
         <strong><?php echo number_format($totalQuantity, 2); ?></strong><small>กิโลกรัม</small>
       </article>
       <article class="stat">
-        <div class="stat-label"><i class="bi bi-receipt"></i> จำนวนรายการรวบรวม</div>
+        <div class="stat-label"><i class="bi bi-receipt"></i> จำนวนรายการจ่ายเงินแล้ว</div>
         <strong><?php echo number_format($totalRecords); ?></strong><small>รายการ</small>
       </article>
       <article class="stat">
@@ -516,8 +518,8 @@ $buddhistYear = $selectedYear + 543;
     <section class="panel">
       <div class="panel-head">
         <div>
-          <h2>กราฟปริมาณการรวบรวมยาง</h2>
-          <p>เปรียบเทียบปริมาณรวมตั้งแต่เดือนมกราคมถึงธันวาคม</p>
+          <h2>กราฟปริมาณยางที่จ่ายเงินแล้ว</h2>
+          <p>เปรียบเทียบปริมาณรวมตั้งแต่เดือนมกราคมถึงธันวาคม พ.ศ. <?php echo $buddhistYear; ?></p>
         </div><span class="year-badge">พ.ศ. <?php echo $buddhistYear; ?></span>
       </div>
       <div class="chart-wrap"><canvas id="monthlyChart" aria-label="กราฟปริมาณยางรายเดือน" role="img"></canvas></div>
@@ -526,8 +528,8 @@ $buddhistYear = $selectedYear + 543;
     <section class="panel">
       <div class="panel-head">
         <div>
-          <h2>ข้อมูลแยกรายเดือน</h2>
-          <p>รายละเอียดปริมาณและจำนวนรายการในแต่ละเดือน</p>
+          <h2>ข้อมูลจ่ายเงินแล้วแยกรายเดือน</h2>
+          <p>รายละเอียดปริมาณและจำนวนรายการในแต่ละเดือนของปี พ.ศ. <?php echo $buddhistYear; ?></p>
         </div>
       </div>
       <div class="table-wrap">
@@ -541,7 +543,7 @@ $buddhistYear = $selectedYear + 543;
           </thead>
           <tbody>
             <?php foreach ($monthlyData as $month => $data): ?><tr>
-              <td><?php echo h($thaiMonths[$month - 1]); ?></td>
+              <td><?php echo h($thaiMonths[$month - 1] . ' พ.ศ. ' . $buddhistYear); ?></td>
               <td class="num"><?php echo number_format($data['quantity'], 2); ?></td>
               <td class="num"><?php echo number_format($data['records']); ?></td>
             </tr><?php endforeach; ?>
@@ -553,7 +555,7 @@ $buddhistYear = $selectedYear + 543;
     <section class="panel">
       <div class="panel-head">
         <div>
-          <h2>รอบล่าสุดแยกตามลาน</h2>
+          <h2>รอบจ่ายเงินล่าสุดแยกตามลาน</h2>
           <p><?php echo $latestRoundDate ? 'ข้อมูลรอบวันที่ ' . h(public_thai_date($latestRoundDate)) : 'ยังไม่มีข้อมูลในปีที่เลือก'; ?></p>
         </div>
         <?php if ($latestRoundDate): ?><span class="year-badge"><i class="bi bi-geo-alt me-1"></i><?php echo number_format(array_sum(array_column($latestYardRows, 'total_records'))); ?> รายการ</span><?php endif; ?>
@@ -578,7 +580,7 @@ $buddhistYear = $selectedYear + 543;
 
     <section class="panel">
       <div class="panel-head">
-        <div><h2>สรุปข้อมูลในแต่ละรอบ</h2><p>น้ำหนัก ยอดเงินก่อนหัก ค่าใช้จ่าย และยอดสุทธิของแต่ละวันที่รวบรวม</p></div>
+        <div><h2>สรุปรายการจ่ายเงินแล้วในแต่ละรอบ</h2><p>น้ำหนัก ยอดเงินก่อนหัก รายการหัก และยอดจ่ายสุทธิของแต่ละรอบราคา</p></div>
         <span class="year-badge">พ.ศ. <?php echo $buddhistYear; ?></span>
       </div>
       <div class="table-wrap">
@@ -594,13 +596,13 @@ $buddhistYear = $selectedYear + 543;
               <td class="num"><?php echo number_format((float) $round['total_expend'], 2); ?></td>
               <td class="num net-value"><?php echo number_format((float) $round['total_netvalue'], 2); ?></td>
             </tr><?php endforeach; ?>
-            <?php if (!$roundRows): ?><tr><td class="empty-row" colspan="7">ไม่พบข้อมูลรอบรับยางในปีที่เลือก</td></tr><?php endif; ?>
+            <?php if (!$roundRows): ?><tr><td class="empty-row" colspan="7">ไม่พบรายการจ่ายเงินแล้วในปีที่เลือก</td></tr><?php endif; ?>
           </tbody>
         </table>
       </div>
     </section>
   </main>
-  <footer>ระบบข้อมูลการรวบรวมยาง · ข้อมูลอัปเดตจากรายการที่บันทึกในระบบ</footer>
+  <footer>ระบบข้อมูลการรวบรวมยาง · แสดงเฉพาะรายการที่ยืนยันจ่ายเงินแล้ว</footer>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
   <script>
   new Chart(document.getElementById('monthlyChart'), {

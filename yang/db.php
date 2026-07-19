@@ -43,7 +43,7 @@ function db_friendly_error(Exception $e)
   }
 
   if (stripos($message, 'Base table or view not found') !== false) {
-    return 'ไม่พบตารางระบบสมาชิก กรุณา import SQL dump ให้มี tbl_member, tbl_rubber และ tbl_member_portal_log';
+    return 'ไม่พบตารางระบบ กรุณาตรวจสอบ tbl_member, tbl_wangyang และ tbl_rubber_workflow';
   }
 
   if (strpos($message, 'SQLSTATE[HY000] [2002]') !== false) {

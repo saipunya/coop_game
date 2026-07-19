@@ -26,9 +26,10 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     audit_log('approve_payment', 'workflow', $id, 'อนุมัติจ่ายเงินสุทธิ ' . number_format((float) $workflow['net_amount'], 2) . ' บาท สำหรับสมาชิก ' . $workflow['member_number'], [
       'round_date' => $workflow['weigh_date'], 'yard_code' => $workflow['yard_code'],
       'member_number' => $workflow['member_number'], 'receipt_no' => $workflow['receipt_no'], 'net_amount' => (float) $workflow['net_amount'],
+      'paid_by' => $user['user_fullname'],
     ]);
     db()->commit();
-    $_SESSION['workflow_flash'] = ['type' => 'success', 'message' => 'ยืนยันการจ่ายเงินและเปลี่ยนสถานะเป็น “จ่ายเงินแล้ว” เรียบร้อย'];
+    $_SESSION['workflow_flash'] = ['type' => 'success', 'message' => 'ยืนยันการจ่ายเงินเรียบร้อย · บันทึกผู้จ่าย: ' . $user['user_fullname']];
     workflow_redirect('payments.php');
   } catch (Throwable $e) {
     if (db()->inTransaction()) db()->rollBack();

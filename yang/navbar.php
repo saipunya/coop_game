@@ -52,14 +52,13 @@ function render_topbar()
             </div>
 
             <?php if ($canPlacement): ?>
-            <div class="nav-group <?php echo navbar_is_active(['rubbers.php', 'bag-intake.php']); ?>">
+            <div class="nav-group <?php echo navbar_is_active(['bag-intake.php']); ?>">
               <button class="nav-group-toggle" type="button" aria-expanded="false" aria-haspopup="true" aria-controls="navGroupPlacement">
                 <i class="bi bi-box-seam-fill"></i><span>วางยาง</span><i class="bi bi-chevron-down nav-chevron"></i>
               </button>
               <div class="nav-dropdown" id="navGroupPlacement">
                 <span class="nav-dropdown-title">งานรับและวางยาง</span>
                 <a class="<?php echo navbar_is_active(['bag-intake.php']); ?>" href="<?php echo htmlspecialchars(navbar_url('bag-intake.php')); ?>"><i class="bi bi-box-seam-fill"></i><span><strong>รับวางยาง</strong><small>บันทึกกระสอบตามสมาชิกและลาน</small></span></a>
-                <a class="<?php echo navbar_is_active(['rubbers.php']); ?>" href="<?php echo htmlspecialchars(navbar_url('rubbers.php')); ?>"><i class="bi bi-droplet-fill"></i><span><strong>บันทึกรับยาง</strong><small>จัดการข้อมูลรับซื้อยาง</small></span></a>
               </div>
             </div>
             <?php endif; ?>
@@ -78,14 +77,15 @@ function render_topbar()
             </div>
             <?php endif; ?>
 
-            <?php if ($canPlacement): ?>
-            <div class="nav-group <?php echo navbar_is_active(['bag-report.php']); ?>">
+            <?php if ($canPlacement || $canWeighing || $canDeductions || $canPayments): ?>
+            <div class="nav-group <?php echo navbar_is_active(['bag-report.php', 'rubbers.php']); ?>">
               <button class="nav-group-toggle" type="button" aria-expanded="false" aria-haspopup="true" aria-controls="navGroupReports">
                 <i class="bi bi-bar-chart-fill"></i><span>รายงาน</span><i class="bi bi-chevron-down nav-chevron"></i>
               </button>
               <div class="nav-dropdown" id="navGroupReports">
                 <span class="nav-dropdown-title">รายงานและข้อมูลสรุป</span>
-                <a class="<?php echo navbar_is_active(['bag-report.php']); ?>" href="<?php echo htmlspecialchars(navbar_url('bag-report.php')); ?>"><i class="bi bi-clipboard-data-fill"></i><span><strong>รายงานวางยาง</strong><small>สรุปกระสอบ น้ำหนัก และข้อมูลรายลาน</small></span></a>
+                <?php if ($canPlacement): ?><a class="<?php echo navbar_is_active(['bag-report.php']); ?>" href="<?php echo htmlspecialchars(navbar_url('bag-report.php')); ?>"><i class="bi bi-clipboard-data-fill"></i><span><strong>รายงานวางยาง</strong><small>สรุปกระสอบ น้ำหนัก และข้อมูลรายลาน</small></span></a><?php endif; ?>
+                <a class="<?php echo navbar_is_active(['rubbers.php']); ?>" href="<?php echo htmlspecialchars(navbar_url('rubbers.php')); ?>"><i class="bi bi-clipboard2-data-fill"></i><span><strong>สรุปข้อมูลรับซื้อ</strong><small>ข้อมูลตามสิทธิ์พร้อมผู้บันทึก</small></span></a>
               </div>
             </div>
             <?php endif; ?>

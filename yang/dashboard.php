@@ -22,7 +22,9 @@ $informationMenus = [
 ];
 if (user_can('placement', $user)) {
   $informationMenus[] = ['href' => 'bag-report.php', 'label' => 'รายงานวางยาง', 'desc' => 'สรุปกระสอบ น้ำหนัก และข้อมูลรายลาน', 'icon' => 'bi-bar-chart-fill', 'tone' => 'purple'];
-  $informationMenus[] = ['href' => 'rubbers.php', 'label' => 'ข้อมูลรับยาง', 'desc' => 'ค้นหาและตรวจสอบข้อมูลรับยาง', 'icon' => 'bi-droplet-fill', 'tone' => 'teal'];
+}
+if (user_can('placement', $user) || user_can('weighing', $user) || user_can('deductions', $user) || user_can('payments', $user)) {
+  $informationMenus[] = ['href' => 'rubbers.php', 'label' => 'สรุปข้อมูลรับซื้อยาง', 'desc' => 'ตรวจสอบข้อมูลทั้ง 4 ขั้นตอนพร้อมผู้บันทึก', 'icon' => 'bi-clipboard2-data-fill', 'tone' => 'teal'];
 }
 
 $adminMenus = [
