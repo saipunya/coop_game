@@ -34,29 +34,135 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     $action = $_POST['action'] ?? 'create';
 
     if ($action === 'delete') {
+      if (!user_can('placement_delete', $user)) throw new RuntimeException('บัญชีนี้ไม่มีสิทธิ์ลบรายการวางยาง');
       $id = filter_var($_POST['id'] ?? 0, FILTER_VALIDATE_INT);
       if (!$id) throw new RuntimeException('ไม่พบรายการที่ต้องการลบ');
+      db()->beginTransaction();
       $stmt = db()->prepare('SELECT placement.wang_saveby, placement.wang_date, placement.wang_lan,
           placement.wang_mid, placement.wang_number, placement.wang_name, placement.wang_sack,
-          workflow.workflow_status
+          workflow.workflow_id, workflow.workflow_status, workflow.actual_weight,
+          workflow.total_deduction, workflow.net_amount, workflow.receipt_no,
+          workflow.paid_by, workflow.paid_at
         FROM tbl_wangyang placement
         LEFT JOIN tbl_rubber_workflow workflow ON workflow.weigh_date = placement.wang_date
           AND workflow.yard_code = placement.wang_lan AND workflow.member_id = placement.wang_mid
-        WHERE placement.wang_id = :id');
+        WHERE placement.wang_id = :id FOR UPDATE');
       $stmt->execute(['id' => $id]);
       $deletedRow = $stmt->fetch();
       if (!$deletedRow) throw new RuntimeException('ไม่พบรายการที่ต้องการลบ');
-      if ($deletedRow['workflow_status'] === 'paid') throw new RuntimeException('รายการนี้จ่ายเงินแล้ว จึงลบการวางยางไม่ได้ หากต้องแก้ข้อมูลให้ admin ดำเนินการจากหน้าชั่งน้ำหนักหรือรายการหัก');
-      if (($user['user_level'] ?? '') !== 'admin' && $deletedRow['wang_saveby'] !== $user['user_fullname']) throw new RuntimeException('คุณไม่มีสิทธิ์ลบรายการนี้');
-      db()->beginTransaction();
+      $hasDownstreamData = $deletedRow['workflow_status'] && $deletedRow['workflow_status'] !== 'placed';
+
+      $deletedDeductions = [];
+      if ($deletedRow['workflow_id']) {
+        $deductionStmt = db()->prepare('SELECT deduction_label, deduction_amount
+          FROM tbl_rubber_deduction WHERE workflow_id = :workflow_id AND deduction_amount > 0
+          ORDER BY sort_order, deduction_id');
+        $deductionStmt->execute(['workflow_id' => $deletedRow['workflow_id']]);
+        $deletedDeductions = $deductionStmt->fetchAll();
+      }
+      $cascadeStagesByStatus = [
+        'placed' => [],
+        'weighed' => ['weighing'],
+        'deducted' => ['weighing', 'deductions'],
+        'paid' => ['weighing', 'deductions', 'payment'],
+      ];
+      $deletedStages = $cascadeStagesByStatus[$deletedRow['workflow_status'] ?: 'placed'] ?? [];
+
       db()->prepare('DELETE FROM tbl_wangyang WHERE wang_id = :id')->execute(['id' => $id]);
-      audit_log('delete', 'placement', $id, 'ลบรายการวางยางของสมาชิก ' . $deletedRow['wang_number'], [
+      if ($deletedRow['workflow_id']) {
+        db()->prepare('DELETE FROM tbl_rubber_deduction WHERE workflow_id = :workflow_id')
+          ->execute(['workflow_id' => $deletedRow['workflow_id']]);
+        db()->prepare('DELETE FROM tbl_rubber_workflow WHERE workflow_id = :workflow_id')
+          ->execute(['workflow_id' => $deletedRow['workflow_id']]);
+      }
+
+      $summaryStmt = db()->prepare('UPDATE tbl_wangyang_daily_summary
+        SET ws_estimated_weight = (SELECT COALESCE(SUM(wang_weight), 0)
+          FROM tbl_wangyang WHERE wang_date = :detail_date)
+        WHERE ws_date = :summary_date');
+      $summaryStmt->execute([
+        'detail_date' => $deletedRow['wang_date'], 'summary_date' => $deletedRow['wang_date'],
+      ]);
+
+      // If the member has another placement in the same round, rebuild only the
+      // placement stage. Downstream data stays deleted because its basis changed.
+      sync_workflow_records();
+      $replacementStmt = db()->prepare('SELECT workflow_id FROM tbl_rubber_workflow
+        WHERE weigh_date = :date AND yard_code = :yard AND member_id = :member_id LIMIT 1');
+      $replacementStmt->execute([
+        'date' => $deletedRow['wang_date'], 'yard' => $deletedRow['wang_lan'], 'member_id' => $deletedRow['wang_mid'],
+      ]);
+      $replacementWorkflowId = $replacementStmt->fetchColumn() ?: null;
+
+      audit_log('delete', 'workflow', $deletedRow['workflow_id'] ?: $id,
+        'ลบรายการวางยางและข้อมูลขั้นตอนที่เชื่อมกันของสมาชิก ' . $deletedRow['wang_number'], [
         'round_date' => $deletedRow['wang_date'], 'yard_code' => $deletedRow['wang_lan'],
         'member_number' => $deletedRow['wang_number'], 'bags' => (float) $deletedRow['wang_sack'],
+        'deleted_placement_id' => (int) $id,
+        'deleted_workflow_id' => $deletedRow['workflow_id'] ? (int) $deletedRow['workflow_id'] : null,
+        'deleted_workflow_status' => $deletedRow['workflow_status'] ?: 'placed',
+        'deleted_actual_weight' => (float) ($deletedRow['actual_weight'] ?? 0),
+        'deleted_total_deduction' => (float) ($deletedRow['total_deduction'] ?? 0),
+        'deleted_deductions' => $deletedDeductions,
+        'deleted_net_amount' => (float) ($deletedRow['net_amount'] ?? 0),
+        'deleted_receipt_no' => $deletedRow['receipt_no'] ?? null,
+        'deleted_paid_by' => $deletedRow['paid_by'] ?? '',
+        'deleted_paid_at' => $deletedRow['paid_at'] ?? null,
+        'replacement_placement_workflow_id' => $replacementWorkflowId ? (int) $replacementWorkflowId : null,
+        'cascade_deleted_stages' => $deletedStages,
       ]);
       db()->commit();
-      $_SESSION['bag_intake_flash'] = ['type' => 'success', 'message' => 'ลบรายการวางยางเรียบร้อย'];
+      $_SESSION['bag_intake_flash'] = ['type' => 'success', 'message' => $hasDownstreamData
+        ? 'ลบรายการวางยาง พร้อมข้อมูลชั่งน้ำหนัก รายการหัก และการจ่ายเงินที่เชื่อมกันแล้ว'
+        : 'ลบรายการวางยางและปรับรายการที่เชื่อมกันเรียบร้อย'];
       bag_redirect($deletedRow['wang_lan']);
+    }
+
+    if ($action === 'update') {
+      if (!user_can('placement_edit', $user)) throw new RuntimeException('บัญชีนี้ไม่มีสิทธิ์แก้ไขรายการวางยาง');
+      $id = filter_var($_POST['id'] ?? 0, FILTER_VALIDATE_INT);
+      $bags = filter_var($_POST['bags'] ?? 0, FILTER_VALIDATE_INT);
+      $note = trim((string) ($_POST['note'] ?? ''));
+      if (!$id) throw new RuntimeException('ไม่พบรายการที่ต้องการแก้ไข');
+      if (!$bags || $bags < 1 || $bags > 10000) throw new RuntimeException('จำนวนกระสอบต้องอยู่ระหว่าง 1–10,000');
+
+      db()->beginTransaction();
+      $stmt = db()->prepare('SELECT placement.*, workflow.workflow_id, workflow.workflow_status,
+          workflow.actual_weight, workflow.total_deduction, workflow.net_amount
+        FROM tbl_wangyang placement
+        LEFT JOIN tbl_rubber_workflow workflow ON workflow.weigh_date = placement.wang_date
+          AND workflow.yard_code = placement.wang_lan AND workflow.member_id = placement.wang_mid
+        WHERE placement.wang_id = :id FOR UPDATE');
+      $stmt->execute(['id' => $id]);
+      $placement = $stmt->fetch();
+      if (!$placement) throw new RuntimeException('ไม่พบรายการที่ต้องการแก้ไข');
+      $rateStmt = db()->prepare('SELECT ws_weight_per_bag FROM tbl_wangyang_daily_summary WHERE ws_date = :date');
+      $rateStmt->execute(['date' => $placement['wang_date']]);
+      $estimatedWeight = $bags * (float) ($rateStmt->fetchColumn() ?: 0);
+      db()->prepare('UPDATE tbl_wangyang SET wang_sack = :bags, wang_weight = :weight,
+        wang_note = :note, wang_saveby = :staff WHERE wang_id = :id')->execute([
+        'bags' => $bags, 'weight' => $estimatedWeight, 'note' => $note,
+        'staff' => $user['user_fullname'], 'id' => $id,
+      ]);
+      $summaryStmt = db()->prepare('UPDATE tbl_wangyang_daily_summary
+        SET ws_estimated_weight = (SELECT COALESCE(SUM(wang_weight), 0)
+          FROM tbl_wangyang WHERE wang_date = :detail_date)
+        WHERE ws_date = :summary_date');
+      $summaryStmt->execute(['detail_date' => $placement['wang_date'], 'summary_date' => $placement['wang_date']]);
+      if ($placement['workflow_id']) {
+        db()->prepare('DELETE FROM tbl_rubber_deduction WHERE workflow_id = :id')->execute(['id' => $placement['workflow_id']]);
+        db()->prepare('DELETE FROM tbl_rubber_workflow WHERE workflow_id = :id')->execute(['id' => $placement['workflow_id']]);
+      }
+      sync_workflow_records();
+      audit_log('update', 'placement', $id, 'แก้ไขรายการวางยางของสมาชิก ' . $placement['wang_number'], [
+        'round_date' => $placement['wang_date'], 'yard_code' => $placement['wang_lan'],
+        'previous_bags' => (float) $placement['wang_sack'], 'bags' => (int) $bags,
+        'previous_workflow_status' => $placement['workflow_status'] ?: 'placed',
+        'cleared_downstream_data' => $placement['workflow_status'] && $placement['workflow_status'] !== 'placed',
+      ]);
+      db()->commit();
+      $_SESSION['bag_intake_flash'] = ['type' => 'success', 'message' => 'แก้ไขรายการวางยางแล้ว หากเคยมีข้อมูลขั้นตอนถัดไป ระบบได้ย้อนรายการกลับไปรอชั่ง'];
+      bag_redirect($placement['wang_lan']);
     }
 
     $auctionDate = trim($_POST['auction_date'] ?? '');
@@ -116,8 +222,14 @@ if ($selectedYard) {
   $stmt->execute(['yard_code' => $selectedYard['yard_code']]);
   $latestRows = $stmt->fetchAll();
 }
+$editPlacement = null;
+if ($selectedYard && user_can('placement_edit', $user) && ($editId = filter_var($_GET['edit'] ?? 0, FILTER_VALIDATE_INT))) {
+  $stmt = db()->prepare('SELECT * FROM tbl_wangyang WHERE wang_id = :id AND wang_lan = :yard LIMIT 1');
+  $stmt->execute(['id' => $editId, 'yard' => $selectedYard['yard_code']]);
+  $editPlacement = $stmt->fetch() ?: null;
+}
 $defaultDate = date('Y-m-d', strtotime('+2 days'));
-$selectedMemberId = (int) ($_POST['member_id'] ?? 0);
+$selectedMemberId = (int) ($_POST['member_id'] ?? ($editPlacement['wang_mid'] ?? 0));
 $selectedMember = null;
 foreach ($members as $memberOption) {
   if ((int) $memberOption['mem_id'] === $selectedMemberId) {
@@ -136,16 +248,16 @@ foreach ($members as $memberOption) {
 <section class="yard-choice-panel"><div class="yard-choice-head"><span class="yard-choice-step">ขั้นตอนที่ 1</span><h2>เลือกลานที่ต้องการวางยาง</h2><p>กดปุ่มลานก่อน แล้วระบบจะแสดงช่องค้นหาสมาชิกและบันทึกจำนวนกระสอบ</p></div><div class="yard-choice-grid"><?php foreach ($yards as $index => $yard): ?><a class="yard-choice-card" href="<?php echo h(url_for('bag-intake.php') . '?' . http_build_query(['yard' => $yard['yard_code']])); ?>"><span class="yard-choice-number"><?php echo number_format($index + 1); ?></span><span class="yard-choice-icon"><i class="bi bi-geo-alt-fill"></i></span><strong><?php echo h($yard['yard_name']); ?></strong><small>รหัสลาน <?php echo h($yard['yard_code']); ?></small><span class="yard-choice-action">เลือกใช้ลานนี้ <i class="bi bi-arrow-right"></i></span></a><?php endforeach; ?></div></section>
 <?php elseif ($selectedYard): ?>
 <section class="selected-yard-bar"><div><span class="selected-yard-icon"><i class="bi bi-geo-alt-fill"></i></span><span><small>กำลังบันทึกข้อมูลที่</small><strong><?php echo h($selectedYard['yard_name']); ?></strong></span></div><a class="btn btn-outline-success" href="<?php echo h(url_for('bag-intake.php')); ?>"><i class="bi bi-arrow-left-right me-1"></i>เปลี่ยนลาน</a></section>
-<div class="ops-grid">
-<section class="ops-card sticky"><div class="ops-card-head"><h2>รายการรับวางยาง</h2></div><form class="ops-card-body" method="post"><input type="hidden" name="csrf_token" value="<?php echo h(csrf_token()); ?>"><input type="hidden" name="action" value="create">
-<div class="mb-3"><label class="form-label">วันที่ช่อง/ประมูลยาง</label><input class="form-control" type="date" name="auction_date" required value="<?php echo h($_POST['auction_date'] ?? $defaultDate); ?>"><div class="form-hint mt-1">กำหนดเริ่มต้นเป็น 2 วันจากวันนี้</div></div>
+<div class="ops-grid bag-intake-grid">
+<section class="ops-card sticky bag-intake-form"><div class="ops-card-head"><h2><?php echo $editPlacement ? 'แก้ไขรายการวางยาง' : 'รายการรับวางยาง'; ?></h2><?php if ($editPlacement): ?><a class="btn btn-sm btn-light" href="?yard=<?php echo urlencode($selectedYard['yard_code']); ?>">ยกเลิก</a><?php endif; ?></div><form class="ops-card-body" method="post"><input type="hidden" name="csrf_token" value="<?php echo h(csrf_token()); ?>"><input type="hidden" name="action" value="<?php echo $editPlacement ? 'update' : 'create'; ?>"><?php if ($editPlacement): ?><input type="hidden" name="id" value="<?php echo (int) $editPlacement['wang_id']; ?>"><?php endif; ?>
+<div class="mb-3"><label class="form-label">วันที่ช่อง/ประมูลยาง</label><input class="form-control" type="date" name="auction_date" required <?php echo $editPlacement ? 'readonly' : ''; ?> value="<?php echo h($_POST['auction_date'] ?? ($editPlacement['wang_date'] ?? $defaultDate)); ?>"><div class="form-hint mt-1"><?php echo $editPlacement ? 'การแก้ไขคงรอบวันที่และสมาชิกเดิม' : 'กำหนดเริ่มต้นเป็น 2 วันจากวันนี้'; ?></div></div>
 <input type="hidden" name="yard_code" value="<?php echo h($selectedYard['yard_code']); ?>"><div class="locked-yard-field"><span>ลานยาง</span><strong><i class="bi bi-geo-alt-fill me-1"></i><?php echo h($selectedYard['yard_name']); ?></strong><small>ลานถูกกำหนดจากขั้นตอนก่อนหน้า</small></div>
-<div class="mb-3 member-picker"><label class="form-label" for="memberSearch">ค้นหาและเลือกสมาชิก</label><div class="member-search-wrap"><i class="bi bi-search member-search-icon"></i><input id="memberSearch" class="form-control member-search-input" type="search" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="memberSuggestions" placeholder="พิมพ์เลขสมาชิกหรือชื่อ" value="<?php echo $selectedMember ? h($selectedMember['mem_number'] . ' · ' . $selectedMember['mem_fullname']) : ''; ?>" required><button id="memberClear" class="member-clear" type="button" aria-label="ล้างสมาชิก" <?php echo $selectedMember ? '' : 'hidden'; ?>><i class="bi bi-x-lg"></i></button></div><input id="memberId" type="hidden" name="member_id" value="<?php echo $selectedMemberId ?: ''; ?>"><div id="memberSuggestions" class="member-suggestions" role="listbox" aria-label="รายชื่อสมาชิก" hidden></div><div id="selectedMember" class="selected-member member-selected-card" <?php echo $selectedMember ? '' : 'hidden'; ?>><?php if ($selectedMember): ?><strong><i class="bi bi-person-check-fill me-1"></i><?php echo h($selectedMember['mem_number'] . ' · ' . $selectedMember['mem_fullname']); ?></strong><small>กลุ่ม <?php echo h($selectedMember['mem_group']); ?> · <?php echo ($selectedMember['mem_class'] ?? '') === 'member' ? 'สมาชิก' : 'เกษตรกรทั่วไป'; ?></small><?php endif; ?></div><div class="form-hint mt-1">พิมพ์เพื่อค้นหา แล้วกดเลือกรายชื่อที่แสดงขึ้นมา</div></div>
-<div class="mb-3"><label class="form-label">จำนวนกระสอบ</label><input class="form-control" type="number" name="bags" min="1" max="10000" required value="<?php echo h($_POST['bags'] ?? ''); ?>"></div>
-<div class="mb-3"><label class="form-label">หมายเหตุ</label><textarea class="form-control" name="note" rows="3"><?php echo h($_POST['note'] ?? ''); ?></textarea></div>
-<button class="btn btn-green w-100" <?php echo !$yards ? 'disabled' : ''; ?>><i class="bi bi-floppy me-1"></i>บันทึกจำนวนกระสอบ</button></form></section>
-<section class="ops-card"><div class="ops-card-head"><div><h2>รายการล่าสุด · <?php echo h($selectedYard['yard_name']); ?></h2><small class="text-secondary">แสดงเฉพาะรายการของลานที่เลือก</small></div><a class="btn btn-sm btn-outline-success" href="<?php echo h(url_for('bag-report.php')); ?>">เปิดรายงาน</a></div><div class="table-responsive"><table class="table table-hover mb-0"><thead><tr><th>วันช่องยาง</th><th>สมาชิก</th><th class="num">กระสอบ</th><th class="num">ประมาณ kg</th><th>ผู้บันทึก</th><th></th></tr></thead><tbody>
-<?php foreach ($latestRows as $row): ?><tr><td><?php echo h($row['wang_date']); ?></td><td><strong><?php echo h($row['wang_number']); ?></strong><br><small><?php echo h($row['wang_name']); ?></small></td><td class="num fw-bold"><?php echo number_format((float) $row['wang_sack'], 0); ?></td><td class="num"><?php echo number_format((float) $row['wang_weight'], 2); ?></td><td><small><?php echo h($row['wang_saveby']); ?><br><?php echo h($row['wang_savedate']); ?></small></td><td><?php if ($row['workflow_status'] === 'paid'): ?><span class="text-secondary" title="ล็อกหลังจ่ายเงิน"><i class="bi bi-lock-fill"></i></span><?php elseif (($user['user_level'] ?? '') === 'admin' || $row['wang_saveby'] === $user['user_fullname']): ?><form method="post" onsubmit="return confirm('ยืนยันการลบรายการนี้?')"><input type="hidden" name="csrf_token" value="<?php echo h(csrf_token()); ?>"><input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="<?php echo (int) $row['wang_id']; ?>"><button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></form><?php endif; ?></td></tr><?php endforeach; ?><?php if (!$latestRows): ?><tr><td colspan="6" class="empty">ยังไม่มีรายการวางยางในลานนี้</td></tr><?php endif; ?>
+<div class="mb-3 member-picker"><label class="form-label" for="memberSearch">ค้นหาและเลือกสมาชิก</label><div class="member-search-wrap"><i class="bi bi-search member-search-icon"></i><input id="memberSearch" class="form-control member-search-input" type="search" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="memberSuggestions" placeholder="พิมพ์เลขสมาชิกหรือชื่อ" value="<?php echo $selectedMember ? h($selectedMember['mem_number'] . ' · ' . $selectedMember['mem_fullname']) : ''; ?>" <?php echo $editPlacement ? 'readonly' : ''; ?> required><button id="memberClear" class="member-clear" type="button" aria-label="ล้างสมาชิก" <?php echo ($selectedMember && !$editPlacement) ? '' : 'hidden'; ?>><i class="bi bi-x-lg"></i></button></div><input id="memberId" type="hidden" name="member_id" value="<?php echo $selectedMemberId ?: ''; ?>"><div id="memberSuggestions" class="member-suggestions" role="listbox" aria-label="รายชื่อสมาชิก" hidden></div><div id="selectedMember" class="selected-member member-selected-card" <?php echo $selectedMember ? '' : 'hidden'; ?>><?php if ($selectedMember): ?><strong><i class="bi bi-person-check-fill me-1"></i><?php echo h($selectedMember['mem_number'] . ' · ' . $selectedMember['mem_fullname']); ?></strong><small>กลุ่ม <?php echo h($selectedMember['mem_group']); ?> · <?php echo ($selectedMember['mem_class'] ?? '') === 'member' ? 'สมาชิก' : 'เกษตรกรทั่วไป'; ?></small><?php endif; ?></div><div class="form-hint mt-1"><?php echo $editPlacement ? 'สมาชิกถูกล็อกตามรายการเดิม' : 'พิมพ์เพื่อค้นหา แล้วกดเลือกรายชื่อที่แสดงขึ้นมา'; ?></div></div>
+<div class="mb-3"><label class="form-label">จำนวนกระสอบ</label><input class="form-control" type="number" name="bags" min="1" max="10000" required value="<?php echo h($_POST['bags'] ?? ($editPlacement['wang_sack'] ?? '')); ?>"></div>
+<div class="mb-3"><label class="form-label">หมายเหตุ</label><textarea class="form-control" name="note" rows="3"><?php echo h($_POST['note'] ?? ($editPlacement['wang_note'] ?? '')); ?></textarea></div>
+<?php if ($editPlacement): ?><div class="alert alert-warning"><i class="bi bi-exclamation-triangle-fill me-1"></i>หากรายการนี้ผ่านขั้นชั่งหรือขั้นถัดไป การแก้ไขจะล้างข้อมูลขั้นตอนถัดไปและย้อนกลับไปรอชั่ง</div><?php endif; ?><button class="btn btn-green w-100" <?php echo !$yards ? 'disabled' : ''; ?>><i class="bi bi-floppy me-1"></i><?php echo $editPlacement ? 'บันทึกการแก้ไข' : 'บันทึกจำนวนกระสอบ'; ?></button></form></section>
+<section class="ops-card bag-intake-list"><div class="ops-card-head"><div><h2>รายการล่าสุด · <?php echo h($selectedYard['yard_name']); ?></h2><small class="text-secondary">แสดงเฉพาะรายการของลานที่เลือก</small></div><a class="btn btn-sm btn-outline-success" href="<?php echo h(url_for('bag-report.php')); ?>">เปิดรายงาน</a></div><div class="table-responsive"><table class="table table-hover mb-0"><thead><tr><th>วันช่องยาง</th><th>สมาชิก</th><th class="num">กระสอบ</th><th class="num">ประมาณ kg</th><th>ผู้บันทึก</th><th></th></tr></thead><tbody>
+<?php foreach ($latestRows as $row): ?><?php $rowHasDownstream = $row['workflow_status'] && $row['workflow_status'] !== 'placed'; $canEditRow = user_can('placement_edit', $user); $canDeleteRow = user_can('placement_delete', $user); ?><tr><td><?php echo h($row['wang_date']); ?></td><td><strong><?php echo h($row['wang_number']); ?></strong><br><small><?php echo h($row['wang_name']); ?></small></td><td class="num fw-bold"><?php echo number_format((float) $row['wang_sack'], 0); ?></td><td class="num"><?php echo number_format((float) $row['wang_weight'], 2); ?></td><td><small><?php echo h($row['wang_saveby']); ?><br><?php echo h($row['wang_savedate']); ?></small></td><td><div class="d-flex gap-1 justify-content-end"><?php if ($canEditRow): ?><a class="btn btn-sm btn-outline-primary" href="?yard=<?php echo urlencode($selectedYard['yard_code']); ?>&edit=<?php echo (int) $row['wang_id']; ?>" title="แก้ไข"><i class="bi bi-pencil"></i></a><?php endif; ?><?php if ($canDeleteRow): ?><form method="post" onsubmit="return confirm('<?php echo $rowHasDownstream ? 'คำเตือน: การลบจะลบข้อมูลชั่งน้ำหนัก รายการหัก และการจ่ายเงินของรายการเดียวกันทั้งหมด ยืนยันหรือไม่?' : 'ยืนยันการลบรายการวางยางนี้?'; ?>')"><input type="hidden" name="csrf_token" value="<?php echo h(csrf_token()); ?>"><input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="<?php echo (int) $row['wang_id']; ?>"><button class="btn btn-sm btn-outline-danger" title="ลบรายการและข้อมูลที่เชื่อมกัน"><i class="bi bi-trash"></i></button></form><?php endif; ?><?php if (!$canEditRow && !$canDeleteRow): ?><span class="text-secondary" title="ไม่มีสิทธิ์แก้ไขหรือลบ"><i class="bi bi-lock-fill"></i></span><?php endif; ?></div></td></tr><?php endforeach; ?><?php if (!$latestRows): ?><tr><td colspan="6" class="empty">ยังไม่มีรายการวางยางในลานนี้</td></tr><?php endif; ?>
 </tbody></table></div></section></div>
 <?php endif; ?>
 </main><script>

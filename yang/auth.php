@@ -123,11 +123,30 @@ function workflow_permission_definitions()
   ];
 }
 
+function workflow_action_permission_definitions()
+{
+  return [
+    'placement_edit' => ['stage' => 'placement', 'label' => 'แก้ไขการวางยาง', 'description' => 'แก้ไขจำนวนกระสอบและหมายเหตุ', 'icon' => 'bi-pencil-square'],
+    'placement_delete' => ['stage' => 'placement', 'label' => 'ลบการวางยาง', 'description' => 'ลบรายการและข้อมูลขั้นตอนที่เชื่อมกัน', 'icon' => 'bi-trash3'],
+    'weighing_edit' => ['stage' => 'weighing', 'label' => 'แก้ไขการชั่งยาง', 'description' => 'แก้ไขน้ำหนักจริงที่บันทึกไว้', 'icon' => 'bi-pencil-square'],
+    'weighing_delete' => ['stage' => 'weighing', 'label' => 'ลบการชั่งยาง', 'description' => 'ยกเลิกน้ำหนักและย้อนกลับไปรอชั่ง', 'icon' => 'bi-trash3'],
+    'deductions_edit' => ['stage' => 'deductions', 'label' => 'แก้ไขรายการหัก', 'description' => 'แก้ไขยอดหักของรายการที่บันทึกแล้ว', 'icon' => 'bi-pencil-square'],
+    'deductions_delete' => ['stage' => 'deductions', 'label' => 'ลบรายการหัก', 'description' => 'ล้างยอดหักและย้อนกลับไปสถานะชั่งแล้ว', 'icon' => 'bi-trash3'],
+    'payments_edit' => ['stage' => 'payments', 'label' => 'แก้ไขการจ่ายเงิน', 'description' => 'เปิดรายการจ่ายแล้วเพื่อแก้ไขข้อมูลที่เกี่ยวข้อง', 'icon' => 'bi-pencil-square'],
+    'payments_delete' => ['stage' => 'payments', 'label' => 'ยกเลิกการจ่ายเงิน', 'description' => 'ยกเลิกสถานะจ่ายแล้วและย้อนกลับไปรอจ่าย', 'icon' => 'bi-trash3'],
+  ];
+}
+
+function all_workflow_permission_definitions()
+{
+  return workflow_permission_definitions() + workflow_action_permission_definitions();
+}
+
 function user_permission_keys($user = null)
 {
   $user = $user ?: current_user();
   if (!$user) return [];
-  $definitions = workflow_permission_definitions();
+  $definitions = all_workflow_permission_definitions();
   if (($user['user_level'] ?? '') === 'admin') return array_keys($definitions);
 
   require_once __DIR__ . '/system.php';
@@ -152,7 +171,7 @@ function require_user_permission($permissionKey)
 {
   require_user();
   if (!user_can($permissionKey)) {
-    $definition = workflow_permission_definitions()[$permissionKey] ?? ['label' => 'ส่วนนี้'];
+    $definition = all_workflow_permission_definitions()[$permissionKey] ?? ['label' => 'ส่วนนี้'];
     http_response_code(403);
     exit('บัญชีนี้ไม่มีสิทธิ์เข้าถึง: ' . $definition['label']);
   }

@@ -115,6 +115,34 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
   try {
     if (!verify_csrf($_POST['csrf_token'] ?? '')) throw new RuntimeException('แบบฟอร์มหมดอายุ กรุณาลองใหม่');
     $id = filter_var($_POST['workflow_id'] ?? 0, FILTER_VALIDATE_INT);
+    $action = $_POST['action'] ?? 'save';
+    if ($action === 'delete') {
+      if (!user_can('weighing_delete', $user)) throw new RuntimeException('บัญชีนี้ไม่มีสิทธิ์ลบข้อมูลการชั่งยาง');
+      if (!$id) throw new RuntimeException('ไม่พบรายการที่ต้องการลบข้อมูลการชั่ง');
+      db()->beginTransaction();
+      $stmt = db()->prepare('SELECT * FROM tbl_rubber_workflow WHERE workflow_id = :id FOR UPDATE');
+      $stmt->execute(['id' => $id]);
+      $workflow = $stmt->fetch();
+      if (!$workflow || $workflow['workflow_status'] === 'placed') throw new RuntimeException('รายการนี้ยังไม่มีข้อมูลการชั่งให้ลบ');
+      if ($workflow['workflow_status'] === 'paid' && !$isAdmin) throw new RuntimeException('รายการที่จ่ายเงินแล้วลบข้อมูลชั่งได้เฉพาะ admin');
+      db()->prepare('DELETE FROM tbl_rubber_deduction WHERE workflow_id = :id')->execute(['id' => $id]);
+      $stmt = db()->prepare('UPDATE tbl_rubber_workflow SET actual_weight = 0, price_per_kg = 0,
+        gross_amount = 0, total_deduction = 0, net_amount = 0, workflow_status = "placed",
+        weighed_by = "", weighed_at = NULL, deduction_by = "", deduction_at = NULL,
+        receipt_no = NULL, paid_by = "", paid_at = NULL,
+        admin_edited_by = "", admin_edited_at = NULL, admin_edit_type = ""
+        WHERE workflow_id = :id');
+      $stmt->execute(['id' => $id]);
+      update_placement_status($id, 'placed');
+      audit_log('delete', 'workflow', $id, 'ลบข้อมูลการชั่งและย้อนรายการกลับไปรอชั่งของสมาชิก ' . $workflow['member_number'], [
+        'round_date' => $workflow['weigh_date'], 'yard_code' => $workflow['yard_code'],
+        'previous_status' => $workflow['workflow_status'], 'previous_weight' => (float) $workflow['actual_weight'],
+        'previous_total_deduction' => (float) $workflow['total_deduction'], 'previous_net_amount' => (float) $workflow['net_amount'],
+      ]);
+      db()->commit();
+      $_SESSION['workflow_flash'] = ['type' => 'success', 'message' => 'ลบข้อมูลการชั่งและข้อมูลขั้นตอนถัดไปแล้ว รายการถูกย้อนกลับไปรอชั่ง'];
+      workflow_redirect('weighing.php', weighing_redirect_params());
+    }
     $weight = filter_var($_POST['actual_weight'] ?? null, FILTER_VALIDATE_FLOAT);
     if (!$id) throw new RuntimeException('ไม่พบรายการที่ต้องการชั่ง');
     if ($weight === false || $weight <= 0 || $weight > 1000000) throw new RuntimeException('น้ำหนักจริงต้องมากกว่า 0 กิโลกรัม');
@@ -131,6 +159,9 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     }
     if (!$selectedYard || (string) $workflow['yard_code'] !== (string) $selectedYard['yard_code']) {
       throw new RuntimeException('รายการชั่งไม่ตรงกับลานที่เลือก');
+    }
+    if ($workflow['workflow_status'] === 'weighed' && !user_can('weighing_edit', $user)) {
+      throw new RuntimeException('บัญชีนี้ไม่มีสิทธิ์แก้ไขน้ำหนักที่บันทึกแล้ว');
     }
 
     if ($isPaidAdminEdit) {
@@ -339,7 +370,7 @@ $weighingSections = [
             <thead><tr><th>วันรับยาง / วางยาง</th><th>รอบวันที่ราคา</th><th>วันชั่งน้ำหนักจริง</th><th>ลาน</th><th>สมาชิก</th><th class="num">กระสอบ</th><th class="num">ประมาณ kg</th><th>สถานะ</th><th>น้ำหนักจริง / จัดการ</th></tr></thead>
             <tbody>
             <?php foreach ($sectionData['rows'] as $row): ?>
-              <?php $isPaidAdminRow = $isAdmin && $row['workflow_status'] === 'paid'; $canEditWeight = in_array($row['workflow_status'], ['placed', 'weighed'], true) || $isPaidAdminRow; ?>
+              <?php $isPaidAdminRow = $isAdmin && $row['workflow_status'] === 'paid'; $canEditWeight = $row['workflow_status'] === 'placed' || ($row['workflow_status'] === 'weighed' && user_can('weighing_edit', $user)) || $isPaidAdminRow; $canDeleteWeight = $row['workflow_status'] !== 'placed' && user_can('weighing_delete', $user) && ($row['workflow_status'] !== 'paid' || $isAdmin); ?>
               <tr>
                 <td><div class="date-cell placement-date"><strong><?php echo h(weighing_thai_date($row['placement_at'] ?: $row['created_at'])); ?></strong><small><?php echo $row['placement_at'] ? h(date('H:i', strtotime($row['placement_at'])) . ' น.') : 'วันที่รับเข้าระบบ'; ?></small></div></td>
                 <td><div class="date-cell round-date"><strong><?php echo h(weighing_thai_date($row['weigh_date'])); ?></strong><small>วันที่รอบราคา</small></div></td>
@@ -349,7 +380,7 @@ $weighingSections = [
                 <td class="num"><?php echo number_format((float) $row['total_bags'], 0); ?></td>
                 <td class="num"><?php echo number_format((float) $row['estimated_weight'], 2); ?></td>
                 <td><span class="workflow-status <?php echo h(workflow_status_class($row['workflow_status'])); ?>"><?php echo h(workflow_status_label($row['workflow_status'])); ?></span></td>
-                <td><?php if ($canEditWeight): ?><div class="weight-entry"><form class="weight-form" method="post"><input type="hidden" name="csrf_token" value="<?php echo h(csrf_token()); ?>"><input type="hidden" name="workflow_id" value="<?php echo (int) $row['workflow_id']; ?>"><input class="form-control" type="number" name="actual_weight" min="0.01" max="1000000" step="0.01" inputmode="decimal" required value="<?php echo (float) $row['actual_weight'] > 0 ? h($row['actual_weight']) : ''; ?>" placeholder="0.00"><button class="btn <?php echo $isPaidAdminRow ? 'btn-danger' : 'btn-green'; ?>" type="submit"><i class="bi bi-check2"></i><span><?php echo $isPaidAdminRow ? 'Admin แก้ไข' : ($row['workflow_status'] === 'weighed' ? 'แก้ไข' : 'บันทึก'); ?></span></button></form><small><i class="bi <?php echo $isPaidAdminRow ? 'bi-shield-lock-fill text-danger' : 'bi-calendar-check'; ?> me-1"></i><?php echo $isPaidAdminRow ? 'รายการจ่ายแล้ว · ระบบบันทึกชื่อและเวลาแก้ไข' : ($row['workflow_status'] === 'weighed' ? 'แก้ไขได้ก่อนบันทึกยอดหัก' : 'บันทึกวันชั่งเป็นวันนี้อัตโนมัติ'); ?></small></div><?php else: ?><strong><?php echo number_format((float) $row['actual_weight'], 2); ?> kg</strong><small class="d-block text-secondary">ล็อกแล้วหลังผ่านการอนุมัติหรือจ่ายเงิน</small><?php endif; ?></td>
+                <td><?php if ($canEditWeight): ?><div class="weight-entry"><form class="weight-form" method="post"><input type="hidden" name="csrf_token" value="<?php echo h(csrf_token()); ?>"><input type="hidden" name="action" value="save"><input type="hidden" name="workflow_id" value="<?php echo (int) $row['workflow_id']; ?>"><input class="form-control" type="number" name="actual_weight" min="0.01" max="1000000" step="0.01" inputmode="decimal" required value="<?php echo (float) $row['actual_weight'] > 0 ? h($row['actual_weight']) : ''; ?>" placeholder="0.00"><button class="btn <?php echo $isPaidAdminRow ? 'btn-danger' : 'btn-green'; ?>" type="submit"><i class="bi bi-check2"></i><span><?php echo $isPaidAdminRow ? 'Admin แก้ไข' : ($row['workflow_status'] === 'weighed' ? 'แก้ไข' : 'บันทึก'); ?></span></button></form><?php if ($canDeleteWeight): ?><form method="post" class="mt-1" onsubmit="return confirm('ยืนยันลบข้อมูลชั่งน้ำหนัก? ข้อมูลยอดหักและการจ่ายเงินที่ต่อจากรายการนี้จะถูกล้างด้วย')"><input type="hidden" name="csrf_token" value="<?php echo h(csrf_token()); ?>"><input type="hidden" name="action" value="delete"><input type="hidden" name="workflow_id" value="<?php echo (int) $row['workflow_id']; ?>"><button class="btn btn-sm btn-outline-danger w-100"><i class="bi bi-trash me-1"></i>ลบการชั่ง</button></form><?php endif; ?><small><i class="bi <?php echo $isPaidAdminRow ? 'bi-shield-lock-fill text-danger' : 'bi-calendar-check'; ?> me-1"></i><?php echo $isPaidAdminRow ? 'รายการจ่ายแล้ว · ระบบบันทึกชื่อและเวลาแก้ไข' : ($row['workflow_status'] === 'weighed' ? 'จัดการตามสิทธิ์ที่ได้รับ' : 'บันทึกวันชั่งเป็นวันนี้อัตโนมัติ'); ?></small></div><?php else: ?><strong><?php echo number_format((float) $row['actual_weight'], 2); ?> kg</strong><?php if ($canDeleteWeight): ?><form method="post" class="mt-1" onsubmit="return confirm('ยืนยันลบข้อมูลชั่งและข้อมูลขั้นตอนถัดไป?')"><input type="hidden" name="csrf_token" value="<?php echo h(csrf_token()); ?>"><input type="hidden" name="action" value="delete"><input type="hidden" name="workflow_id" value="<?php echo (int) $row['workflow_id']; ?>"><button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i> ลบ</button></form><?php else: ?><small class="d-block text-secondary">ไม่มีสิทธิ์แก้ไขหรือลบ</small><?php endif; ?><?php endif; ?></td>
               </tr>
             <?php endforeach; ?>
             <?php if (!$sectionData['rows']): ?><tr><td class="empty" colspan="9"><?php echo $sectionKey === 'pending' ? 'ไม่มีรายการรอบันทึกน้ำหนัก' : 'ยังไม่มีรายการที่บันทึกน้ำหนักแล้ว'; ?></td></tr><?php endif; ?>
@@ -359,7 +390,7 @@ $weighingSections = [
 
         <div class="weighing-mobile-list">
           <?php foreach ($sectionData['rows'] as $row): ?>
-            <?php $isPaidAdminRow = $isAdmin && $row['workflow_status'] === 'paid'; $canEditWeight = in_array($row['workflow_status'], ['placed', 'weighed'], true) || $isPaidAdminRow; ?>
+            <?php $isPaidAdminRow = $isAdmin && $row['workflow_status'] === 'paid'; $canEditWeight = $row['workflow_status'] === 'placed' || ($row['workflow_status'] === 'weighed' && user_can('weighing_edit', $user)) || $isPaidAdminRow; $canDeleteWeight = $row['workflow_status'] !== 'placed' && user_can('weighing_delete', $user) && ($row['workflow_status'] !== 'paid' || $isAdmin); ?>
             <article class="mobile-weigh-card">
               <div class="mobile-weigh-head">
                 <div><strong><?php echo h($row['member_number'] . ' · ' . $row['member_name']); ?></strong><small>รอบราคา <?php echo h(weighing_thai_date($row['weigh_date'])); ?> · <?php echo h(workflow_status_label($row['workflow_status'])); ?></small></div>
@@ -374,12 +405,14 @@ $weighingSections = [
                 <?php if ($canEditWeight): ?>
                   <form class="mobile-weight-form" method="post">
                     <input type="hidden" name="csrf_token" value="<?php echo h(csrf_token()); ?>">
+                    <input type="hidden" name="action" value="save">
                     <input type="hidden" name="workflow_id" value="<?php echo (int) $row['workflow_id']; ?>">
                     <input class="form-control" type="number" name="actual_weight" min="0.01" max="1000000" step="0.01" inputmode="decimal" required value="<?php echo (float) $row['actual_weight'] > 0 ? h($row['actual_weight']) : ''; ?>" placeholder="0.00">
                     <button class="btn <?php echo $isPaidAdminRow ? 'btn-danger' : 'btn-green'; ?>" type="submit"><i class="bi bi-check2-circle"></i> <?php echo $isPaidAdminRow ? 'Admin แก้ไข' : ($row['workflow_status'] === 'weighed' ? 'แก้ไข' : 'บันทึก'); ?></button>
                   </form>
                   <?php if ($isPaidAdminRow): ?><small class="d-block text-danger mt-2"><i class="bi bi-shield-lock-fill me-1"></i>รายการจ่ายแล้ว · ใบเสร็จจะแสดงลายน้ำการแก้ไข</small><?php endif; ?>
                 <?php else: ?><strong class="mobile-final-weight"><?php echo number_format((float) $row['actual_weight'], 2); ?> kg</strong><?php if (in_array($row['workflow_status'], ['deducted', 'paid'], true)): ?><small class="d-block text-secondary mt-1">ล็อกแล้ว</small><?php endif; ?><?php endif; ?>
+                <?php if ($canDeleteWeight): ?><form method="post" class="mt-2" onsubmit="return confirm('ยืนยันลบข้อมูลชั่งและข้อมูลขั้นตอนถัดไป?')"><input type="hidden" name="csrf_token" value="<?php echo h(csrf_token()); ?>"><input type="hidden" name="action" value="delete"><input type="hidden" name="workflow_id" value="<?php echo (int) $row['workflow_id']; ?>"><button class="btn btn-sm btn-outline-danger w-100"><i class="bi bi-trash me-1"></i>ลบการชั่ง</button></form><?php endif; ?>
               </div>
             </article>
           <?php endforeach; ?>

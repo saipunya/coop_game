@@ -11,7 +11,7 @@ if (($currentUser['user_level'] ?? '') !== 'admin') {
   exit('เฉพาะผู้ดูแลระบบเท่านั้น');
 }
 
-$permissionDefinitions = workflow_permission_definitions();
+$permissionDefinitions = all_workflow_permission_definitions();
 $permissionKeys = array_keys($permissionDefinitions);
 $error = '';
 $flash = $_SESSION['user_crud_flash'] ?? null;
@@ -24,6 +24,11 @@ function users_redirect()
 }
 
 $postedPermissions = array_values(array_intersect($permissionKeys, (array) ($_POST['permissions'] ?? [])));
+foreach (workflow_action_permission_definitions() as $actionKey => $actionDefinition) {
+  if (in_array($actionKey, $postedPermissions, true) && !in_array($actionDefinition['stage'], $postedPermissions, true)) {
+    $postedPermissions[] = $actionDefinition['stage'];
+  }
+}
 
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
   try {
@@ -151,7 +156,7 @@ $users = $stmt->fetchAll();
 <body>
 <?php render_topbar(); ?>
 <main class="admin-shell">
-  <section class="admin-hero"><div><h1><i class="bi bi-person-gear me-2"></i>จัดการผู้ใช้งานและสิทธิ์</h1><p>Admin กำหนดสิทธิ์เข้าถึงแต่ละขั้นตอนให้เจ้าหน้าที่ได้มากกว่าหนึ่งรายการ</p></div><span class="hero-count"><?php echo number_format(count($users)); ?> บัญชี</span></section>
+  <section class="admin-hero"><div><h1><i class="bi bi-person-gear me-2"></i>จัดการผู้ใช้งานและสิทธิ์</h1><p>Admin กำหนดสิทธิ์เข้าใช้งาน แก้ไข และลบ แยกตามแต่ละขั้นตอนให้เจ้าหน้าที่ได้</p></div><span class="hero-count"><?php echo number_format(count($users)); ?> บัญชี</span></section>
   <?php if ($flash): ?><div class="alert alert-<?php echo h($flash['type']); ?>"><?php echo h($flash['message']); ?></div><?php endif; ?>
   <?php if ($error): ?><div class="alert alert-danger"><?php echo h($error); ?></div><?php endif; ?>
 
@@ -168,12 +173,12 @@ $users = $stmt->fetchAll();
         <div class="row g-2 mb-3"><div class="col"><label class="form-label">ประเภทบัญชี</label><select class="form-select" name="level" id="userLevel"><option value="user" <?php echo ($formUser['user_level'] ?? 'user') === 'user' ? 'selected' : ''; ?>>เจ้าหน้าที่</option><option value="admin" <?php echo ($formUser['user_level'] ?? '') === 'admin' ? 'selected' : ''; ?>>ผู้ดูแลระบบ</option></select></div><div class="col"><label class="form-label">สถานะ</label><select class="form-select" name="status"><option value="active" <?php echo ($formUser['user_status'] ?? 'active') === 'active' ? 'selected' : ''; ?>>ใช้งาน</option><option value="inactive" <?php echo ($formUser['user_status'] ?? '') === 'inactive' ? 'selected' : ''; ?>>ระงับ</option></select></div></div>
 
         <fieldset class="permission-fieldset" id="permissionFieldset">
-          <legend>สิทธิ์การเข้าถึงขั้นตอน</legend>
-          <p class="permission-admin-note"><i class="bi bi-shield-check"></i> บัญชี Admin เข้าถึงทุกขั้นตอนอัตโนมัติ</p>
+          <legend>สิทธิ์การเข้าถึงและคำสั่ง</legend>
+          <p class="permission-admin-note"><i class="bi bi-shield-check"></i> บัญชี Admin เข้าถึงและดำเนินการได้ทุกเมนูอัตโนมัติ</p>
           <div class="permission-options">
           <?php foreach ($permissionDefinitions as $key => $definition): ?>
             <label class="permission-option">
-              <input type="checkbox" name="permissions[]" value="<?php echo h($key); ?>" <?php echo in_array($key, $formPermissions, true) ? 'checked' : ''; ?>>
+              <input type="checkbox" name="permissions[]" value="<?php echo h($key); ?>" data-stage="<?php echo h($definition['stage'] ?? ''); ?>" <?php echo in_array($key, $formPermissions, true) ? 'checked' : ''; ?>>
               <span class="permission-icon"><i class="bi <?php echo h($definition['icon']); ?>"></i></span>
               <span><strong><?php echo h($definition['label']); ?></strong><small><?php echo h($definition['description']); ?></small></span>
             </label>
@@ -203,6 +208,20 @@ $users = $stmt->fetchAll();
     fieldset.classList.toggle('admin-selected', level.value === 'admin');
   }
   level.addEventListener('change', updatePermissionState);
+  fieldset.querySelectorAll('input[name="permissions[]"]').forEach(function (checkbox) {
+    checkbox.addEventListener('change', function () {
+      var stage = checkbox.getAttribute('data-stage');
+      if (checkbox.checked && stage) {
+        var parent = fieldset.querySelector('input[value="' + stage + '"]');
+        if (parent) parent.checked = true;
+      }
+      if (!checkbox.checked && !stage) {
+        fieldset.querySelectorAll('input[data-stage="' + checkbox.value + '"]').forEach(function (actionCheckbox) {
+          actionCheckbox.checked = false;
+        });
+      }
+    });
+  });
   updatePermissionState();
 }());
 </script>

@@ -14,13 +14,39 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
   try {
     if (!verify_csrf($_POST['csrf_token'] ?? '')) throw new RuntimeException('แบบฟอร์มหมดอายุ กรุณาลองใหม่');
     $id = filter_var($_POST['workflow_id'] ?? 0, FILTER_VALIDATE_INT);
+    $action = $_POST['action'] ?? 'pay';
     if (!$id) throw new RuntimeException('ไม่พบรายการที่ต้องการจ่ายเงิน');
 
     db()->beginTransaction();
-    $stmt = db()->prepare('SELECT workflow_status, weigh_date, yard_code, member_number, receipt_no, net_amount
+    $stmt = db()->prepare('SELECT workflow_status, weigh_date, yard_code, member_number, receipt_no,
+        net_amount, paid_by, paid_at
       FROM tbl_rubber_workflow WHERE workflow_id = :id FOR UPDATE');
     $stmt->execute(['id' => $id]);
     $workflow = $stmt->fetch();
+    if (in_array($action, ['edit', 'delete'], true)) {
+      $requiredPermission = $action === 'edit' ? 'payments_edit' : 'payments_delete';
+      if (!user_can($requiredPermission, $user)) throw new RuntimeException('บัญชีนี้ไม่มีสิทธิ์แก้ไขหรือยกเลิกการจ่ายเงิน');
+      if (!$workflow || $workflow['workflow_status'] !== 'paid') throw new RuntimeException('รายการนี้ยังไม่ได้บันทึกการจ่ายเงิน');
+      $stmt = db()->prepare('UPDATE tbl_rubber_workflow SET workflow_status = "deducted",
+        paid_by = "", paid_at = NULL, admin_edited_by = "", admin_edited_at = NULL,
+        admin_edit_type = "" WHERE workflow_id = :id');
+      $stmt->execute(['id' => $id]);
+      update_placement_status($id, 'deducted');
+      audit_log($action === 'edit' ? 'update' : 'delete', 'workflow', $id,
+        ($action === 'edit' ? 'เปิดรายการจ่ายเงินกลับมาแก้ไข' : 'ยกเลิกการจ่ายเงิน') . ' ของสมาชิก ' . $workflow['member_number'], [
+          'round_date' => $workflow['weigh_date'], 'yard_code' => $workflow['yard_code'],
+          'receipt_no' => $workflow['receipt_no'], 'net_amount' => (float) $workflow['net_amount'],
+          'previous_paid_by' => $workflow['paid_by'], 'previous_paid_at' => $workflow['paid_at'],
+        ]);
+      db()->commit();
+      $_SESSION['workflow_flash'] = ['type' => 'success', 'message' => $action === 'edit'
+        ? 'เปิดรายการกลับมาแก้ไขแล้ว สถานะถูกย้อนเป็นรอจ่ายเงิน'
+        : 'ยกเลิกการจ่ายเงินแล้ว รายการถูกย้อนกลับไปรอจ่ายเงิน'];
+      if ($action === 'edit' && user_can('deductions', $user) && user_can('deductions_edit', $user)) {
+        workflow_redirect('deductions.php', ['id' => $id]);
+      }
+      workflow_redirect('payments.php');
+    }
     if (!$workflow || $workflow['workflow_status'] !== 'deducted') {
       throw new RuntimeException('รายการนี้ยังไม่บันทึกยอดหัก หรือจ่ายเงินไปแล้ว');
     }
@@ -140,7 +166,7 @@ $paidSummary = payment_section_summary($paidRows);
             <td class="num"><?php echo number_format((float) $row['gross_amount'], 2); ?></td>
             <td class="num text-danger"><?php echo number_format((float) $row['total_deduction'], 2); ?></td>
             <td class="num fw-bold text-success"><?php echo number_format((float) $row['net_amount'], 2); ?></td>
-            <td><div class="payment-actions"><a class="btn btn-sm btn-outline-dark" target="_blank" href="<?php echo h(url_for('receipt.php?id=' . (int) $row['workflow_id'])); ?>"><i class="bi bi-printer me-1"></i>ใบเสร็จ</a><form method="post" onsubmit="return confirm('ยืนยันว่าสมาชิกได้รับเงินแล้ว? เมื่อยืนยันจะไม่สามารถแก้ไขน้ำหนักหรือยอดหักได้')"><input type="hidden" name="csrf_token" value="<?php echo h(csrf_token()); ?>"><input type="hidden" name="workflow_id" value="<?php echo (int) $row['workflow_id']; ?>"><input type="hidden" name="return_date" value="<?php echo h($date); ?>"><button class="btn btn-sm btn-green"><i class="bi bi-check2-circle me-1"></i>จ่ายเงินแล้ว</button></form></div></td>
+            <td><div class="payment-actions"><a class="btn btn-sm btn-outline-dark" target="_blank" href="<?php echo h(url_for('receipt.php?id=' . (int) $row['workflow_id'])); ?>"><i class="bi bi-printer me-1"></i>ใบเสร็จ</a><form method="post" onsubmit="return confirm('ยืนยันว่าสมาชิกได้รับเงินแล้ว? เมื่อยืนยันจะไม่สามารถแก้ไขน้ำหนักหรือยอดหักได้')"><input type="hidden" name="csrf_token" value="<?php echo h(csrf_token()); ?>"><input type="hidden" name="action" value="pay"><input type="hidden" name="workflow_id" value="<?php echo (int) $row['workflow_id']; ?>"><input type="hidden" name="return_date" value="<?php echo h($date); ?>"><button class="btn btn-sm btn-green"><i class="bi bi-check2-circle me-1"></i>จ่ายเงินแล้ว</button></form></div></td>
           </tr>
         <?php endforeach; ?>
         <?php if (!$pendingRows): ?><tr><td class="empty" colspan="8">ไม่มีรายการค้างจ่ายตามวันที่ที่เลือก</td></tr><?php endif; ?>
@@ -173,7 +199,7 @@ $paidSummary = payment_section_summary($paidRows);
             <td class="num"><?php echo number_format((float) $row['gross_amount'], 2); ?></td>
             <td class="num text-danger"><?php echo number_format((float) $row['total_deduction'], 2); ?></td>
             <td class="num fw-bold text-success"><?php echo number_format((float) $row['net_amount'], 2); ?></td>
-            <td><div class="payment-actions"><span class="workflow-status status-paid">จ่ายเงินแล้ว</span><a class="btn btn-sm btn-outline-dark" target="_blank" href="<?php echo h(url_for('receipt.php?id=' . (int) $row['workflow_id'])); ?>"><i class="bi bi-printer me-1"></i>ใบเสร็จ</a><small><?php echo h($row['paid_by'] ?: 'ไม่พบชื่อผู้จ่าย'); ?><br><?php echo h($row['paid_at']); ?></small></div></td>
+            <td><div class="payment-actions"><span class="workflow-status status-paid">จ่ายเงินแล้ว</span><a class="btn btn-sm btn-outline-dark" target="_blank" href="<?php echo h(url_for('receipt.php?id=' . (int) $row['workflow_id'])); ?>"><i class="bi bi-printer me-1"></i>ใบเสร็จ</a><?php if (user_can('payments_edit', $user)): ?><form method="post" onsubmit="return confirm('เปิดรายการนี้กลับมาแก้ไขและยกเลิกสถานะจ่ายแล้วชั่วคราว?')"><input type="hidden" name="csrf_token" value="<?php echo h(csrf_token()); ?>"><input type="hidden" name="action" value="edit"><input type="hidden" name="workflow_id" value="<?php echo (int) $row['workflow_id']; ?>"><button class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil me-1"></i>แก้ไข</button></form><?php endif; ?><?php if (user_can('payments_delete', $user)): ?><form method="post" onsubmit="return confirm('ยืนยันยกเลิกการจ่ายเงินรายการนี้?')"><input type="hidden" name="csrf_token" value="<?php echo h(csrf_token()); ?>"><input type="hidden" name="action" value="delete"><input type="hidden" name="workflow_id" value="<?php echo (int) $row['workflow_id']; ?>"><button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash me-1"></i>ยกเลิกจ่าย</button></form><?php endif; ?><small><?php echo h($row['paid_by'] ?: 'ไม่พบชื่อผู้จ่าย'); ?><br><?php echo h($row['paid_at']); ?></small></div></td>
           </tr>
         <?php endforeach; ?>
         <?php if (!$paidRows): ?><tr><td class="empty" colspan="8">ยังไม่มีรายการจ่ายเงินตามวันที่ที่เลือก</td></tr><?php endif; ?>
