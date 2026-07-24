@@ -253,6 +253,23 @@
     };
   }
 
+  function keepEndAfterStart() {
+    const startValue = $('#startInput').value;
+    if (!startValue) return;
+
+    const start = new Date(startValue);
+    const currentEnd = $('#endInput').value ? new Date($('#endInput').value) : null;
+    if (Number.isNaN(start.getTime())) return;
+
+    // When a future start is selected, move an empty or now-invalid end time
+    // forward automatically instead of making the user correct both fields.
+    if (!currentEnd || Number.isNaN(currentEnd.getTime()) || currentEnd < start) {
+      const suggestedEnd = new Date(start);
+      suggestedEnd.setHours(suggestedEnd.getHours() + 1);
+      $('#endInput').value = localDateTime(suggestedEnd);
+    }
+  }
+
   async function mutate(url, method, payload) {
     const response = await fetch(url, {
       method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
@@ -308,6 +325,7 @@
   }
 
   $('#addEventButton').addEventListener('click', () => openCreate());
+  $('#startInput').addEventListener('change', keepEndAfterStart);
   $('#closeDayDialogButton').addEventListener('click', () => $('#dayDialog').close());
   $('#closeDayButton').addEventListener('click', () => $('#dayDialog').close());
   $('#addEventOnDayButton').addEventListener('click', () => {

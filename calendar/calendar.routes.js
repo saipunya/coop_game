@@ -57,7 +57,7 @@ function validateEvent(body) {
   // Both values use the same zero-padded YYYY-MM-DD HH:mm:ss format, so a
   // lexical comparison is exact and cannot shift when the server timezone differs.
   if (endAt < startAt) {
-    return { error: 'เวลาสิ้นสุดต้องไม่น้อยกว่าเวลาเริ่มต้น' };
+    return { error: 'เวลาสิ้นสุดต้องเป็นเวลาเดียวกับหรือหลังเวลาเริ่มต้น' };
   }
 
   return {
