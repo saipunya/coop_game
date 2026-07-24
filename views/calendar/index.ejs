@@ -133,21 +133,19 @@
       <label class="check-field">
         <input id="allDayInput" type="checkbox"> <span>งานตลอดวัน</span>
       </label>
-      <div class="form-grid">
-        <label class="field">
-          <span>สถานะ</span>
-          <select id="statusInput">
-            <option value="planned">วางแผน</option>
-            <option value="in_progress">กำลังทำ</option>
-            <option value="done">เสร็จแล้ว</option>
-            <option value="cancelled">ยกเลิก</option>
-          </select>
-        </label>
-        <label class="field">
-          <span>สถานที่</span>
-          <input id="locationInput" maxlength="200" placeholder="ระบุสถานที่ (ถ้ามี)">
-        </label>
-      </div>
+      <label class="field full">
+        <span>สถานะ</span>
+        <select id="statusInput">
+          <option value="planned">วางแผน</option>
+          <option value="in_progress">กำลังทำ</option>
+          <option value="done">เสร็จแล้ว</option>
+          <option value="cancelled">ยกเลิก</option>
+        </select>
+      </label>
+      <label class="field full">
+        <span>สถานที่</span>
+        <input id="locationInput" maxlength="200" placeholder="ระบุสถานที่ (ถ้ามี)">
+      </label>
       <fieldset class="color-field">
         <legend>สีของงาน</legend>
         <div id="colorOptions">
