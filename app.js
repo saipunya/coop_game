@@ -108,6 +108,7 @@ app.use(express.urlencoded({ extended: true }));
 // static files
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/coopgame', express.static(path.join(__dirname, 'public')));
+app.use('/calendar-assets', express.static(path.join(__dirname, 'public', 'calendar')));
 
 // view engine
 app.set('view engine', 'ejs');
@@ -124,6 +125,8 @@ const gameRoutes = require('./routes/game.routes');
 const adminRoutes = require('./routes/admin.routes');
 const roomRoutes = require('./routes/room.routes');
 const trackingRoutes = require('./routes/tracking.routes');
+const calendarRoutes = require('./calendar/calendar.routes');
+app.use('/calendar', calendarRoutes);
 app.use('/coopgame/r', roomRoutes);
 app.use('/coopgame/game', gameRoutes);
 app.use('/coopgame/admin', adminRoutes);

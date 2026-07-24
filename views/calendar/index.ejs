@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f7f8fc">
+  <title><%= title %></title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/calendar-assets/calendar.css">
+  <link rel="stylesheet" href="/calendar-assets/day-modal.css">
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">WORKSPACE</p>
+        <h1>ปฏิทินงาน</h1>
+      </div>
+      <button class="primary-button" id="addEventButton" type="button">
+        <span aria-hidden="true">＋</span> เพิ่มงาน
+      </button>
+    </header>
+
+    <section class="calendar-card" aria-label="ปฏิทินงาน">
+      <div class="toolbar">
+        <div class="month-nav">
+          <button class="icon-button" id="previousButton" type="button" aria-label="เดือนก่อนหน้า">‹</button>
+          <button class="today-button" id="todayButton" type="button">วันนี้</button>
+          <button class="icon-button" id="nextButton" type="button" aria-label="เดือนถัดไป">›</button>
+          <h2 id="periodTitle"></h2>
+        </div>
+        <div class="view-switch" role="group" aria-label="รูปแบบการแสดงผล">
+          <button class="active" data-view="month" type="button">เดือน</button>
+          <button data-view="agenda" type="button">รายการ</button>
+        </div>
+      </div>
+
+      <div id="loadingState" class="state-message">กำลังโหลดข้อมูล…</div>
+      <div id="errorState" class="state-message error" hidden></div>
+
+      <div id="monthView">
+        <div class="weekdays" aria-hidden="true">
+          <span>อา.</span><span>จ.</span><span>อ.</span><span>พ.</span><span>พฤ.</span><span>ศ.</span><span>ส.</span>
+        </div>
+        <div class="month-grid" id="monthGrid"></div>
+      </div>
+      <div id="agendaView" class="agenda-view" hidden></div>
+    </section>
+
+    <section class="summary-row" aria-label="สรุปงาน">
+      <article><span class="summary-dot blue"></span><div><strong id="plannedCount">0</strong><small>วางแผน</small></div></article>
+      <article><span class="summary-dot orange"></span><div><strong id="progressCount">0</strong><small>กำลังทำ</small></div></article>
+      <article><span class="summary-dot green"></span><div><strong id="doneCount">0</strong><small>เสร็จแล้ว</small></div></article>
+    </section>
+  </main>
+
+  <dialog id="dayDialog" class="day-dialog">
+    <div class="day-dialog-content">
+      <div class="dialog-header">
+        <div>
+          <p class="eyebrow">DAILY SCHEDULE</p>
+          <h2 id="dayDialogTitle">รายละเอียดประจำวัน</h2>
+          <p id="dayDialogSubtitle" class="day-dialog-subtitle"></p>
+        </div>
+        <button class="close-button" id="closeDayDialogButton" type="button" aria-label="ปิด">×</button>
+      </div>
+      <div id="dayEventList" class="day-event-list"></div>
+      <div class="day-dialog-actions">
+        <button class="secondary-button" id="closeDayButton" type="button">ปิด</button>
+        <button class="primary-button" id="addEventOnDayButton" type="button">
+          <span aria-hidden="true">＋</span> เพิ่มงานในวันนี้
+        </button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="eventDialog">
+    <form id="eventForm" autocomplete="off">
+      <div class="dialog-header">
+        <div>
+          <p class="eyebrow" id="dialogEyebrow">NEW TASK</p>
+          <h2 id="dialogTitle">เพิ่มงานใหม่</h2>
+        </div>
+        <button class="close-button" id="closeDialogButton" type="button" aria-label="ปิด">×</button>
+      </div>
+
+      <input id="eventId" type="hidden">
+      <label class="field full">
+        <span>ชื่องาน <b>*</b></span>
+        <input id="titleInput" maxlength="160" required placeholder="เช่น ประชุมสรุปโครงการ">
+      </label>
+      <div class="form-grid">
+        <label class="field">
+          <span>เริ่ม <b>*</b></span>
+          <input id="startInput" type="datetime-local" required>
+        </label>
+        <label class="field">
+          <span>สิ้นสุด <b>*</b></span>
+          <input id="endInput" type="datetime-local" required>
+        </label>
+      </div>
+      <label class="check-field">
+        <input id="allDayInput" type="checkbox"> <span>งานตลอดวัน</span>
+      </label>
+      <div class="form-grid">
+        <label class="field">
+          <span>สถานะ</span>
+          <select id="statusInput">
+            <option value="planned">วางแผน</option>
+            <option value="in_progress">กำลังทำ</option>
+            <option value="done">เสร็จแล้ว</option>
+            <option value="cancelled">ยกเลิก</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>สถานที่</span>
+          <input id="locationInput" maxlength="200" placeholder="ระบุสถานที่ (ถ้ามี)">
+        </label>
+      </div>
+      <fieldset class="color-field">
+        <legend>สีของงาน</legend>
+        <div id="colorOptions">
+          <label><input type="radio" name="color" value="#2563eb" checked><span style="--swatch:#2563eb"></span></label>
+          <label><input type="radio" name="color" value="#7c3aed"><span style="--swatch:#7c3aed"></span></label>
+          <label><input type="radio" name="color" value="#db2777"><span style="--swatch:#db2777"></span></label>
+          <label><input type="radio" name="color" value="#ea580c"><span style="--swatch:#ea580c"></span></label>
+          <label><input type="radio" name="color" value="#16a34a"><span style="--swatch:#16a34a"></span></label>
+          <label><input type="radio" name="color" value="#0891b2"><span style="--swatch:#0891b2"></span></label>
+        </div>
+      </fieldset>
+      <label class="field full">
+        <span>รายละเอียด</span>
+        <textarea id="descriptionInput" maxlength="5000" rows="3" placeholder="รายละเอียดเพิ่มเติม"></textarea>
+      </label>
+      <label class="field verification-field">
+        <span>รหัสยืนยัน <b>*</b></span>
+        <input id="verificationInput" type="password" required inputmode="numeric" placeholder="กรอกรหัสเพื่อยืนยันการบันทึก">
+        <small>จำเป็นสำหรับการเพิ่ม แก้ไข และลบงาน</small>
+      </label>
+      <p id="formError" class="form-error" role="alert" hidden></p>
+      <div class="dialog-actions">
+        <button id="deleteButton" class="danger-button" type="button" hidden>ลบงาน</button>
+        <span class="action-spacer"></span>
+        <button class="secondary-button" id="cancelButton" type="button">ยกเลิก</button>
+        <button class="primary-button" id="saveButton" type="submit">บันทึกงาน</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="/calendar-assets/calendar.js" defer></script>
+</body>
+</html>
