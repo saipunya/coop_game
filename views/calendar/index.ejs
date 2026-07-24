@@ -3,25 +3,59 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#f7f8fc">
+  <meta name="theme-color" content="#f6f7fb">
   <title><%= title %></title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/calendar-assets/calendar.css?v=20260724-2">
   <link rel="stylesheet" href="/calendar-assets/day-modal.css?v=20260724-2">
+  <link rel="stylesheet" href="/calendar-assets/calendar-modern.css?v=20260724-1">
 </head>
 <body>
   <main class="app-shell">
     <header class="topbar">
-      <div>
-        <p class="eyebrow">WORKSPACE</p>
-        <h1>ปฏิทินงาน</h1>
+      <div class="brand-lockup">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M7 3v3M17 3v3M4.5 9.5h15M6.5 5h11a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2h-11a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            <path d="m9 14 2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </span>
+        <div>
+          <p class="eyebrow">TEAM PLANNER</p>
+          <h1>ปฏิทินงาน</h1>
+          <p class="header-subtitle">จัดการแผนงานและติดตามทุกกำหนดการในที่เดียว</p>
+        </div>
       </div>
       <button class="primary-button" id="addEventButton" type="button">
-        <span aria-hidden="true">＋</span> เพิ่มงาน
+        <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+          <path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <span>เพิ่มงาน</span>
       </button>
     </header>
+
+    <section class="summary-row" aria-label="สรุปงาน">
+      <article class="summary-card summary-planned">
+        <span class="summary-icon" aria-hidden="true">
+          <svg viewBox="0 0 20 20" fill="none"><path d="M5 3.5v2M15 3.5v2M3.5 8h13M5 5h10a1.5 1.5 0 0 1 1.5 1.5v9A1.5 1.5 0 0 1 15 17H5a1.5 1.5 0 0 1-1.5-1.5v-9A1.5 1.5 0 0 1 5 5Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </span>
+        <div><small>งานที่วางแผน</small><strong id="plannedCount">0</strong><span class="summary-caption">รอดำเนินการ</span></div>
+      </article>
+      <article class="summary-card summary-progress">
+        <span class="summary-icon" aria-hidden="true">
+          <svg viewBox="0 0 20 20" fill="none"><path d="M10 5v5l3 2M17 10a7 7 0 1 1-2.05-4.95" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </span>
+        <div><small>กำลังดำเนินงาน</small><strong id="progressCount">0</strong><span class="summary-caption">อยู่ระหว่างทำ</span></div>
+      </article>
+      <article class="summary-card summary-done">
+        <span class="summary-icon" aria-hidden="true">
+          <svg viewBox="0 0 20 20" fill="none"><path d="m5 10 3.25 3.25L15 6.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="10" cy="10" r="7" stroke="currentColor" stroke-width="1.5"/></svg>
+        </span>
+        <div><small>งานเสร็จแล้ว</small><strong id="doneCount">0</strong><span class="summary-caption">ดำเนินการสำเร็จ</span></div>
+      </article>
+    </section>
 
     <section class="calendar-card" aria-label="ปฏิทินงาน">
       <div class="toolbar">
@@ -49,11 +83,6 @@
       <div id="agendaView" class="agenda-view" hidden></div>
     </section>
 
-    <section class="summary-row" aria-label="สรุปงาน">
-      <article><span class="summary-dot blue"></span><div><strong id="plannedCount">0</strong><small>วางแผน</small></div></article>
-      <article><span class="summary-dot orange"></span><div><strong id="progressCount">0</strong><small>กำลังทำ</small></div></article>
-      <article><span class="summary-dot green"></span><div><strong id="doneCount">0</strong><small>เสร็จแล้ว</small></div></article>
-    </section>
   </main>
 
   <dialog id="dayDialog" class="day-dialog">
