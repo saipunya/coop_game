@@ -150,6 +150,7 @@
   function resetForm() {
     $('#eventForm').reset();
     $('#eventId').value = '';
+    $('#endInput').removeAttribute('min');
     $('#formError').hidden = true;
     $('#verificationInput').value = '';
     document.querySelector('input[name="color"][value="#2563eb"]').checked = true;
@@ -214,6 +215,7 @@
     else end.setHours(startHour + 1);
     $('#startInput').value = localDateTime(start);
     $('#endInput').value = localDateTime(end);
+    keepEndAfterStart();
     $('#dialogEyebrow').textContent = 'NEW TASK';
     $('#dialogTitle').textContent = 'เพิ่มงานใหม่';
     $('#deleteButton').hidden = true;
@@ -229,6 +231,7 @@
     $('#locationInput').value = event.location || '';
     $('#startInput').value = localDateTime(parseServerDate(event.start_at));
     $('#endInput').value = localDateTime(parseServerDate(event.end_at));
+    keepEndAfterStart();
     $('#allDayInput').checked = Boolean(event.all_day);
     $('#statusInput').value = event.status;
     const color = document.querySelector(`input[name="color"][value="${event.color}"]`);
@@ -260,6 +263,7 @@
     const start = new Date(startValue);
     const currentEnd = $('#endInput').value ? new Date($('#endInput').value) : null;
     if (Number.isNaN(start.getTime())) return;
+    $('#endInput').min = startValue;
 
     // When a future start is selected, move an empty or now-invalid end time
     // forward automatically instead of making the user correct both fields.
@@ -281,6 +285,9 @@
 
   $('#eventForm').addEventListener('submit', async (event) => {
     event.preventDefault();
+    // Some mobile datetime pickers do not emit "change" before submit.
+    // Recheck here so a stale end value can never be sent to the API.
+    keepEndAfterStart();
     const id = $('#eventId').value;
     const button = $('#saveButton');
     button.disabled = true;
@@ -325,6 +332,7 @@
   }
 
   $('#addEventButton').addEventListener('click', () => openCreate());
+  $('#startInput').addEventListener('input', keepEndAfterStart);
   $('#startInput').addEventListener('change', keepEndAfterStart);
   $('#closeDayDialogButton').addEventListener('click', () => $('#dayDialog').close());
   $('#closeDayButton').addEventListener('click', () => $('#dayDialog').close());
