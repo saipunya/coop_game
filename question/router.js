@@ -67,12 +67,7 @@ function validToken(req) {
 }
 
 function requireAdmin(req, res, next) {
-  if (!validToken(req)) {
-    const returnTo = req.method === 'GET' && req.originalUrl.startsWith('/question/')
-      ? `?next=${encodeURIComponent(req.originalUrl)}`
-      : '';
-    return res.redirect(`/question/login${returnTo}`);
-  }
+  if (!validToken(req)) return res.redirect('/question/login');
   res.locals.questionAdmin = true;
   next();
 }
@@ -80,11 +75,6 @@ function requireAdmin(req, res, next) {
 function requireQuestionApi(req, res, next) {
   if (!validToken(req)) return res.status(401).json({ error: 'กรุณาเข้าสู่ระบบก่อนเปิดคำถาม' });
   next();
-}
-
-function safeReturnPath(value, fallback = '/question/admin') {
-  const path = String(value || '');
-  return path.startsWith('/question/') && !path.startsWith('//') ? path : fallback;
 }
 
 function normalizeQuestion(body) {
@@ -161,18 +151,16 @@ router.get('/api/questions/:id/answer', requireQuestionApi, async (req, res, nex
 });
 
 router.get('/login', (req, res) => {
-  const nextPath = safeReturnPath(req.query.next);
-  if (validToken(req)) return res.redirect(nextPath);
-  res.render('question/login', { error: '', username: '', nextPath });
+  if (validToken(req)) return res.redirect('/question');
+  res.render('question/login', { error: '', username: '' });
 });
 
 router.post('/login', (req, res) => {
   const expected = credentials();
   const username = String(req.body.username || '').trim();
   const password = String(req.body.password || '');
-  const nextPath = safeReturnPath(req.body.next);
   if (!safeEqual(username, expected.username) || !safeEqual(password, expected.password)) {
-    return res.status(401).render('question/login', { error: 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง', username, nextPath });
+    return res.status(401).render('question/login', { error: 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง', username });
   }
   res.cookie(cookieName, makeToken(username), {
     httpOnly: true,
@@ -181,7 +169,7 @@ router.post('/login', (req, res) => {
     maxAge: sessionMaxAge * 1000,
     path: '/question'
   });
-  res.redirect(nextPath);
+  res.redirect('/question');
 });
 
 router.post('/logout', (req, res) => {
