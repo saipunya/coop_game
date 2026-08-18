@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#102a43">
+  <title><%= settings.title %> · สัปดาห์แห่งวิทยาศาสตร์</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/question-assets/question.css">
+  <link rel="stylesheet" href="/question-assets/science.css">
+</head>
+<body class="science-home" style="--accent: <%= settings.accentColor %>">
+  <main class="science-landing">
+    <nav class="science-nav">
+      <a class="science-brand" href="/question"><span class="atom-mark" aria-hidden="true">⚛</span><span><strong>SCIENCE WEEK</strong><small>สัปดาห์แห่งวิทยาศาสตร์</small></span></a>
+      <a class="teacher-link" href="<%= isAuthenticated ? '/question/admin' : '/question/login' %>"><%= isAuthenticated ? 'จัดการคำถาม' : 'เข้าสู่ระบบ' %> <span>⚙</span></a>
+    </nav>
+
+    <section class="science-hero">
+      <div class="hero-copy">
+        <div class="event-badge"><span></span> SCIENCE CHALLENGE 2026</div>
+        <p class="hero-kicker">เรียนรู้ · ทดลอง · ตั้งคำถาม</p>
+        <h1><%= settings.welcomeTitle %></h1>
+        <p class="hero-description"><%= settings.welcomeText %></p>
+        <div class="hero-actions">
+          <a class="start-mission" id="startMission" href="/question/categories"><%= isAuthenticated ? 'เลือกหมวดคำถาม' : 'เข้าสู่ระบบเพื่อเริ่ม' %> <span>→</span></a>
+          <div class="question-count"><strong><%= totalQuestions %></strong><span>คำถาม<br>ที่รอให้ค้นพบ</span></div>
+        </div>
+      </div>
+
+      <div class="science-visual" aria-hidden="true">
+        <div class="lab-board">
+          <span class="paper-tape tape-left"></span><span class="paper-tape tape-right"></span>
+          <div class="board-heading"><small>สมุดบันทึกการทดลอง</small><strong>ช่างสังเกต<br>ช่างสงสัย<br>กล้าทดลอง</strong></div>
+          <div class="sketch sketch-flask">⚗</div>
+          <div class="note-card note-yellow"><span>01</span><strong>ตั้งคำถาม</strong><small>เพราะทุกการค้นพบ<br>เริ่มจากความสงสัย</small></div>
+          <div class="note-card note-green"><span>02</span><strong>ลองหาคำตอบ</strong><small>ใช้เหตุผลและสิ่งที่<br>เราเรียนรู้มาแล้ว</small></div>
+          <div class="pencil-formula">H₂O &nbsp; · &nbsp; E = mc² &nbsp; · &nbsp; F = ma</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="mission-guide">
+      <div><span>01</span><p><strong>อ่านโจทย์</strong><small>ทำความเข้าใจคำถามให้ครบถ้วน</small></p></div>
+      <div><span>02</span><p><strong>คิดวิเคราะห์</strong><small>เตรียมคำตอบภายในเวลาที่กำหนด</small></p></div>
+      <div><span>03</span><p><strong>เปิดเฉลย</strong><small>หมดเวลาแล้วกดดูคำตอบพร้อมกัน</small></p></div>
+    </section>
+  </main>
+  <script>
+    document.getElementById('startMission').addEventListener('click', function () {
+      try { localStorage.removeItem('science-question-state-v1'); } catch (error) { /* storage may be unavailable */ }
+    });
+  </script>
+</body>
+</html>

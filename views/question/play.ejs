@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="<%= settings.accentColor %>">
+  <title><%= settings.title %></title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/question-assets/question.css">
+  <link rel="stylesheet" href="/question-assets/science.css">
+</head>
+<body class="quiz-body" style="--accent: <%= settings.accentColor %>">
+  <main class="quiz-shell" id="quizApp" data-time-limit="<%= settings.timeLimit %>" data-question-limit="<%= settings.questionsPerRound %>" data-randomize="<%= settings.randomize %>" data-show-progress="<%= settings.showProgress %>" data-category="<%= category.slug %>">
+    <header class="quiz-topbar">
+      <a class="quiz-brand" href="/question" aria-label="หน้าแรก">
+        <span class="brand-symbol">⚛</span>
+        <span><strong><%= settings.title %></strong><small><%= category.label %> · <%= category.badge %></small></span>
+      </a>
+      <div class="topbar-actions">
+        <% if (settings.showProgress) { %><span class="question-progress" id="questionProgress">ข้อ 1 / <%= totalQuestions %></span><% } %>
+        <a class="icon-link" href="/question/categories" aria-label="เลือกหมวดคำถาม" title="เลือกหมวด">⌂</a>
+      </div>
+    </header>
+
+    <section class="quiz-stage" aria-live="polite">
+      <div class="question-column">
+        <div class="question-meta"><span class="live-dot"></span><span id="statusLabel">กำลังโหลดคำถาม</span></div>
+        <h1 id="questionText">เตรียมพร้อมสำหรับคำถาม...</h1>
+        <div class="answer-space" aria-live="polite">
+          <div class="answer-placeholder" id="answerPlaceholder">
+            <span>พื้นที่แสดงคำตอบ</span>
+            <small>คำตอบจะปรากฏที่นี่หลังหมดเวลาและกดปุ่มเฉลย</small>
+          </div>
+          <div class="answer-reveal" id="answerReveal" hidden>
+            <span class="answer-reveal-label">คำตอบที่ถูกต้อง</span>
+            <strong id="answerText"></strong>
+            <p id="answerExplanation"></p>
+          </div>
+        </div>
+      </div>
+
+      <aside class="timer-panel">
+        <span class="timer-label">เวลาที่เหลือ</span>
+        <div class="robot-timer" aria-label="หุ่นยนต์ผู้ช่วยจับเวลา">
+          <img src="/question-assets/assets/science-timer-robot.png" alt="หุ่นยนต์ผู้ช่วยจับเวลา">
+          <div class="timer-ring" id="timerRing" aria-label="เวลาที่เหลือ">
+            <span class="timer-number" id="timerNumber"><%= settings.timeLimit %></span>
+            <span class="timer-unit">วินาที</span>
+          </div>
+        </div>
+        <p class="timer-hint" id="timerHint">คิดหาคำตอบก่อนเวลาหมด</p>
+        <button class="primary-action" id="revealButton" type="button" hidden>เฉลยคำตอบ</button>
+        <button class="secondary-action" id="nextButton" type="button" hidden>คำถามถัดไป <span>→</span></button>
+      </aside>
+    </section>
+  </main>
+
+  <div class="empty-state" id="emptyState" hidden>
+    <span class="empty-icon">?</span>
+    <h1>ยังไม่มีคำถามที่เปิดใช้งาน</h1>
+    <p>เข้าสู่ระบบผู้ดูแลเพื่อเพิ่มหรือเปิดใช้งานคำถาม</p>
+    <a href="/question/login">ไปหน้าผู้ดูแล</a>
+  </div>
+  <script src="/question-assets/question.js" defer></script>
+</body>
+</html>

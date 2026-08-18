@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>จัดการคำถาม · Science Quiz Lab</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/question-assets/question.css">
+</head>
+<body class="admin-body">
+  <header class="admin-header">
+    <a class="admin-logo" href="/question/admin"><span>⚛</span> Science Quiz Lab</a>
+    <nav>
+      <a class="active" href="/question/admin">คลังคำถาม</a>
+      <a href="/question/settings">ตั้งค่า</a>
+      <a href="/question/categories" target="_blank">เปิดหน้าคำถาม ↗</a>
+    </nav>
+    <form method="post" action="/question/logout"><button class="logout-button" type="submit">ออกจากระบบ</button></form>
+  </header>
+
+  <main class="admin-main">
+    <% if (saved) { %><div class="toast">บันทึกข้อมูลเรียบร้อยแล้ว</div><% } %>
+    <div class="page-heading">
+      <div><p class="eyebrow dark">QUESTION LIBRARY</p><h1>คลังคำถาม</h1><p>เพิ่มคำถามใหม่และจัดการสถานะการแสดงผล</p></div>
+      <a class="admin-primary" href="#questionForm">+ เพิ่มคำถาม</a>
+    </div>
+
+    <section class="admin-grid">
+      <div class="question-list-card">
+        <div class="card-heading"><div><h2>คำถามทั้งหมด</h2><p><%= questions.length %> รายการ · เปิดใช้ <%= questions.filter(q => q.active).length %> รายการ</p></div></div>
+        <% if (!questions.length) { %>
+          <div class="admin-empty"><strong>ยังไม่มีคำถาม</strong><span>เริ่มต้นด้วยการเพิ่มคำถามแรกของคุณ</span></div>
+        <% } %>
+        <div class="question-list">
+          <% questions.forEach((question, index) => { %>
+            <article class="question-row <%= !question.active ? 'inactive' : '' %>">
+              <div class="question-number"><%= String(index + 1).padStart(2, '0') %></div>
+              <div class="question-summary">
+                <div class="row-meta"><span class="status-pill <%= question.active ? 'on' : 'off' %>"><%= question.active ? 'เปิดใช้งาน' : 'ปิดใช้งาน' %></span><span><%= (categories.find(category => category.slug === question.category) || {}).shortLabel || 'ยังไม่ระบุหมวด' %></span><span>มีเฉลยแล้ว</span></div>
+                <h3><%= question.text %></h3>
+                <p>เฉลย: <%= question.answer %></p>
+              </div>
+              <div class="row-actions">
+                <a href="/question/admin?edit=<%= question.id %>#questionForm">แก้ไข</a>
+                <form method="post" action="/question/admin/questions/<%= question.id %>/toggle"><button type="submit"><%= question.active ? 'ปิด' : 'เปิด' %></button></form>
+                <form method="post" action="/question/admin/questions/<%= question.id %>/delete" onsubmit="return confirm('ลบคำถามนี้ใช่หรือไม่?')"><button class="danger" type="submit">ลบ</button></form>
+              </div>
+            </article>
+          <% }) %>
+        </div>
+      </div>
+
+      <aside class="editor-card" id="questionForm">
+        <div class="card-heading"><div><p class="eyebrow dark"><%= editing && editing.id ? 'EDIT QUESTION' : 'NEW QUESTION' %></p><h2><%= editing && editing.id ? 'แก้ไขคำถาม' : 'เพิ่มคำถามใหม่' %></h2></div><% if (editing && editing.id) { %><a href="/question/admin#questionForm">ยกเลิก</a><% } %></div>
+        <% if (error) { %><div class="alert error"><%= error %></div><% } %>
+        <form method="post" action="<%= editing && editing.id ? '/question/admin/questions/' + editing.id : '/question/admin/questions' %>">
+          <label class="field-label" for="text">คำถาม</label>
+          <textarea class="text-input" id="text" name="text" rows="3" placeholder="พิมพ์คำถามที่นี่..." required><%= editing ? editing.text : '' %></textarea>
+          <label class="field-label" for="category">หมวดคำถาม</label>
+          <select class="text-input" id="category" name="category" required>
+            <option value="">เลือกหมวดคำถาม</option>
+            <% categories.forEach(category => { %>
+              <option value="<%= category.slug %>" <%= editing && editing.category === category.slug ? 'selected' : '' %>><%= category.label %> (<%= category.badge %>)</option>
+            <% }) %>
+          </select>
+          <label class="field-label" for="answer">คำตอบที่ถูกต้อง</label>
+          <textarea class="text-input" id="answer" name="answer" rows="3" placeholder="พิมพ์คำตอบที่ต้องการแสดงเมื่อกดเฉลย..." required><%= editing ? editing.answer : '' %></textarea>
+          <p class="field-help">คำตอบนี้จะถูกซ่อนไว้จนกว่าเวลาจะหมดและกดปุ่มเฉลย</p>
+          <label class="field-label" for="explanation">คำอธิบายเฉลย <span>(ไม่บังคับ)</span></label>
+          <textarea class="text-input" id="explanation" name="explanation" rows="2" placeholder="อธิบายเพิ่มเติมหลังเฉลย"><%= editing ? editing.explanation : '' %></textarea>
+          <label class="switch-row"><span><strong>เปิดใช้งาน</strong><small>แสดงคำถามนี้ในหน้าหลัก</small></span><input type="checkbox" name="active" <%= !editing || editing.active ? 'checked' : '' %>><i></i></label>
+          <button class="admin-primary full" type="submit"><%= editing && editing.id ? 'บันทึกการแก้ไข' : 'เพิ่มคำถาม' %></button>
+        </form>
+      </aside>
+    </section>
+  </main>
+</body>
+</html>

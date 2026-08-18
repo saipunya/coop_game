@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>เข้าสู่ระบบ · Science Quiz Lab</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/question-assets/question.css">
+</head>
+<body class="admin-body">
+  <main class="login-layout">
+    <section class="login-intro">
+      <a class="admin-logo light" href="/question"><span>⚛</span> Science Quiz Lab</a>
+      <div>
+        <p class="eyebrow">SCIENCE WEEK CONTROL ROOM</p>
+        <h1>สร้างการเรียนรู้<br>ให้สนุกกว่าที่เคย</h1>
+        <p>เพิ่ม แก้ไข และตั้งค่าภารกิจคำถามวิทยาศาสตร์สำหรับนักเรียน</p>
+      </div>
+      <small>ระบบนำเสนอคำถามสำหรับกิจกรรมและห้องเรียน</small>
+    </section>
+    <section class="login-form-wrap">
+      <form class="login-card" method="post" action="/question/login">
+        <input type="hidden" name="next" value="<%= nextPath %>">
+        <div class="mobile-logo"><span>⚛</span> Science Quiz Lab</div>
+        <p class="eyebrow dark">ยินดีต้อนรับกลับ</p>
+        <h2>เข้าสู่ระบบผู้ดูแล</h2>
+        <p class="form-lead">กรอกบัญชีส่วนกลางเพื่อจัดการคำถาม</p>
+        <% if (error) { %><div class="alert error"><%= error %></div><% } %>
+        <label class="field-label" for="username">ชื่อผู้ใช้</label>
+        <input class="text-input" id="username" name="username" value="<%= username %>" autocomplete="username" required autofocus>
+        <label class="field-label" for="password">รหัสผ่าน</label>
+        <input class="text-input" id="password" name="password" type="password" autocomplete="current-password" required>
+        <button class="admin-primary full" type="submit">เข้าสู่ระบบ <span>→</span></button>
+        <a class="back-link" href="/question">← กลับไปหน้าแรก</a>
+      </form>
+    </section>
+  </main>
+</body>
+</html>

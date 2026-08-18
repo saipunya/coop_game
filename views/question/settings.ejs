@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ตั้งค่า · Science Quiz Lab</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/question-assets/question.css">
+</head>
+<body class="admin-body">
+  <header class="admin-header">
+    <a class="admin-logo" href="/question/admin"><span>⚛</span> Science Quiz Lab</a>
+    <nav><a href="/question/admin">คลังคำถาม</a><a class="active" href="/question/settings">ตั้งค่า</a><a href="/question/categories" target="_blank">เปิดหน้าคำถาม ↗</a></nav>
+    <form method="post" action="/question/logout"><button class="logout-button" type="submit">ออกจากระบบ</button></form>
+  </header>
+  <main class="admin-main narrow">
+    <% if (saved) { %><div class="toast">บันทึกการตั้งค่าเรียบร้อยแล้ว</div><% } %>
+    <div class="page-heading"><div><p class="eyebrow dark">PRESENTATION SETTINGS</p><h1>ตั้งค่าหน้าคำถาม</h1><p>กำหนดข้อความ เวลา และรูปแบบการนำเสนอ</p></div></div>
+    <form class="settings-card" method="post" action="/question/settings">
+      <div class="settings-section">
+        <div class="section-copy"><span class="section-icon">Aa</span><div><h2>หัวข้อและคำอธิบาย</h2><p>ข้อความที่แสดงมุมบนของหน้าคำถาม</p></div></div>
+        <div class="section-fields"><label class="field-label" for="title">ชื่อชุดคำถาม</label><input class="text-input" id="title" name="title" value="<%= settings.title %>" required><label class="field-label" for="subtitle">คำอธิบายสั้น</label><input class="text-input" id="subtitle" name="subtitle" value="<%= settings.subtitle %>"><label class="field-label" for="welcomeTitle">ข้อความต้อนรับ</label><input class="text-input" id="welcomeTitle" name="welcomeTitle" value="<%= settings.welcomeTitle %>" required><label class="field-label" for="welcomeText">รายละเอียดหน้าแรก</label><textarea class="text-input" id="welcomeText" name="welcomeText" rows="3"><%= settings.welcomeText %></textarea></div>
+      </div>
+      <div class="settings-section">
+        <div class="section-copy"><span class="section-icon">⌛</span><div><h2>เวลาและลำดับ</h2><p>ควบคุมจังหวะการแสดงคำถาม</p></div></div>
+        <div class="section-fields"><label class="field-label" for="timeLimit">เวลาต่อคำถาม (วินาที)</label><input class="text-input" id="timeLimit" name="timeLimit" type="number" min="5" max="300" value="<%= settings.timeLimit %>" required><label class="field-label" for="questionsPerRound">จำนวนคำถามต่อรอบ</label><input class="text-input" id="questionsPerRound" name="questionsPerRound" type="number" min="1" max="100" value="<%= settings.questionsPerRound %>" required><p class="field-help">หากหมวดมีคำถามน้อยกว่าจำนวนนี้ ระบบจะแสดงเท่าที่มี</p><label class="switch-row"><span><strong>สุ่มลำดับคำถาม</strong><small>สุ่มชุดและลำดับใหม่เมื่อเริ่มรอบใหม่</small></span><input type="checkbox" name="randomize" <%= settings.randomize ? 'checked' : '' %>><i></i></label><label class="switch-row"><span><strong>แสดงลำดับข้อ</strong><small>เช่น ข้อ 1 / 10 ที่มุมบน</small></span><input type="checkbox" name="showProgress" <%= settings.showProgress ? 'checked' : '' %>><i></i></label></div>
+      </div>
+      <div class="settings-section">
+        <div class="section-copy"><span class="section-icon color" style="background:<%= settings.accentColor %>"></span><div><h2>สีประจำชุดคำถาม</h2><p>ใช้กับปุ่ม ตัวจับเวลา และคำตอบ</p></div></div>
+        <div class="section-fields"><label class="field-label" for="accentColor">สีหลัก</label><div class="color-input"><input id="accentColor" name="accentColor" type="color" value="<%= settings.accentColor %>"><code><%= settings.accentColor %></code></div></div>
+      </div>
+      <div class="settings-footer"><a href="/question" target="_blank">ดูหน้าแรก ↗</a><button class="admin-primary" type="submit">บันทึกการตั้งค่า</button></div>
+    </form>
+  </main>
+</body>
+</html>

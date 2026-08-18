@@ -3,6 +3,7 @@ const http = require('http');
 const path = require('path');
 const { spawn } = require('child_process');
 require('dotenv').config();
+const questionRoutes = require('./question/router');
 
 const app = express();
 
@@ -104,10 +105,12 @@ app.use(yangRoutePrefix, proxyYangToPhp);
 // middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use('/question', questionRoutes);
 
 // static files
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/coopgame', express.static(path.join(__dirname, 'public')));
+app.use('/question-assets', express.static(path.join(__dirname, 'public', 'question')));
 app.use('/calendar-assets', express.static(path.join(__dirname, 'public', 'calendar')));
 
 // view engine

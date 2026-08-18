@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#2f7866">
+  <title>เลือกหมวดคำถาม · <%= settings.title %></title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/question-assets/question.css">
+  <link rel="stylesheet" href="/question-assets/science.css">
+</head>
+<body class="category-body">
+  <main class="category-page">
+    <header class="category-header">
+      <a class="science-brand" href="/question"><span class="atom-mark">⚛</span><span><strong>SCIENCE WEEK</strong><small>สัปดาห์แห่งวิทยาศาสตร์</small></span></a>
+      <a class="teacher-link" href="/question">← กลับหน้าแรก</a>
+    </header>
+
+    <section class="category-intro">
+      <p class="hero-kicker">เลือกภารกิจที่เหมาะกับคุณ</p>
+      <h1>เลือกระดับคำถาม</h1>
+      <p>แต่ละหมวดมีชุดคำถามและการจับเวลาแยกจากกัน</p>
+    </section>
+
+    <section class="category-grid">
+      <% categories.forEach((category, index) => { %>
+        <a class="category-card category-<%= index + 1 %>" href="/question/play?category=<%= category.slug %>" data-category="<%= category.slug %>">
+          <div class="category-card-top"><span class="category-number">0<%= index + 1 %></span><span class="category-badge"><%= category.badge %></span></div>
+          <div class="category-icon"><%= index === 0 ? '🔍' : '🧪' %></div>
+          <h2><%= category.label %></h2>
+          <p><%= category.description %></p>
+          <div class="category-footer"><span><strong><%= category.questionCount %></strong> คำถาม</span><b>เริ่มคำถาม →</b></div>
+        </a>
+      <% }) %>
+    </section>
+  </main>
+  <script>
+    document.querySelectorAll('[data-category]').forEach(function (link) {
+      link.addEventListener('click', function () {
+        try { localStorage.removeItem('science-question-state-v2:' + link.dataset.category); } catch (error) { /* storage may be unavailable */ }
+      });
+    });
+  </script>
+</body>
+</html>

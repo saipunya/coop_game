@@ -42,6 +42,8 @@ Thumbs.db
 # uploads / generated files
 uploads/
 tmp/
+question/data/*.json
+question/data/*.tmp
 
 # local database files
 *.sqlite
